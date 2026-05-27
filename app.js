@@ -1,11 +1,11 @@
 // The Study Cafe - Admin Panel Logic (Shift-free, 4 Rooms, 400 Seats Version with Receipt & WhatsApp)
 
 const DEFAULT_FIREBASE_CONFIG = {
-    apiKey: "AIzaSyA4c3BfU2FuZGJveEtleS1EZW1vMTIzNDU",
-    authDomain: "study-cafe-sandbox-default.firebaseapp.com",
-    databaseURL: "https://study-cafe-sandbox-default-rtdb.firebaseio.com",
-    projectId: "study-cafe-sandbox-default",
-    storageBucket: "study-cafe-sandbox-default.appspot.com"
+    apiKey: "AIzaSyDW0-_Xzvwvkm9wpZ9j2ihDQmIAalrn7lM",
+    authDomain: "test-560c6.firebaseapp.com",
+    databaseURL: "https://test-560c6-default-rtdb.firebaseio.com",
+    projectId: "test-560c6",
+    storageBucket: "test-560c6.firebasestorage.app"
 };
 
 const PLANS = [

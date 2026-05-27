@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Study Cafe - Seat Registration</title>
+    <!-- Fonts & Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=2">
+</head>
+<body style="background: linear-gradient(135deg, var(--bg-primary) 0%, #151e2e 100%); display: flex; align-items: center; justify-content: center; min-height: 100vh;">
+
+    <div class="student-form-wrapper">
+        <div class="glass-panel student-card">
+            
+            <!-- Logo Section -->
+            <div class="student-logo">
+                <i class="fa-solid fa-mug-hot logo-icon" style="animation: pulse 3s infinite;"></i>
+                <span class="logo-text">The Study Cafe</span>
+                <p id="lib-address-display">Maitri Nagar, Risali, Bhilai</p>
+            </div>
+
+            <!-- Form Content -->
+            <div id="form-container" class="panel-body">
+                <form id="student-booking-form" onsubmit="submitStudentForm(event)">
+                    
+                    <!-- Section 1: Personal Details -->
+                    <div class="form-section-container">
+                        <div class="form-section-title">
+                            <i class="fa-solid fa-user"></i>
+                            <span>Personal Details</span>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="s-name">Your Full Name *</label>
+                                <input type="text" id="s-name" class="form-control" required placeholder="e.g. Rahul Sahu">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="s-phone">Mobile Number *</label>
+                                <input type="tel" id="s-phone" class="form-control" required placeholder="e.g. 9876543210" pattern="[0-9]{10}">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="s-dob">Date of Birth *</label>
+                                <input type="date" id="s-dob" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="s-gov-id">Aadhaar / Gov ID (Optional)</label>
+                                <input type="text" id="s-gov-id" class="form-control" placeholder="Aadhaar or Gov ID">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="s-start-date">Expected Joining Date *</label>
+                                <input type="date" id="s-start-date" class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Parent & Emergency Contacts -->
+                    <div class="form-section-container">
+                        <div class="form-section-title">
+                            <i class="fa-solid fa-users"></i>
+                            <span>Parent & Emergency Contacts</span>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="s-father-name">Father's Name *</label>
+                                <input type="text" id="s-father-name" class="form-control" required placeholder="e.g. Ramesh Sahu">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="s-father-phone">Father's Mobile Number *</label>
+                                <input type="tel" id="s-father-phone" class="form-control" required placeholder="e.g. 9876543210" pattern="[0-9]{10}">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="s-emergency-name">Emergency Contact Name *</label>
+                                <input type="text" id="s-emergency-name" class="form-control" required placeholder="e.g. Vinay Sahu">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="s-emergency-relation">Relationship *</label>
+                                <select id="s-emergency-relation" class="form-control" required>
+                                    <option value="Mother">Mother</option>
+                                    <option value="Father">Father</option>
+                                    <option value="Brother">Brother</option>
+                                    <option value="Sister">Sister</option>
+                                    <option value="Friend">Friend</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="s-emergency-phone">Emergency Mobile Number *</label>
+                            <input type="tel" id="s-emergency-phone" class="form-control" required placeholder="e.g. 9876543210" pattern="[0-9]{10}">
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Address Details -->
+                    <div class="form-section-container">
+                        <div class="form-section-title">
+                            <i class="fa-solid fa-location-dot"></i>
+                            <span>Address Information</span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="s-current-address">Recent / Current Address *</label>
+                            <textarea id="s-current-address" class="form-control" required placeholder="Where you currently stay in Risali/Bhilai" rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="s-permanent-address">Permanent Address *</label>
+                            <textarea id="s-permanent-address" class="form-control" required placeholder="Your home town address" rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Section 4: Academic Details -->
+                    <div class="form-section-container">
+                        <div class="form-section-title">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                            <span>Academic Details</span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="s-target-exam">Target Exam / Course *</label>
+                            <select id="s-target-exam" class="form-control" required>
+                                <option value="UPSC">UPSC</option>
+                                <option value="CGPSC">CGPSC</option>
+                                <option value="Vyapam">Vyapam / State Exams</option>
+                                <option value="SSC">SSC</option>
+                                <option value="Railway">Railway</option>
+                                <option value="Banking">Banking</option>
+                                <option value="JEE">JEE</option>
+                                <option value="NEET">NEET</option>
+                                <option value="CA">CA</option>
+                                <option value="CS">CS</option>
+                                <option value="CLAT">CLAT</option>
+                                <option value="CAT">CAT / MBA Prep</option>
+                                <option value="UGC NET">UGC NET</option>
+                                <option value="College Exams">College Exams</option>
+                                <option value="Class 11 & 12">Class 11 & 12 (School)</option>
+                                <option value="Other Preparation">Other Preparation</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Section 5: Seating Preferences & Interactive Selector -->
+                    <div class="form-section-container">
+                        <div class="form-section-title">
+                            <i class="fa-solid fa-chair"></i>
+                            <span>Seat Selection</span>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="s-seat-type">Seat Preference *</label>
+                                <select id="s-seat-type" class="form-control" onchange="onStudentRoomOrTypeChange()" required>
+                                    <option value="non-reserved">Non-Reserved - ₹700</option>
+                                    <option value="reserved">Reserved - ₹1000</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="s-duration">Duration Package *</label>
+                                <select id="s-duration" class="form-control" onchange="onStudentRoomOrTypeChange()" required>
+                                    <option value="1">1 Month</option>
+                                    <option value="3">3 Months (Discounted)</option>
+                                    <option value="6">6 Months (Best Value)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Non-Reserved Seat Placeholder Message -->
+                        <div id="s-flexible-msg" style="background: rgba(16, 185, 129, 0.05); border: 1px dashed rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 1.25rem; margin-top: 0.5rem; text-align: center; color: var(--accent-emerald); font-weight: 500; font-size: 0.9rem;">
+                            <i class="fa-solid fa-circle-check" style="margin-right: 0.5rem;"></i>
+                            Non-Reserved seating selected. You can sit on any available seat when you visit the cafe.
+                        </div>
+
+                        <!-- Seat Picker Section (Hidden for Non-Reserved) -->
+                        <div id="s-seat-picker-container" style="display: none; margin-top: 1rem;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label" for="s-room">Choose Room *</label>
+                                    <select id="s-room" class="form-control" onchange="onStudentRoomOrTypeChange()">
+                                        <option value="1">Room 1</option>
+                                        <option value="2">Room 2</option>
+                                        <option value="3">Room 3</option>
+                                        <option value="4">Room 4</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Selected Seat *</label>
+                                    <div id="student-selected-seat-badge" class="form-control" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); color: var(--accent-emerald); font-weight: 700; display: flex; align-items: center; justify-content: center; height: 43px;">
+                                        None selected
+                                    </div>
+                                </div>
+                            </div>
+
+                            <select id="s-seat-id" style="display: none;">
+                                <!-- Populated dynamically and synced -->
+                            </select>
+
+                            <!-- Visual Seat Grid Map -->
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label class="form-label" style="text-align: center; margin-bottom: 0.5rem;">Tap an Available Seat in the Grid to Select *</label>
+                                <div class="student-legend-container" style="display: flex; gap: 1rem; margin-bottom: 0.65rem; justify-content: center; font-size: 0.75rem; color: var(--text-muted);">
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;"><span style="display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: var(--accent-blue); box-shadow: 0 0 8px rgba(59, 130, 246, 0.2); border: 1px solid rgba(255,255,255,0.1);"></span> Reserved</div>
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;"><span style="display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: var(--text-dark); border: 1px solid rgba(255,255,255,0.1);"></span> Available</div>
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;"><span style="display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: var(--accent-rose); box-shadow: 0 0 8px rgba(244, 63, 94, 0.2); border: 1px solid rgba(255,255,255,0.1);"></span> Maintenance</div>
+                                </div>
+                                <div class="student-seat-grid" id="student-seat-grid">
+                                    <!-- Visual grid here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 6: Payment Method Preference -->
+                    <div class="form-section-container">
+                        <div class="form-section-title">
+                            <i class="fa-solid fa-wallet"></i>
+                            <span>Payment Preference</span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Preferred Payment Method *</label>
+                            <div style="display: flex; gap: 1.5rem; margin-top: 0.5rem; margin-bottom: 1rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; color: #fff;">
+                                    <input type="radio" name="s-payment-method" value="Cash" checked style="accent-color: var(--accent-emerald);"> Cash
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; color: #fff;">
+                                    <input type="radio" name="s-payment-method" value="Online" style="accent-color: var(--accent-emerald);"> Online (UPI)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group" id="student-price-display-box" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 0; display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 0.85rem; color: var(--text-muted);">Estimated Fee:</span>
+                            <strong style="color: var(--accent-emerald); font-size: 1.2rem; font-family: 'Outfit';" id="student-fee-price">₹700</strong>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.9rem; border-radius: 8px;" id="btn-submit-booking">
+                        <i class="fa-solid fa-paper-plane"></i> Submit Booking Request
+                    </button>
+                </form>
+            </div>
+
+            <!-- Success Content (Hidden initially) -->
+            <div id="success-container" class="student-success-view" style="display: none;">
+                <div class="success-icon">
+                    <i class="fa-solid fa-check"></i>
+                </div>
+                <h3 class="success-title">Booking Requested!</h3>
+                <p class="success-msg">
+                    Hey <strong id="success-student-name" style="color: #fff;">Student</strong>, your registration form has been sent to the front desk.
+                </p>
+                <div style="background: rgba(255,255,255,0.03); border: 1px dashed var(--border-color); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: left;">
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem;"><strong>Next Step:</strong></p>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
+                        Please head over to the reception desk. Inform the Admin of your name: <strong id="success-student-name-2" style="color: var(--accent-emerald);">Student</strong> to complete payment and activate your selected seat.
+                    </p>
+                </div>
+                <button class="btn btn-secondary" onclick="resetFormView()" style="width: 100%; justify-content: center;">
+                    <i class="fa-solid fa-rotate-left"></i> Book Another Seat
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- FIREBASE SDKs (Compat version for student integration) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <!-- Student Logic -->
+    <script src="register.js?v=8"></script>
+</body>
+</html>

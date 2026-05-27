@@ -11,7 +11,12 @@
     <strong>A futuristic, shift-free study library management portal. Featuring real-time seating grids, instant WhatsApp notifications, and automated billing.</strong>
   </p>
 
-  👥 **[Admin Dashboard](https://sachinmandawi.github.io/Library/index.html)** • 📝 **[Student Registration Form](https://sachinmandawi.github.io/Library/register.html)**
+  <br />
+
+  ### 🔗 Live Applications
+
+  [![Live Admin Dashboard](https://img.shields.io/badge/Live_Admin_Dashboard-Click_to_Open-3b82f6?style=for-the-badge&logo=googlechrome&logoColor=white)](https://sachinmandawi.github.io/Library/index.html)
+  [![Live Student Registration Form](https://img.shields.io/badge/Live_Student_Registration-Click_to_Open-10b981?style=for-the-badge&logo=googleforms&logoColor=white)](https://sachinmandawi.github.io/Library/register.html)
 </div>
 
 ---

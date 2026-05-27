@@ -200,7 +200,7 @@ function initApp() {
             const statusText = document.getElementById("db-status-text");
             
             statusDot.className = "status-dot online";
-            statusText.textContent = config.apiKey === DEFAULT_FIREBASE_CONFIG.apiKey ? "Demo Database" : "Private DB Connected";
+            statusText.textContent = config.apiKey === "AIzaSyA4c3BfU2FuZGJveEtleS1EZW1vMTIzNDU" ? "Demo Database" : "Private DB Connected";
             
             setupFirebaseListeners();
         } catch (err) {

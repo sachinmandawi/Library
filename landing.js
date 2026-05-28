@@ -112,6 +112,164 @@ function updateStatsUI(vacant, occupied) {
     }
 }
 
+// Render static seat box for Room 1 preview
+function createStaticSeatBox(seat) {
+    const seatBox = document.createElement("div");
+    seatBox.className = "student-seat-box";
+    seatBox.textContent = seat.number;
+    
+    const isOccupied = seat.status === "occupied";
+    const isMaintenance = seat.status === "maintenance";
+    
+    if (isOccupied) {
+        seatBox.classList.add("occupied");
+        seatBox.title = `Seat ${seat.number} is Occupied`;
+    } else if (isMaintenance) {
+        seatBox.classList.add("maintenance");
+        seatBox.title = `Seat ${seat.number} is under Maintenance`;
+    } else {
+        seatBox.classList.add("vacant");
+        seatBox.title = `Seat ${seat.number} (Available)`;
+    }
+    return seatBox;
+}
+
+// Render room 1 physical seating plan dynamically in home page gallery
+function renderHomeSeatingPlan(seatsData) {
+    const gridContainer = document.getElementById("home-physical-map-container");
+    if (!gridContainer) return;
+    gridContainer.innerHTML = "";
+    
+    let room1Seats = [];
+    if (seatsData) {
+        const allSeats = Array.isArray(seatsData) ? seatsData : Object.values(seatsData);
+        room1Seats = allSeats.filter(s => s && s.room === 1);
+    }
+    
+    // Realistic fallback mock statuses if room 1 seats count is not matching 50
+    if (room1Seats.length < 50) {
+        room1Seats = [];
+        const mockStatuses = [
+            "vacant", "vacant", "occupied", "vacant", "occupied", "occupied", "vacant", "vacant", "occupied", "vacant", // 1-10
+            "vacant", "occupied", "occupied", "vacant", "vacant", "occupied", "vacant", "occupied", "vacant", "vacant", // 11-20
+            "occupied", "vacant", "vacant", "occupied", "vacant", "occupied", "occupied", "vacant", "vacant", "maintenance", // 21-30
+            "vacant", "occupied", "vacant", "vacant", "occupied", "vacant", "occupied", "occupied", "vacant", "vacant", // 31-40
+            "occupied", "vacant", "occupied", "vacant", "vacant", "occupied", "vacant", "vacant", "maintenance", "occupied" // 41-50
+        ];
+        for (let i = 1; i <= 50; i++) {
+            room1Seats.push({
+                id: `seat_${i}`,
+                number: i,
+                room: 1,
+                type: "general",
+                status: mockStatuses[i - 1] || "vacant"
+            });
+        }
+    }
+    
+    // Sort roomSeats by number to ensure they are sequential
+    room1Seats.sort((a, b) => a.number - b.number);
+    
+    const container = document.createElement("div");
+    container.className = "physical-layout-container";
+    
+    // 1. Top Row (1 to 10)
+    const topRow = document.createElement("div");
+    topRow.className = "layout-row top-row";
+    const topBlock = document.createElement("div");
+    topBlock.className = "top-block";
+    room1Seats.slice(0, 10).forEach(seat => {
+        topBlock.appendChild(createStaticSeatBox(seat));
+    });
+    topRow.appendChild(topBlock);
+    container.appendChild(topRow);
+    
+    // 2. Horizontal Walkway
+    const walkway1 = document.createElement("div");
+    walkway1.className = "layout-walkway horizontal-walkway";
+    walkway1.textContent = "Walkway";
+    container.appendChild(walkway1);
+    
+    // 3. Middle Section
+    const middleSection = document.createElement("div");
+    middleSection.className = "layout-middle-section";
+    
+    // Left Column (11 to 20)
+    const leftCol = document.createElement("div");
+    leftCol.className = "layout-column left-column";
+    room1Seats.slice(10, 20).forEach(seat => {
+        leftCol.appendChild(createStaticSeatBox(seat));
+    });
+    middleSection.appendChild(leftCol);
+    
+    // Walkway
+    const walkwayV1 = document.createElement("div");
+    walkwayV1.className = "layout-walkway vertical-walkway";
+    walkwayV1.textContent = "Walkway";
+    middleSection.appendChild(walkwayV1);
+    
+    // Middle Double Column
+    const midDouble = document.createElement("div");
+    midDouble.className = "layout-middle-double-block";
+    
+    // Middle Left (21 to 30)
+    const midLeftCol = document.createElement("div");
+    midLeftCol.className = "layout-column mid-left-column";
+    room1Seats.slice(20, 30).forEach(seat => {
+        midLeftCol.appendChild(createStaticSeatBox(seat));
+    });
+    midDouble.appendChild(midLeftCol);
+    
+    // Partition line
+    const partition = document.createElement("div");
+    partition.className = "layout-partition";
+    midDouble.appendChild(partition);
+    
+    // Middle Right (31 to 40)
+    const midRightCol = document.createElement("div");
+    midRightCol.className = "layout-column mid-right-column";
+    room1Seats.slice(30, 40).forEach(seat => {
+        midRightCol.appendChild(createStaticSeatBox(seat));
+    });
+    midDouble.appendChild(midRightCol);
+    
+    middleSection.appendChild(midDouble);
+    
+    // Walkway
+    const walkwayV2 = document.createElement("div");
+    walkwayV2.className = "layout-walkway vertical-walkway";
+    walkwayV2.textContent = "Walkway";
+    middleSection.appendChild(walkwayV2);
+    
+    // Right Column (41 to 50)
+    const rightCol = document.createElement("div");
+    rightCol.className = "layout-column right-column";
+    room1Seats.slice(40, 50).forEach(seat => {
+        rightCol.appendChild(createStaticSeatBox(seat));
+    });
+    middleSection.appendChild(rightCol);
+    
+    container.appendChild(middleSection);
+    
+    // 4. Bottom Walkway & Gate
+    const bottomSection = document.createElement("div");
+    bottomSection.className = "layout-bottom-section";
+    
+    const gate = document.createElement("div");
+    gate.className = "layout-gate";
+    gate.textContent = "Gate 🚪";
+    bottomSection.appendChild(gate);
+    
+    const bottomWalkway = document.createElement("div");
+    bottomWalkway.className = "layout-walkway horizontal-walkway bottom-walkway";
+    bottomWalkway.textContent = "Walkway";
+    bottomSection.appendChild(bottomWalkway);
+    
+    container.appendChild(bottomSection);
+    
+    gridContainer.appendChild(container);
+}
+
 // Fetch dynamic seat status from Firebase
 function initSeatsListener() {
     const config = getFirebaseConfig();
@@ -128,11 +286,14 @@ function initSeatsListener() {
                     let vacant = 0;
                     let occupied = 0;
                     
-                    Object.values(seats).forEach(seat => {
-                        if (seat.status === "vacant") {
-                            vacant++;
-                        } else {
-                            occupied++;
+                    const seatsArray = Array.isArray(seats) ? seats : Object.values(seats);
+                    seatsArray.forEach(seat => {
+                        if (seat) {
+                            if (seat.status === "vacant") {
+                                vacant++;
+                            } else {
+                                occupied++;
+                            }
                         }
                     });
                     
@@ -141,6 +302,7 @@ function initSeatsListener() {
                         loadOfflineFallback();
                     } else {
                         updateStatsUI(vacant, occupied);
+                        renderHomeSeatingPlan(seats);
                     }
                 } else {
                     loadOfflineFallback();
@@ -168,13 +330,16 @@ function loadOfflineFallback() {
                 let vacant = 0;
                 let occupied = 0;
                 state.seats.forEach(seat => {
-                    if (seat.status === "vacant") {
-                        vacant++;
-                    } else {
-                        occupied++;
+                    if (seat) {
+                        if (seat.status === "vacant") {
+                            vacant++;
+                        } else {
+                            occupied++;
+                        }
                     }
                 });
                 updateStatsUI(vacant, occupied);
+                renderHomeSeatingPlan(state.seats);
                 return;
             }
         }
@@ -182,6 +347,7 @@ function loadOfflineFallback() {
     
     // Default static fallback if completely offline
     updateStatsUI(120, 280);
+    renderHomeSeatingPlan(null);
 }
 
 // Pricing Toggle System

@@ -1304,3 +1304,118 @@ h1, h2, h3, h4, h5, h6 {
     border-color: rgba(16, 185, 129, 0.3);
     box-shadow: 0 10px 25px rgba(16, 185, 129, 0.12);
 }
+
+/* Image Lightbox Modal Overlay */
+.lightbox-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 14, 23, 0.94);
+    backdrop-filter: blur(8px);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lightbox-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 1.5rem;
+    right: 2rem;
+    font-size: 2.5rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.2s;
+    user-select: none;
+    z-index: 10002;
+}
+
+.lightbox-close:hover {
+    color: #ffffff;
+}
+
+.lightbox-content-wrapper {
+    width: 80vw;
+    height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+}
+
+#lightbox-img {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+    transform-origin: center center;
+    transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: grab;
+}
+
+#lightbox-img:active {
+    cursor: grabbing;
+}
+
+.lightbox-controls {
+    display: flex;
+    gap: 1.5rem;
+    background: rgba(21, 30, 46, 0.85);
+    border: 1px solid var(--border-color);
+    padding: 0.6rem 1.5rem;
+    border-radius: 30px;
+    margin-top: 1.5rem;
+    box-shadow: var(--shadow-main);
+    z-index: 10001;
+    backdrop-filter: blur(10px);
+}
+
+.lightbox-controls .control-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.lightbox-controls .control-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+    transform: scale(1.1);
+}
+
+.lightbox-controls .control-btn:active {
+    transform: scale(0.95);
+}
+
+/* Hover cursor overrides for photo avatars */
+.member-avatar.clickable-avatar {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.member-avatar.clickable-avatar:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
+    border-color: var(--accent-blue) !important;
+}

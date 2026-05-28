@@ -606,6 +606,8 @@ function renderDashboardAlerts() {
         const alertAvatarLetter = member.name.charAt(0).toUpperCase();
         const alertAvatarStyle = member.photo ? `background-image: url('${member.photo}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : '';
         const alertAvatarContent = member.photo ? '' : alertAvatarLetter;
+        const clickableClass = member.photo ? 'clickable-avatar' : '';
+        const onclickAttr = member.photo ? `onclick="openLightbox('${member.photo}')"` : '';
         
         let seatInfoText = "";
         if (member.seatId === "non-reserved") {
@@ -618,7 +620,7 @@ function renderDashboardAlerts() {
         }
         
         item.innerHTML = `
-            <div class="alert-avatar" style="${alertAvatarStyle}">${alertAvatarContent}</div>
+            <div class="alert-avatar ${clickableClass}" ${onclickAttr} style="${alertAvatarStyle}">${alertAvatarContent}</div>
             <div class="alert-details">
                 <div class="alert-name">${member.name}</div>
                 <div class="alert-info">${seatInfoText} • ${member.phone}</div>
@@ -796,6 +798,8 @@ function renderMemberTable() {
         const avatarLetter = member.name.charAt(0).toUpperCase();
         const avatarStyle = member.photo ? `background-image: url('${member.photo}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : '';
         const avatarContent = member.photo ? '' : avatarLetter;
+        const clickableClass = member.photo ? 'clickable-avatar' : '';
+        const onclickAttr = member.photo ? `onclick="openLightbox('${member.photo}')"` : '';
         
         let seatDisplayHTML = "";
         if (member.seatId === "non-reserved") {
@@ -823,7 +827,7 @@ function renderMemberTable() {
         tr.innerHTML = `
             <td>
                 <div class="member-profile">
-                    <div class="member-avatar" style="${avatarStyle}">${avatarContent}</div>
+                    <div class="member-avatar ${clickableClass}" ${onclickAttr} style="${avatarStyle}">${avatarContent}</div>
                     <div>
                         <div class="member-name">${member.name}</div>
                         <div class="member-phone">${member.phone}</div>
@@ -924,11 +928,13 @@ function renderPendingRequests() {
         const reqAvatarLetter = req.name.charAt(0).toUpperCase();
         const reqAvatarStyle = req.photo ? `background-image: url('${req.photo}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : 'color: var(--accent-amber);';
         const reqAvatarContent = req.photo ? '' : reqAvatarLetter;
+        const clickableClass = req.photo ? 'clickable-avatar' : '';
+        const onclickAttr = req.photo ? `onclick="openLightbox('${req.photo}')"` : '';
         
         tr.innerHTML = `
             <td>
                 <div class="member-profile">
-                    <div class="member-avatar" style="${reqAvatarStyle}">${reqAvatarContent}</div>
+                    <div class="member-avatar ${clickableClass}" ${onclickAttr} style="${reqAvatarStyle}">${reqAvatarContent}</div>
                     <div>
                         <div class="member-name">${req.name}</div>
                         <div class="member-phone">${req.phone}</div>
@@ -1555,6 +1561,8 @@ function openSeatActionsModal(seatId) {
                 const seatAvatarLetter = member.name.charAt(0).toUpperCase();
                 const seatAvatarStyle = member.photo ? `background-image: url('${member.photo}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : 'background: rgba(255,255,255,0.05); color: var(--accent-blue);';
                 const seatAvatarContent = member.photo ? '' : seatAvatarLetter;
+                const clickableClass = member.photo ? 'clickable-avatar' : '';
+                const onclickAttr = member.photo ? `onclick="openLightbox('${member.photo}')"` : '';
                 
                 modalBody.innerHTML = `
                     <div style="display: flex; flex-direction: column; gap: 0.8rem;">
@@ -1564,7 +1572,7 @@ function openSeatActionsModal(seatId) {
                         </div>
                         <div style="display: flex; gap: 1rem; align-items: center; justify-content: space-between;">
                             <div style="display: flex; gap: 0.75rem; align-items: center;">
-                                <div style="width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem; flex-shrink: 0; ${seatAvatarStyle}">${seatAvatarContent}</div>
+                                <div class="member-avatar ${clickableClass}" ${onclickAttr} style="width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem; flex-shrink: 0; ${seatAvatarStyle}">${seatAvatarContent}</div>
                                 <div>
                                     <div style="font-size: 0.75rem; color: var(--text-muted);">Occupant:</div>
                                     <strong style="font-size: 1.15rem; color:#fff; display:block; margin-top:0.15rem;">${member.name}</strong>
@@ -2243,4 +2251,102 @@ window.addEventListener("storage", (event) => {
 // Initialize on page load
 window.addEventListener("DOMContentLoaded", () => {
     initApp();
+});
+
+// ==========================================
+// INTERACTIVE IMAGE LIGHTBOX CONTROLLER
+// ==========================================
+let lightboxScale = 1;
+let lightboxRotation = 0;
+let isPanning = false;
+let startX = 0;
+let startY = 0;
+let panX = 0;
+let panY = 0;
+
+function openLightbox(imgSrc) {
+    if (!imgSrc) return;
+    const overlay = document.getElementById("lightbox-container");
+    const img = document.getElementById("lightbox-img");
+    if (!overlay || !img) return;
+    
+    img.src = imgSrc;
+    resetLightbox();
+    overlay.classList.add("active");
+}
+
+function closeLightbox(event) {
+    if (event) {
+        const classList = event.target.classList;
+        if (!classList.contains("lightbox-overlay") && !classList.contains("lightbox-close") && !classList.contains("lightbox-content-wrapper")) {
+            return;
+        }
+    }
+    const overlay = document.getElementById("lightbox-container");
+    if (overlay) overlay.classList.remove("active");
+}
+
+function zoomLightbox(delta) {
+    lightboxScale = Math.min(Math.max(0.5, lightboxScale + delta), 4.0);
+    applyLightboxTransform();
+}
+
+function rotateLightbox() {
+    lightboxRotation = (lightboxRotation + 90) % 360;
+    applyLightboxTransform();
+}
+
+function resetLightbox() {
+    lightboxScale = 1;
+    lightboxRotation = 0;
+    panX = 0;
+    panY = 0;
+    applyLightboxTransform();
+}
+
+function applyLightboxTransform() {
+    const img = document.getElementById("lightbox-img");
+    if (img) {
+        img.style.transform = `translate(${panX}px, ${panY}px) scale(${lightboxScale}) rotate(${lightboxRotation}deg)`;
+    }
+}
+
+// Bind Panning and Wheel zooming mouse event listeners
+window.addEventListener("DOMContentLoaded", () => {
+    const img = document.getElementById("lightbox-img");
+    if (!img) return;
+    
+    // Scroll Wheel Zooming
+    img.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 0.2 : -0.2;
+        zoomLightbox(delta);
+    }, { passive: false });
+    
+    // Double click to reset
+    img.addEventListener("dblclick", () => {
+        resetLightbox();
+    });
+    
+    // Click & Drag Panning
+    img.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        isPanning = true;
+        startX = e.clientX - panX;
+        startY = e.clientY - panY;
+        img.style.transition = "none";
+    });
+    
+    window.addEventListener("mousemove", (e) => {
+        if (!isPanning) return;
+        panX = e.clientX - startX;
+        panY = e.clientY - startY;
+        applyLightboxTransform();
+    });
+    
+    window.addEventListener("mouseup", () => {
+        if (!isPanning) return;
+        isPanning = false;
+        if (img) img.style.transition = "transform 0.15s cubic-bezier(0.16, 1, 0.3, 1)";
+    });
 });

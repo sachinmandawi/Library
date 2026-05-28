@@ -755,6 +755,29 @@
         </div>
     </div>
 
+    <!-- IMAGE LIGHTBOX MODAL -->
+    <div class="lightbox-overlay" id="lightbox-container" onclick="closeLightbox(event)">
+        <span class="lightbox-close" onclick="closeLightbox(event)">&times;</span>
+        <div class="lightbox-content-wrapper">
+            <img id="lightbox-img" src="" alt="Profile Preview" draggable="false" />
+        </div>
+        <!-- Controls Panel -->
+        <div class="lightbox-controls" onclick="event.stopPropagation()">
+            <button class="control-btn" onclick="zoomLightbox(0.2)" title="Zoom In">
+                <i class="fa-solid fa-magnifying-glass-plus"></i>
+            </button>
+            <button class="control-btn" onclick="zoomLightbox(-0.2)" title="Zoom Out">
+                <i class="fa-solid fa-magnifying-glass-minus"></i>
+            </button>
+            <button class="control-btn" onclick="rotateLightbox()" title="Rotate">
+                <i class="fa-solid fa-rotate-right"></i>
+            </button>
+            <button class="control-btn" onclick="resetLightbox()" title="Reset">
+                <i class="fa-solid fa-arrows-rotate"></i>
+            </button>
+        </div>
+    </div>
+
     <!-- FIREBASE SDKs (Compat version for simple browser integration) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
@@ -766,7 +789,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <!-- Admin logic -->
-    <script src="app.js?v=14"></script>
+    <script src="app.js?v=15"></script>
 
 </body>
 </html>

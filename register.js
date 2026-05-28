@@ -225,6 +225,156 @@ function onStudentRoomOrTypeChange() {
     renderStudentSeatGrid(seatsData, selectedRoom, seatType);
 }
 
+function createStudentSeatBox(seat) {
+    const seatBox = document.createElement("div");
+    seatBox.className = "student-seat-box";
+    seatBox.textContent = seat.number; // Local seat number in room 1-100
+    
+    const isOccupied = seat.status === "occupied";
+    const isMaintenance = seat.status === "maintenance";
+    
+    if (isOccupied) {
+        seatBox.classList.add("occupied");
+        seatBox.title = `Seat ${seat.number} is Occupied`;
+    } else if (isMaintenance) {
+        seatBox.classList.add("maintenance");
+        seatBox.title = `Seat ${seat.number} is under Maintenance`;
+    } else {
+        // Vacant -> Clickable!
+        seatBox.classList.add("vacant");
+        seatBox.title = `Seat ${seat.number} (Available)`;
+        
+        // Check if this seat is currently selected
+        if (selectedSeatId === seat.id) {
+            seatBox.classList.add("selected");
+        }
+        
+        seatBox.onclick = () => {
+            selectStudentSeat(seat.id, seat.number);
+            
+            // Highlight active in grid
+            document.querySelectorAll(".student-seat-box.selected").forEach(el => {
+                el.classList.remove("selected");
+            });
+            seatBox.classList.add("selected");
+        };
+    }
+    return seatBox;
+}
+
+function renderStudentPhysicalLayoutRoom1(gridContainer, roomSeats) {
+    gridContainer.classList.add("physical-layout-active");
+    
+    const container = document.createElement("div");
+    container.className = "physical-layout-container";
+    
+    // Sort roomSeats by number to ensure they are sequential
+    roomSeats.sort((a, b) => a.number - b.number);
+    
+    // 1. Top Row (1 to 10)
+    const topRow = document.createElement("div");
+    topRow.className = "layout-row top-row";
+    const topBlock = document.createElement("div");
+    topBlock.className = "top-block";
+    roomSeats.slice(0, 10).forEach(seat => {
+        topBlock.appendChild(createStudentSeatBox(seat));
+    });
+    topRow.appendChild(topBlock);
+    container.appendChild(topRow);
+    
+    // 2. Horizontal Walkway
+    const walkway1 = document.createElement("div");
+    walkway1.className = "layout-walkway horizontal-walkway";
+    walkway1.textContent = "Walkway";
+    container.appendChild(walkway1);
+    
+    // 3. Middle Section
+    const middleSection = document.createElement("div");
+    middleSection.className = "layout-middle-section";
+    
+    // Left Column (11 to 20)
+    const leftCol = document.createElement("div");
+    leftCol.className = "layout-column left-column";
+    roomSeats.slice(10, 20).forEach(seat => {
+        leftCol.appendChild(createStudentSeatBox(seat));
+    });
+    middleSection.appendChild(leftCol);
+    
+    // Walkway
+    const walkwayV1 = document.createElement("div");
+    walkwayV1.className = "layout-walkway vertical-walkway";
+    walkwayV1.textContent = "Walkway";
+    middleSection.appendChild(walkwayV1);
+    
+    // Middle Double Column
+    const midDouble = document.createElement("div");
+    midDouble.className = "layout-middle-double-block";
+    
+    // Middle Left (21 to 30)
+    const midLeftCol = document.createElement("div");
+    midLeftCol.className = "layout-column mid-left-column";
+    roomSeats.slice(20, 30).forEach(seat => {
+        midLeftCol.appendChild(createStudentSeatBox(seat));
+    });
+    midDouble.appendChild(midLeftCol);
+    
+    // Partition line
+    const partition = document.createElement("div");
+    partition.className = "layout-partition";
+    midDouble.appendChild(partition);
+    
+    // Middle Right (31 to 40)
+    const midRightCol = document.createElement("div");
+    midRightCol.className = "layout-column mid-right-column";
+    roomSeats.slice(30, 40).forEach(seat => {
+        midRightCol.appendChild(createStudentSeatBox(seat));
+    });
+    midDouble.appendChild(midRightCol);
+    
+    middleSection.appendChild(midDouble);
+    
+    // Walkway
+    const walkwayV2 = document.createElement("div");
+    walkwayV2.className = "layout-walkway vertical-walkway";
+    walkwayV2.textContent = "Walkway";
+    middleSection.appendChild(walkwayV2);
+    
+    // Right Column (41 to 50)
+    const rightCol = document.createElement("div");
+    rightCol.className = "layout-column right-column";
+    roomSeats.slice(40, 50).forEach(seat => {
+        rightCol.appendChild(createStudentSeatBox(seat));
+    });
+    middleSection.appendChild(rightCol);
+    
+    container.appendChild(middleSection);
+    
+    // 4. Bottom Walkway & Gate
+    const bottomSection = document.createElement("div");
+    bottomSection.className = "layout-bottom-section";
+    
+    const gate = document.createElement("div");
+    gate.className = "layout-gate";
+    gate.textContent = "Gate 🚪";
+    bottomSection.appendChild(gate);
+    
+    const bottomWalkway = document.createElement("div");
+    bottomWalkway.className = "layout-walkway horizontal-walkway bottom-walkway";
+    bottomWalkway.textContent = "Walkway";
+    bottomSection.appendChild(bottomWalkway);
+    
+    container.appendChild(bottomSection);
+    
+    gridContainer.appendChild(container);
+}
+
+function renderStudentStandardGridLayout(gridContainer, roomSeats) {
+    gridContainer.classList.remove("physical-layout-active");
+    roomSeats.forEach(seat => {
+        gridContainer.appendChild(createStudentSeatBox(seat));
+    });
+}
+
 function renderStudentSeatGrid(seatsData, selectedRoom, seatType) {
     const gridContainer = document.getElementById("student-seat-grid");
     if (!gridContainer) return;
@@ -236,44 +386,11 @@ function renderStudentSeatGrid(seatsData, selectedRoom, seatType) {
     // Sort seats by seat number
     roomSeats.sort((a, b) => a.number - b.number);
     
-    roomSeats.forEach(seat => {
-        const seatBox = document.createElement("div");
-        seatBox.className = "student-seat-box";
-        seatBox.textContent = seat.number; // Local seat number in room 1-100
-        
-        const isOccupied = seat.status === "occupied";
-        const isMaintenance = seat.status === "maintenance";
-        
-        if (isOccupied) {
-            seatBox.classList.add("occupied");
-            seatBox.title = `Seat ${seat.number} is Occupied`;
-        } else if (isMaintenance) {
-            seatBox.classList.add("maintenance");
-            seatBox.title = `Seat ${seat.number} is under Maintenance`;
-        } else {
-            // Vacant -> Clickable!
-            seatBox.classList.add("vacant");
-            seatBox.title = `Seat ${seat.number} (Available)`;
-            
-            // Check if this seat is currently selected
-            if (selectedSeatId === seat.id) {
-                seatBox.classList.add("selected");
-            }
-            
-            seatBox.onclick = () => {
-                // Set selection
-                selectStudentSeat(seat.id, seat.number);
-                
-                // Highlight active in grid
-                document.querySelectorAll(".student-seat-box.selected").forEach(el => {
-                    el.classList.remove("selected");
-                });
-                seatBox.classList.add("selected");
-            };
-        }
-        
-        gridContainer.appendChild(seatBox);
-    });
+    if (selectedRoom === 1) {
+        renderStudentPhysicalLayoutRoom1(gridContainer, roomSeats);
+    } else {
+        renderStudentStandardGridLayout(gridContainer, roomSeats);
+    }
 }
 
 function selectStudentSeat(seatId, seatNumber) {

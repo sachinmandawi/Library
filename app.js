@@ -655,6 +655,161 @@ function renderDashboardAlerts() {
 }
 
 // Render interactive seat boxes filtered by Room
+function createSeatBox(seat, today) {
+    const box = document.createElement("div");
+    box.className = "seat-box";
+    box.setAttribute("id", `seatbox_${seat.id}`);
+    
+    let seatStatus = seat.status || "vacant";
+    let activeOccupantId = seat.assignedMemberId;
+    
+    if (seatStatus === "occupied" && activeOccupantId) {
+        const member = state.members.find(m => m.id === activeOccupantId);
+        if (member) {
+            const expiry = new Date(member.expiryDate);
+            const daysDiff = Math.ceil((expiry.getTime() - today) / (1000 * 3600 * 24));
+            if (daysDiff <= 3) {
+                seatStatus = "expiring";
+            }
+        } else {
+            seatStatus = "vacant";
+            seat.status = "vacant";
+            seat.assignedMemberId = null;
+        }
+    }
+    
+    box.classList.add(seatStatus);
+    
+    if (seatStatus === "occupied" || seatStatus === "expiring") {
+        if (seat.type === "reserved") {
+            box.classList.add("reserved-seat");
+        } else {
+            box.classList.add("general-seat");
+        }
+    }
+    
+    const numSpan = document.createElement("span");
+    numSpan.className = "seat-num";
+    numSpan.textContent = seat.number;
+    box.appendChild(numSpan);
+    
+    box.onclick = () => openSeatActionsModal(seat.id);
+    return box;
+}
+
+function renderPhysicalLayoutRoom1(grid, roomSeats, today) {
+    grid.classList.add("physical-layout-active");
+    
+    const container = document.createElement("div");
+    container.className = "physical-layout-container";
+    
+    // Sort roomSeats by number to ensure they are sequential
+    roomSeats.sort((a, b) => a.number - b.number);
+    
+    // 1. Top Row (1 to 10)
+    const topRow = document.createElement("div");
+    topRow.className = "layout-row top-row";
+    const topBlock = document.createElement("div");
+    topBlock.className = "top-block";
+    roomSeats.slice(0, 10).forEach(seat => {
+        topBlock.appendChild(createSeatBox(seat, today));
+    });
+    topRow.appendChild(topBlock);
+    container.appendChild(topRow);
+    
+    // 2. Horizontal Walkway
+    const walkway1 = document.createElement("div");
+    walkway1.className = "layout-walkway horizontal-walkway";
+    walkway1.textContent = "Walkway";
+    container.appendChild(walkway1);
+    
+    // 3. Middle Section
+    const middleSection = document.createElement("div");
+    middleSection.className = "layout-middle-section";
+    
+    // Left Column (11 to 20)
+    const leftCol = document.createElement("div");
+    leftCol.className = "layout-column left-column";
+    roomSeats.slice(10, 20).forEach(seat => {
+        leftCol.appendChild(createSeatBox(seat, today));
+    });
+    middleSection.appendChild(leftCol);
+    
+    // Walkway
+    const walkwayV1 = document.createElement("div");
+    walkwayV1.className = "layout-walkway vertical-walkway";
+    walkwayV1.textContent = "Walkway";
+    middleSection.appendChild(walkwayV1);
+    
+    // Middle Double Column
+    const midDouble = document.createElement("div");
+    midDouble.className = "layout-middle-double-block";
+    
+    // Middle Left (21 to 30)
+    const midLeftCol = document.createElement("div");
+    midLeftCol.className = "layout-column mid-left-column";
+    roomSeats.slice(20, 30).forEach(seat => {
+        midLeftCol.appendChild(createSeatBox(seat, today));
+    });
+    midDouble.appendChild(midLeftCol);
+    
+    // Partition line
+    const partition = document.createElement("div");
+    partition.className = "layout-partition";
+    midDouble.appendChild(partition);
+    
+    // Middle Right (31 to 40)
+    const midRightCol = document.createElement("div");
+    midRightCol.className = "layout-column mid-right-column";
+    roomSeats.slice(30, 40).forEach(seat => {
+        midRightCol.appendChild(createSeatBox(seat, today));
+    });
+    midDouble.appendChild(midRightCol);
+    
+    middleSection.appendChild(midDouble);
+    
+    // Walkway
+    const walkwayV2 = document.createElement("div");
+    walkwayV2.className = "layout-walkway vertical-walkway";
+    walkwayV2.textContent = "Walkway";
+    middleSection.appendChild(walkwayV2);
+    
+    // Right Column (41 to 50)
+    const rightCol = document.createElement("div");
+    rightCol.className = "layout-column right-column";
+    roomSeats.slice(40, 50).forEach(seat => {
+        rightCol.appendChild(createSeatBox(seat, today));
+    });
+    middleSection.appendChild(rightCol);
+    
+    container.appendChild(middleSection);
+    
+    // 4. Bottom Walkway & Gate
+    const bottomSection = document.createElement("div");
+    bottomSection.className = "layout-bottom-section";
+    
+    const gate = document.createElement("div");
+    gate.className = "layout-gate";
+    gate.textContent = "Gate 🚪";
+    bottomSection.appendChild(gate);
+    
+    const bottomWalkway = document.createElement("div");
+    bottomWalkway.className = "layout-walkway horizontal-walkway bottom-walkway";
+    bottomWalkway.textContent = "Walkway";
+    bottomSection.appendChild(bottomWalkway);
+    
+    container.appendChild(bottomSection);
+    
+    grid.appendChild(container);
+}
+
+function renderStandardGridLayout(grid, roomSeats, today) {
+    grid.classList.remove("physical-layout-active");
+    roomSeats.forEach(seat => {
+        grid.appendChild(createSeatBox(seat, today));
+    });
+}
+
 function renderSeatGrid() {
     const grid = document.getElementById("seat-grid");
     if (!grid) return;
@@ -665,49 +820,11 @@ function renderSeatGrid() {
     
     const roomSeats = state.seats.filter(s => s.room === selectedRoom);
     
-    roomSeats.forEach(seat => {
-        const box = document.createElement("div");
-        box.className = "seat-box";
-        box.setAttribute("id", `seatbox_${seat.id}`);
-        
-        let seatStatus = seat.status || "vacant";
-        let activeOccupantId = seat.assignedMemberId;
-        
-        if (seatStatus === "occupied" && activeOccupantId) {
-            const member = state.members.find(m => m.id === activeOccupantId);
-            if (member) {
-                const expiry = new Date(member.expiryDate);
-                const daysDiff = Math.ceil((expiry.getTime() - today) / (1000 * 3600 * 24));
-                if (daysDiff <= 3) {
-                    seatStatus = "expiring";
-                }
-            } else {
-                seatStatus = "vacant";
-                seat.status = "vacant";
-                seat.assignedMemberId = null;
-            }
-        }
-        
-        box.classList.add(seatStatus);
-        
-        // Add Reserved/General class based on occupied type
-        if (seatStatus === "occupied" || seatStatus === "expiring") {
-            if (seat.type === "reserved") {
-                box.classList.add("reserved-seat");
-            } else {
-                box.classList.add("general-seat");
-            }
-        }
-        
-        const numSpan = document.createElement("span");
-        numSpan.className = "seat-num";
-        numSpan.textContent = seat.number;
-        box.appendChild(numSpan);
-        
-        box.onclick = () => openSeatActionsModal(seat.id);
-        
-        grid.appendChild(box);
-    });
+    if (selectedRoom === 1) {
+        renderPhysicalLayoutRoom1(grid, roomSeats, today);
+    } else {
+        renderStandardGridLayout(grid, roomSeats, today);
+    }
 }
 
 // Render Member directory table

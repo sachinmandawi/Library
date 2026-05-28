@@ -1524,6 +1524,11 @@ function calculateExpiryDate() {
 function handleMemberFormSubmit(event) {
     event.preventDefault();
     
+    if (!modalPhotoBase64) {
+        showToast("Please upload a student profile picture.", "error");
+        return;
+    }
+    
     const editId = document.getElementById("edit-member-id").value;
     const name = document.getElementById("m-name").value.trim();
     const phone = document.getElementById("m-phone").value.trim();

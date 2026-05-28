@@ -457,6 +457,11 @@ function submitStudentForm(event) {
     const govId = document.getElementById("s-gov-id").value.trim() || "N/A";
     const seatId = document.getElementById("s-seat-id").value;
     
+    if (!compressedPhotoBase64) {
+        alert("Please upload your profile picture before submitting the registration form.");
+        return;
+    }
+    
     if (!seatId) {
         alert("Please tap an available seat in the grid layout to select your preferred seat number before submitting.");
         return;

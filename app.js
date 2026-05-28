@@ -764,7 +764,7 @@ function renderBirthdayAlerts() {
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <button class="btn-whatsapp-remind" onclick="sendBirthdayWish('${member.id}')" title="Send WhatsApp Wish" style="background: rgba(236, 72, 153, 0.15); color: #ec4899; border: 1px solid rgba(236, 72, 153, 0.3); border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s; font-weight: 500;" onmouseover="this.style.background='rgba(236, 72, 153, 0.25)'" onmouseout="this.style.background='rgba(236, 72, 153, 0.15)'">
-                        <i class="fa-solid fa-paper-plane"></i> Wish
+                        <i class="fa-brands fa-whatsapp"></i> Wish
                     </button>
                 </div>
             `;

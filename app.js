@@ -146,11 +146,11 @@ function initApp() {
     const config = getFirebaseConfig();
     
     // Set UI displays for inputs
-    document.getElementById("fb-api-key").value = config.apiKey === DEFAULT_FIREBASE_CONFIG.apiKey ? "" : config.apiKey;
-    document.getElementById("fb-auth-domain").value = config.authDomain === DEFAULT_FIREBASE_CONFIG.authDomain ? "" : config.authDomain;
-    document.getElementById("fb-db-url").value = config.databaseURL === DEFAULT_FIREBASE_CONFIG.databaseURL ? "" : config.databaseURL;
-    document.getElementById("fb-project-id").value = config.projectId === DEFAULT_FIREBASE_CONFIG.projectId ? "" : config.projectId;
-    document.getElementById("fb-storage-bucket").value = config.storageBucket === DEFAULT_FIREBASE_CONFIG.storageBucket ? "" : config.storageBucket;
+    document.getElementById("fb-api-key").value = config.apiKey || "";
+    document.getElementById("fb-auth-domain").value = config.authDomain || "";
+    document.getElementById("fb-db-url").value = config.databaseURL || "";
+    document.getElementById("fb-project-id").value = config.projectId || "";
+    document.getElementById("fb-storage-bucket").value = config.storageBucket || "";
     
     // Load local storage fallback or mock data
     let localData = null;

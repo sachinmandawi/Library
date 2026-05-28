@@ -246,14 +246,14 @@ function initApp() {
                 img.onload = () => {
                     const canvas = document.createElement("canvas");
                     const ctx = canvas.getContext("2d");
-                    canvas.width = 150;
-                    canvas.height = 150;
+                    canvas.width = 300;
+                    canvas.height = 300;
                     
-                    // Center crop and draw to 150x150 canvas
+                    // Center crop and draw to 300x300 canvas
                     const minDim = Math.min(img.width, img.height);
                     const sx = (img.width - minDim) / 2;
                     const sy = (img.height - minDim) / 2;
-                    ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 150, 150);
+                    ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 300, 300);
                     
                     modalPhotoBase64 = canvas.toDataURL("image/jpeg", 0.7);
                     

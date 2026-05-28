@@ -2980,7 +2980,9 @@ let qrCodeGeneratorInstance = null;
 
 function updateRegistrationQR() {
     let hostUrl = window.location.href;
-    if (hostUrl.includes("index.html")) {
+    if (hostUrl.includes("admin.html")) {
+        hostUrl = hostUrl.replace("admin.html", "register.html");
+    } else if (hostUrl.includes("index.html")) {
         hostUrl = hostUrl.replace("index.html", "register.html");
     } else if (hostUrl.endsWith("/")) {
         hostUrl = hostUrl + "register.html";

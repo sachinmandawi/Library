@@ -13,7 +13,8 @@
 
   ### 🔗 Live Applications
 
-  [![Live Admin Dashboard](https://img.shields.io/badge/Live_Admin_Dashboard-Click_to_Open-3b82f6?style=for-the-badge&logo=googlechrome&logoColor=white)](https://sachinmandawi.github.io/Library/index.html)
+  [![Live Landing Page](https://img.shields.io/badge/Live_Landing_Page-Click_to_Open-22c55e?style=for-the-badge&logo=googlechrome&logoColor=white)](https://sachinmandawi.github.io/Library/index.html)
+  [![Live Admin Dashboard](https://img.shields.io/badge/Live_Admin_Dashboard-Click_to_Open-3b82f6?style=for-the-badge&logo=googlechrome&logoColor=white)](https://sachinmandawi.github.io/Library/admin.html)
   [![Live Student Registration Form](https://img.shields.io/badge/Live_Student_Registration-Click_to_Open-10b981?style=for-the-badge&logo=googleforms&logoColor=white)](https://sachinmandawi.github.io/Library/register.html)
 </div>
 
@@ -41,11 +42,12 @@
 
 ```mermaid
 graph TD
-    A[Student / Guest] -->|Registers Seat| B(Student Portal: register.html)
+    A[Student / Guest] -->|Visits Homepage| H(Landing Page: index.html)
+    H -->|Registers Seat| B(Student Portal: register.html)
     B -->|Selects Room 1: Physical Layout| C{Firebase Database}
     B -->|Selects Room 2-4: 10x10 Grid| C
     
-    D[Admin User] -->|Signs In via Authentication| E(Admin Control Center: index.html)
+    D[Admin User] -->|Signs In via Authentication| E(Admin Control Center: admin.html)
     E -->|Verifies with Firebase Auth| C
     
     C -->|Realtime Update| E
@@ -92,7 +94,8 @@ To host the pages locally on your system, you can use any static server. For exa
 npx http-server -p 8080
 ```
 Then visit:
-* Admin: `http://localhost:8080/index.html`
+* Homepage: `http://localhost:8080/index.html`
+* Admin: `http://localhost:8080/admin.html`
 * Student Portal: `http://localhost:8080/register.html`
 </details>
 

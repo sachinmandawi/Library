@@ -6,7 +6,7 @@
     <title>The Study Cafe - Admin Dashboard</title>
     <!-- Fonts & Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=6">
+    <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 
@@ -26,7 +26,10 @@
                 </div>
                 <div class="form-group" style="margin-top: 1rem;">
                     <label class="form-label" for="auth-password">Password</label>
-                    <input type="password" id="auth-password" class="form-control" required placeholder="••••••••">
+                    <div style="position: relative;">
+                        <input type="password" id="auth-password" class="form-control" required placeholder="••••••••" style="padding-right: 2.5rem;">
+                        <i class="fa-solid fa-eye toggle-password-btn" id="auth-password-toggle" onclick="togglePasswordVisibility('auth-password', 'auth-password-toggle')" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); transition: color 0.2s;"></i>
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem; justify-content: center; gap: 0.5rem; height: 45px;">
                     <i class="fa-solid fa-right-to-bracket"></i> Login
@@ -818,7 +821,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <!-- Admin logic -->
-    <script src="app.js?v=20"></script>
+    <script src="app.js?v=21"></script>
 
 </body>
 </html>

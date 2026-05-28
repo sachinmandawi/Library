@@ -1637,3 +1637,7 @@ h1, h2, h3, h4, h5, h6 {
 .auth-card .form-group {
     text-align: left;
 }
+
+.toggle-password-btn:hover {
+    color: #ffffff !important;
+}

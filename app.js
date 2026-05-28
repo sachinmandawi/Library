@@ -124,7 +124,19 @@ function loadMockData() {
 // Save all state into Local Storage
 function saveStateToLocalStorage() {
     try {
-        localStorage.setItem("study_cafe_state", JSON.stringify(state));
+        // Strip photo base64 strings from state before writing to localStorage to prevent QuotaExceededError (5MB limit)
+        const storageState = {
+            ...state,
+            members: state.members.map(m => {
+                const { photo, ...rest } = m;
+                return rest;
+            }),
+            pending: state.pending.map(p => {
+                const { photo, ...rest } = p;
+                return rest;
+            })
+        };
+        localStorage.setItem("study_cafe_state", JSON.stringify(storageState));
         if (broadcastChannel) {
             broadcastChannel.postMessage({
                 type: "SEATS_UPDATED",
@@ -246,14 +258,14 @@ function initApp() {
                 img.onload = () => {
                     const canvas = document.createElement("canvas");
                     const ctx = canvas.getContext("2d");
-                    canvas.width = 300;
-                    canvas.height = 300;
+                    canvas.width = 600;
+                    canvas.height = 600;
                     
-                    // Center crop and draw to 300x300 canvas
+                    // Center crop and draw to 600x600 canvas
                     const minDim = Math.min(img.width, img.height);
                     const sx = (img.width - minDim) / 2;
                     const sy = (img.height - minDim) / 2;
-                    ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 300, 300);
+                    ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 600, 600);
                     
                     modalPhotoBase64 = canvas.toDataURL("image/jpeg", 0.7);
                     

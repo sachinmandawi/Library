@@ -467,14 +467,14 @@ window.addEventListener("DOMContentLoaded", () => {
                 img.onload = () => {
                     const canvas = document.createElement("canvas");
                     const ctx = canvas.getContext("2d");
-                    canvas.width = 300;
-                    canvas.height = 300;
+                    canvas.width = 600;
+                    canvas.height = 600;
                     
-                    // Center crop and draw to 300x300 canvas
+                    // Center crop and draw to 600x600 canvas
                     const minDim = Math.min(img.width, img.height);
                     const sx = (img.width - minDim) / 2;
                     const sy = (img.height - minDim) / 2;
-                    ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 300, 300);
+                    ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 600, 600);
                     
                     compressedPhotoBase64 = canvas.toDataURL("image/jpeg", 0.7);
                     

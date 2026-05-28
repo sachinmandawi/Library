@@ -318,6 +318,45 @@ function initApp() {
     
     refreshUI();
     updateRegistrationQR();
+    // Setup Admin Modal Same as Recent Address checkbox logic
+    const adminSameAddressCheck = document.getElementById("m-same-address");
+    if (adminSameAddressCheck) {
+        adminSameAddressCheck.addEventListener("change", function() {
+            const permSection = document.getElementById("m-permanent-address-section");
+            const permInputs = permSection.querySelectorAll("input");
+            if (this.checked) {
+                document.getElementById("m-permanent-street").value = document.getElementById("m-street").value;
+                document.getElementById("m-permanent-city").value = document.getElementById("m-city").value;
+                document.getElementById("m-permanent-state").value = document.getElementById("m-state").value;
+                document.getElementById("m-permanent-zip").value = document.getElementById("m-zip").value;
+                
+                permInputs.forEach(input => {
+                    input.required = false;
+                    input.disabled = true;
+                });
+                permSection.style.opacity = "0.5";
+            } else {
+                permInputs.forEach(input => {
+                    input.required = true;
+                    input.disabled = false;
+                });
+                permSection.style.opacity = "1";
+            }
+        });
+        
+        const currentInputs = ["m-street", "m-city", "m-state", "m-zip"];
+        currentInputs.forEach(id => {
+            document.getElementById(id).addEventListener("input", function() {
+                if (adminSameAddressCheck.checked) {
+                    const permId = id === "m-street" ? "m-permanent-street" :
+                                   id === "m-city" ? "m-permanent-city" :
+                                   id === "m-state" ? "m-permanent-state" : "m-permanent-zip";
+                    document.getElementById(permId).value = this.value;
+                }
+            });
+        });
+    }
+    
     startLiveClock();
 }
 
@@ -1434,6 +1473,21 @@ function openAddMemberModal() {
     document.getElementById("form-member").onsubmit = handleMemberFormSubmit;
     document.getElementById("edit-member-id").value = "";
     
+    // Reset permanent address fields states
+    const adminSameAddressCheck = document.getElementById("m-same-address");
+    if (adminSameAddressCheck) {
+        adminSameAddressCheck.checked = false;
+        const permSection = document.getElementById("m-permanent-address-section");
+        if (permSection) {
+            permSection.style.opacity = "1";
+            const permInputs = permSection.querySelectorAll("input");
+            permInputs.forEach(input => {
+                input.disabled = false;
+                input.required = true;
+            });
+        }
+    }
+    
     document.getElementById("m-start-date").value = new Date().toISOString().split('T')[0];
     
     // Clear photo preview
@@ -1489,6 +1543,39 @@ function openEditMemberModal(memberId) {
     document.getElementById("m-city").value = member.city || "";
     document.getElementById("m-state").value = member.state || "";
     document.getElementById("m-zip").value = member.zip || "";
+    
+    document.getElementById("m-permanent-street").value = member.permanentStreet || member.permanentAddress || member.currentAddress || "";
+    document.getElementById("m-permanent-city").value = member.permanentCity || "";
+    document.getElementById("m-permanent-state").value = member.permanentState || "";
+    document.getElementById("m-permanent-zip").value = member.permanentZip || "";
+    
+    // Check if permanent address matches current address to toggle checkbox
+    const isSame = (member.street === member.permanentStreet &&
+                    member.city === member.permanentCity &&
+                    member.state === member.permanentState &&
+                    member.zip === member.permanentZip &&
+                    member.street !== undefined && member.street !== "") ||
+                   (member.permanentAddress === member.currentAddress && member.currentAddress !== undefined && member.currentAddress !== "");
+                   
+    const adminSameAddressCheck = document.getElementById("m-same-address");
+    if (adminSameAddressCheck) {
+        adminSameAddressCheck.checked = isSame;
+        const permSection = document.getElementById("m-permanent-address-section");
+        const permInputs = permSection.querySelectorAll("input");
+        if (isSame) {
+            permInputs.forEach(input => {
+                input.required = false;
+                input.disabled = true;
+            });
+            permSection.style.opacity = "0.5";
+        } else {
+            permInputs.forEach(input => {
+                input.required = true;
+                input.disabled = false;
+            });
+            permSection.style.opacity = "1";
+        }
+    }
     
     // Pre-fill emergency contact & target exam fields
     document.getElementById("m-emergency-name").value = member.emergencyName || "";
@@ -1639,6 +1726,19 @@ function handleMemberFormSubmit(event) {
     const stateVal = document.getElementById("m-state").value.trim();
     const zip = document.getElementById("m-zip").value.trim();
     
+    const sameAddressCheck = document.getElementById("m-same-address");
+    if (sameAddressCheck && sameAddressCheck.checked) {
+        document.getElementById("m-permanent-street").value = street;
+        document.getElementById("m-permanent-city").value = city;
+        document.getElementById("m-permanent-state").value = stateVal;
+        document.getElementById("m-permanent-zip").value = zip;
+    }
+    
+    const permanentStreet = document.getElementById("m-permanent-street").value.trim();
+    const permanentCity = document.getElementById("m-permanent-city").value.trim();
+    const permanentState = document.getElementById("m-permanent-state").value.trim();
+    const permanentZip = document.getElementById("m-permanent-zip").value.trim();
+    
     const emergencyName = document.getElementById("m-emergency-name").value.trim();
     const emergencyRelation = document.getElementById("m-emergency-relation").value;
     const emergencyPhone = document.getElementById("m-emergency-phone").value.trim();
@@ -1703,19 +1803,35 @@ function handleMemberFormSubmit(event) {
         return;
     }
     if (!street) {
-        showToast("Please enter Street Address.", "error");
+        showToast("Please enter Recent Street Address.", "error");
         return;
     }
     if (!city) {
-        showToast("Please enter City / Town.", "error");
+        showToast("Please enter Recent City / Town.", "error");
         return;
     }
     if (!stateVal) {
-        showToast("Please enter State.", "error");
+        showToast("Please enter Recent State.", "error");
         return;
     }
     if (!/^[0-9]{6}$/.test(zip)) {
-        showToast("Please enter a valid 6-digit Zip/Postal Code.", "error");
+        showToast("Please enter a valid 6-digit Recent Zip/Postal Code.", "error");
+        return;
+    }
+    if (!permanentStreet) {
+        showToast("Please enter Permanent Street Address.", "error");
+        return;
+    }
+    if (!permanentCity) {
+        showToast("Please enter Permanent City / Town.", "error");
+        return;
+    }
+    if (!permanentState) {
+        showToast("Please enter Permanent State.", "error");
+        return;
+    }
+    if (!/^[0-9]{6}$/.test(permanentZip)) {
+        showToast("Please enter a valid 6-digit Permanent Zip/Postal Code.", "error");
         return;
     }
     if (!dob) {
@@ -1741,7 +1857,9 @@ function handleMemberFormSubmit(event) {
         }
     }
     
-    const concatenatedAddress = `${street}, ${city}, ${stateVal} - ${zip}`;
+    const currentAddressConcated = `${street}, ${city}, ${stateVal} - ${zip}`;
+    const permanentAddressConcated = `${permanentStreet}, ${permanentCity}, ${permanentState} - ${permanentZip}`;
+    
     const memberId = editId || `m_${Date.now()}`;
     const memberObj = {
         id: memberId,
@@ -1758,8 +1876,12 @@ function handleMemberFormSubmit(event) {
         city: city,
         state: stateVal,
         zip: zip,
-        currentAddress: concatenatedAddress,
-        permanentAddress: concatenatedAddress,
+        permanentStreet: permanentStreet,
+        permanentCity: permanentCity,
+        permanentState: permanentState,
+        permanentZip: permanentZip,
+        currentAddress: currentAddressConcated,
+        permanentAddress: permanentAddressConcated,
         
         emergencyName: emergencyName,
         emergencyRelation: emergencyRelation,
@@ -2272,6 +2394,39 @@ function approvePendingRequest(requestId) {
     document.getElementById("m-city").value = req.city || "";
     document.getElementById("m-state").value = req.state || "";
     document.getElementById("m-zip").value = req.zip || "";
+    
+    document.getElementById("m-permanent-street").value = req.permanentStreet || req.permanentAddress || req.currentAddress || "";
+    document.getElementById("m-permanent-city").value = req.permanentCity || "";
+    document.getElementById("m-permanent-state").value = req.permanentState || "";
+    document.getElementById("m-permanent-zip").value = req.permanentZip || "";
+    
+    // Set same address checkbox check status
+    const isSame = (req.street === req.permanentStreet && 
+                    req.city === req.permanentCity && 
+                    req.state === req.permanentState && 
+                    req.zip === req.permanentZip && 
+                    req.street !== undefined && req.street !== "") ||
+                   (req.permanentAddress === req.currentAddress && req.currentAddress !== undefined && req.currentAddress !== "");
+                   
+    const adminSameAddressCheck = document.getElementById("m-same-address");
+    if (adminSameAddressCheck) {
+        adminSameAddressCheck.checked = isSame;
+        const permSection = document.getElementById("m-permanent-address-section");
+        const permInputs = permSection.querySelectorAll("input");
+        if (isSame) {
+            permInputs.forEach(input => {
+                input.required = false;
+                input.disabled = true;
+            });
+            permSection.style.opacity = "0.5";
+        } else {
+            permInputs.forEach(input => {
+                input.required = true;
+                input.disabled = false;
+            });
+            permSection.style.opacity = "1";
+        }
+    }
     
     // Pre-fill new emergency contact & target exam fields
     document.getElementById("m-emergency-name").value = req.emergencyName || "";

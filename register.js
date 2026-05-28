@@ -461,10 +461,23 @@ function submitStudentForm(event) {
     const emergencyRelation = document.getElementById("s-emergency-relation").value;
     const emergencyPhone = document.getElementById("s-emergency-phone").value.trim();
     
-    const street = document.getElementById("s-street").value.trim();
-    const city = document.getElementById("s-city").value.trim();
-    const stateVal = document.getElementById("s-state").value.trim();
-    const zip = document.getElementById("s-zip").value.trim();
+    const street = document.getElementById("s-current-street").value.trim();
+    const city = document.getElementById("s-current-city").value.trim();
+    const stateVal = document.getElementById("s-current-state").value.trim();
+    const zip = document.getElementById("s-current-zip").value.trim();
+    
+    const sameAddressCheck = document.getElementById("s-same-address");
+    if (sameAddressCheck && sameAddressCheck.checked) {
+        document.getElementById("s-permanent-street").value = street;
+        document.getElementById("s-permanent-city").value = city;
+        document.getElementById("s-permanent-state").value = stateVal;
+        document.getElementById("s-permanent-zip").value = zip;
+    }
+    
+    const permanentStreet = document.getElementById("s-permanent-street").value.trim();
+    const permanentCity = document.getElementById("s-permanent-city").value.trim();
+    const permanentState = document.getElementById("s-permanent-state").value.trim();
+    const permanentZip = document.getElementById("s-permanent-zip").value.trim();
     
     const targetExam = document.getElementById("s-target-exam").value;
     const expectedStartDate = document.getElementById("s-start-date").value;
@@ -503,7 +516,11 @@ function submitStudentForm(event) {
         return;
     }
     if (!/^[0-9]{6}$/.test(zip)) {
-        alert("Please enter a valid 6-digit Zip/Postal Code.");
+        alert("Please enter a valid 6-digit Recent Zip/Postal Code.");
+        return;
+    }
+    if (!/^[0-9]{6}$/.test(permanentZip)) {
+        alert("Please enter a valid 6-digit Permanent Zip/Postal Code.");
         return;
     }
     if (!compressedPhotoBase64) {
@@ -530,7 +547,8 @@ function submitStudentForm(event) {
         paymentStatus = "Partial";
     }
     
-    const concatenatedAddress = `${street}, ${city}, ${stateVal} - ${zip}`;
+    const currentAddressConcated = `${street}, ${city}, ${stateVal} - ${zip}`;
+    const permanentAddressConcated = `${permanentStreet}, ${permanentCity}, ${permanentState} - ${permanentZip}`;
     
     const bookingData = {
         name: name,
@@ -553,8 +571,12 @@ function submitStudentForm(event) {
         city: city,
         state: stateVal,
         zip: zip,
-        currentAddress: concatenatedAddress, // Fallback compatibility
-        permanentAddress: concatenatedAddress, // Fallback compatibility
+        permanentStreet: permanentStreet,
+        permanentCity: permanentCity,
+        permanentState: permanentState,
+        permanentZip: permanentZip,
+        currentAddress: currentAddressConcated,
+        permanentAddress: permanentAddressConcated,
         
         targetExam: targetExam,
         expectedStartDate: expectedStartDate,
@@ -706,6 +728,43 @@ window.addEventListener("DOMContentLoaded", () => {
                 img.src = event.target.result;
             };
             reader.readAsDataURL(file);
+        });
+    }
+    
+    // Setup Same as Recent Address checkbox logic
+    const sameAddressCheck = document.getElementById("s-same-address");
+    if (sameAddressCheck) {
+        sameAddressCheck.addEventListener("change", function() {
+            const permSection = document.getElementById("permanent-address-section");
+            const permInputs = permSection.querySelectorAll("input");
+            if (this.checked) {
+                document.getElementById("s-permanent-street").value = document.getElementById("s-current-street").value;
+                document.getElementById("s-permanent-city").value = document.getElementById("s-current-city").value;
+                document.getElementById("s-permanent-state").value = document.getElementById("s-current-state").value;
+                document.getElementById("s-permanent-zip").value = document.getElementById("s-current-zip").value;
+                
+                permInputs.forEach(input => {
+                    input.required = false;
+                    input.disabled = true;
+                });
+                permSection.style.opacity = "0.5";
+            } else {
+                permInputs.forEach(input => {
+                    input.required = true;
+                    input.disabled = false;
+                });
+                permSection.style.opacity = "1";
+            }
+        });
+        
+        const currentInputs = ["s-current-street", "s-current-city", "s-current-state", "s-current-zip"];
+        currentInputs.forEach(id => {
+            document.getElementById(id).addEventListener("input", function() {
+                if (sameAddressCheck.checked) {
+                    const permId = id.replace("current", "permanent");
+                    document.getElementById(permId).value = this.value;
+                }
+            });
         });
     }
     

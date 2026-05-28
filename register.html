@@ -128,24 +128,59 @@
                             <i class="fa-solid fa-location-dot"></i>
                             <span>Address Information</span>
                         </div>
+                        
+                        <div style="font-weight: 600; color: #fff; margin-bottom: 0.8rem; font-size: 0.95rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.3rem;">
+                            1. Recent / Current Address
+                        </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label class="form-label" for="s-street">Street Address *</label>
-                                <input type="text" id="s-street" class="form-control" required placeholder="e.g. House No. 24, Maitri Nagar">
+                                <label class="form-label" for="s-current-street">Street Address *</label>
+                                <input type="text" id="s-current-street" class="form-control" required placeholder="e.g. House No. 24, Maitri Nagar">
                             </div>
                             <div class="form-group">
-                                <label class="form-label" for="s-city">City / Town *</label>
-                                <input type="text" id="s-city" class="form-control" required placeholder="e.g. Bhilai">
+                                <label class="form-label" for="s-current-city">City / Town *</label>
+                                <input type="text" id="s-current-city" class="form-control" required placeholder="e.g. Bhilai">
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label class="form-label" for="s-state">State *</label>
-                                <input type="text" id="s-state" class="form-control" required placeholder="e.g. Chhattisgarh">
+                                <label class="form-label" for="s-current-state">State *</label>
+                                <input type="text" id="s-current-state" class="form-control" required placeholder="e.g. Chhattisgarh">
                             </div>
                             <div class="form-group">
-                                <label class="form-label" for="s-zip">Zip / Postal Code *</label>
-                                <input type="text" id="s-zip" class="form-control" required placeholder="e.g. 490006" pattern="[0-9]{6}" minlength="6" maxlength="6">
+                                <label class="form-label" for="s-current-zip">Zip / Postal Code *</label>
+                                <input type="text" id="s-current-zip" class="form-control" required placeholder="e.g. 490006" pattern="[0-9]{6}" minlength="6" maxlength="6">
+                            </div>
+                        </div>
+
+                        <div style="margin: 1.2rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" id="s-same-address" style="width: 16px; height: 16px; accent-color: var(--accent-emerald); cursor: pointer;">
+                            <label for="s-same-address" style="color: var(--text-muted); font-size: 0.85rem; cursor: pointer; user-select: none;">Permanent Address is same as Recent Address</label>
+                        </div>
+
+                        <div id="permanent-address-section">
+                            <div style="font-weight: 600; color: #fff; margin-bottom: 0.8rem; font-size: 0.95rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.3rem;">
+                                2. Permanent Address
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label" for="s-permanent-street">Street Address *</label>
+                                    <input type="text" id="s-permanent-street" class="form-control" required placeholder="e.g. House No. 24, Maitri Nagar">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="s-permanent-city">City / Town *</label>
+                                    <input type="text" id="s-permanent-city" class="form-control" required placeholder="e.g. Bhilai">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label" for="s-permanent-state">State *</label>
+                                    <input type="text" id="s-permanent-state" class="form-control" required placeholder="e.g. Chhattisgarh">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="s-permanent-zip">Zip / Postal Code *</label>
+                                    <input type="text" id="s-permanent-zip" class="form-control" required placeholder="e.g. 490006" pattern="[0-9]{6}" minlength="6" maxlength="6">
+                                </div>
                             </div>
                         </div>
                     </div>

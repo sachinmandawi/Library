@@ -5,7 +5,10 @@ const DEFAULT_FIREBASE_CONFIG = {
     authDomain: "test-560c6.firebaseapp.com",
     databaseURL: "https://test-560c6-default-rtdb.firebaseio.com",
     projectId: "test-560c6",
-    storageBucket: "test-560c6.firebasestorage.app"
+    storageBucket: "test-560c6.firebasestorage.app",
+    messagingSenderId: "580954040987",
+    appId: "1:580954040987:web:a2f08eaeba5e130abbf43e",
+    measurementId: "G-Y5VQJL4Z2Y"
 };
 
 const PLANS = [
@@ -35,6 +38,7 @@ let isOfflineMode = false;
 let broadcastChannel = null;
 let currentReceiptMemberId = null; // Store active receipt student ID
 let recentlyApprovedOrRejected = new Set(); // Track approved/rejected requests to prevent listener re-adds
+let modalPhotoBase64 = null; // Store compressed profile picture in memory for new/edited members
 
 // Initialize Web Audio notification sound
 function playNotificationSound() {
@@ -135,7 +139,13 @@ function getFirebaseConfig() {
     try {
         const custom = localStorage.getItem("custom_firebase_config");
         if (custom) {
-            return JSON.parse(custom);
+            const parsed = JSON.parse(custom);
+            // If the custom config points to the old sandbox demo key, discard it so we default to the new DB config
+            if (parsed.apiKey === "AIzaSyA4c3BfU2FuZGJveEtleS1EZW1vMTIzNDU") {
+                localStorage.removeItem("custom_firebase_config");
+                return DEFAULT_FIREBASE_CONFIG;
+            }
+            return parsed;
         }
     } catch(e){}
     return DEFAULT_FIREBASE_CONFIG;
@@ -222,6 +232,46 @@ function initApp() {
     }
     
     checkOfflinePendingBookings();
+
+    // Add image input change listener for compression
+    const photoInput = document.getElementById("m-photo");
+    if (photoInput) {
+        photoInput.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement("canvas");
+                    const ctx = canvas.getContext("2d");
+                    canvas.width = 150;
+                    canvas.height = 150;
+                    
+                    // Center crop and draw to 150x150 canvas
+                    const minDim = Math.min(img.width, img.height);
+                    const sx = (img.width - minDim) / 2;
+                    const sy = (img.height - minDim) / 2;
+                    ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 150, 150);
+                    
+                    modalPhotoBase64 = canvas.toDataURL("image/jpeg", 0.7);
+                    
+                    // Update visual UI preview
+                    const placeholder = document.getElementById("m-photo-placeholder");
+                    if (placeholder) placeholder.style.display = "none";
+                    
+                    const previewImg = document.getElementById("m-photo-preview");
+                    if (previewImg) {
+                        previewImg.src = modalPhotoBase64;
+                        previewImg.style.display = "block";
+                    }
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
 
     // Set Default Tab
     switchTab("dashboard");
@@ -553,7 +603,9 @@ function renderDashboardAlerts() {
             displayDaysText = `${member.daysLeft} Days Left`;
         }
         
-        const avatarLetter = member.name.charAt(0).toUpperCase();
+        const alertAvatarLetter = member.name.charAt(0).toUpperCase();
+        const alertAvatarStyle = member.photo ? `background-image: url('${member.photo}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : '';
+        const alertAvatarContent = member.photo ? '' : alertAvatarLetter;
         
         let seatInfoText = "";
         if (member.seatId === "non-reserved") {
@@ -566,7 +618,7 @@ function renderDashboardAlerts() {
         }
         
         item.innerHTML = `
-            <div class="alert-avatar">${avatarLetter}</div>
+            <div class="alert-avatar" style="${alertAvatarStyle}">${alertAvatarContent}</div>
             <div class="alert-details">
                 <div class="alert-name">${member.name}</div>
                 <div class="alert-info">${seatInfoText} • ${member.phone}</div>
@@ -742,6 +794,8 @@ function renderMemberTable() {
         const isExpired = new Date(member.expiryDate) < new Date().setHours(0,0,0,0);
         
         const avatarLetter = member.name.charAt(0).toUpperCase();
+        const avatarStyle = member.photo ? `background-image: url('${member.photo}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : '';
+        const avatarContent = member.photo ? '' : avatarLetter;
         
         let seatDisplayHTML = "";
         if (member.seatId === "non-reserved") {
@@ -769,7 +823,7 @@ function renderMemberTable() {
         tr.innerHTML = `
             <td>
                 <div class="member-profile">
-                    <div class="member-avatar">${avatarLetter}</div>
+                    <div class="member-avatar" style="${avatarStyle}">${avatarContent}</div>
                     <div>
                         <div class="member-name">${member.name}</div>
                         <div class="member-phone">${member.phone}</div>
@@ -867,10 +921,14 @@ function renderPendingRequests() {
             seatDetailsHTML = `<div style="font-size: 0.75rem; color: #fff; margin-top: 5px;">Requested: <strong>Room ${roomNum} - Seat ${seatNum}</strong></div>`;
         }
         
+        const reqAvatarLetter = req.name.charAt(0).toUpperCase();
+        const reqAvatarStyle = req.photo ? `background-image: url('${req.photo}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : 'color: var(--accent-amber);';
+        const reqAvatarContent = req.photo ? '' : reqAvatarLetter;
+        
         tr.innerHTML = `
             <td>
                 <div class="member-profile">
-                    <div class="member-avatar" style="color: var(--accent-amber);">${req.name.charAt(0).toUpperCase()}</div>
+                    <div class="member-avatar" style="${reqAvatarStyle}">${reqAvatarContent}</div>
                     <div>
                         <div class="member-name">${req.name}</div>
                         <div class="member-phone">${req.phone}</div>
@@ -953,6 +1011,15 @@ function openAddMemberModal() {
     
     document.getElementById("m-start-date").value = new Date().toISOString().split('T')[0];
     
+    // Clear photo preview
+    modalPhotoBase64 = null;
+    document.getElementById("m-photo-placeholder").style.display = "block";
+    const previewImg = document.getElementById("m-photo-preview");
+    if (previewImg) {
+        previewImg.src = "";
+        previewImg.style.display = "none";
+    }
+    
     onModalSeatTypeChange();
     openModal("modal-member");
 }
@@ -964,6 +1031,24 @@ function openEditMemberModal(memberId) {
     document.getElementById("modal-member-title").textContent = "Edit Member Info";
     document.getElementById("edit-member-id").value = member.id;
     document.getElementById("form-member").onsubmit = handleMemberFormSubmit;
+    
+    // Set photo preview from member photo
+    modalPhotoBase64 = member.photo || null;
+    const previewImg = document.getElementById("m-photo-preview");
+    const placeholder = document.getElementById("m-photo-placeholder");
+    if (modalPhotoBase64) {
+        if (placeholder) placeholder.style.display = "none";
+        if (previewImg) {
+            previewImg.src = modalPhotoBase64;
+            previewImg.style.display = "block";
+        }
+    } else {
+        if (placeholder) placeholder.style.display = "block";
+        if (previewImg) {
+            previewImg.src = "";
+            previewImg.style.display = "none";
+        }
+    }
     
     document.getElementById("m-name").value = member.name;
     document.getElementById("m-phone").value = member.phone;
@@ -1164,6 +1249,7 @@ function handleMemberFormSubmit(event) {
         feeAmount: feeAmount,
         paymentStatus: paymentStatus,
         paymentMethod: paymentMethod,
+        photo: modalPhotoBase64, // Save photo
         timestamp: editId ? originalMember.timestamp : Date.now()
     };
     
@@ -1341,6 +1427,18 @@ function approvePendingRequest(requestId) {
     
     openAddMemberModal();
     
+    // Pre-fill photo from request
+    if (req.photo) {
+        modalPhotoBase64 = req.photo;
+        const previewImg = document.getElementById("m-photo-preview");
+        const placeholder = document.getElementById("m-photo-placeholder");
+        if (placeholder) placeholder.style.display = "none";
+        if (previewImg) {
+            previewImg.src = modalPhotoBase64;
+            previewImg.style.display = "block";
+        }
+    }
+    
     document.getElementById("m-name").value = req.name;
     document.getElementById("m-phone").value = req.phone;
     document.getElementById("m-father-name").value = req.fatherName || "";
@@ -1454,17 +1552,24 @@ function openSeatActionsModal(seatId) {
                 const expiry = new Date(member.expiryDate).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
                 const isExpired = new Date(member.expiryDate) < new Date().setHours(0,0,0,0);
                 
+                const seatAvatarLetter = member.name.charAt(0).toUpperCase();
+                const seatAvatarStyle = member.photo ? `background-image: url('${member.photo}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : 'background: rgba(255,255,255,0.05); color: var(--accent-blue);';
+                const seatAvatarContent = member.photo ? '' : seatAvatarLetter;
+                
                 modalBody.innerHTML = `
                     <div style="display: flex; flex-direction: column; gap: 0.8rem;">
                         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom:1px solid var(--border-color); padding-bottom:0.6rem;">
                             <strong style="font-size: 1.1rem; color: #fff;">Seat ${seat.number} (Room ${seat.room})</strong>
                             <span class="badge ${seat.type === 'reserved' ? 'reserved' : 'general'}">${seat.type === 'reserved' ? 'Reserved' : 'Non-Reserved'}</span>
                         </div>
-                        <div style="display: flex; gap: 1rem; align-items: flex-start; justify-content: space-between;">
-                            <div>
-                                <div style="font-size: 0.75rem; color: var(--text-muted);">Occupant:</div>
-                                <strong style="font-size: 1.15rem; color:#fff; display:block; margin-top:0.15rem;">${member.name}</strong>
-                                <span style="font-size: 0.8rem; color: var(--text-muted);">${member.phone}</span>
+                        <div style="display: flex; gap: 1rem; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                                <div style="width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem; flex-shrink: 0; ${seatAvatarStyle}">${seatAvatarContent}</div>
+                                <div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">Occupant:</div>
+                                    <strong style="font-size: 1.15rem; color:#fff; display:block; margin-top:0.15rem;">${member.name}</strong>
+                                    <span style="font-size: 0.8rem; color: var(--text-muted);">${member.phone}</span>
+                                </div>
                             </div>
                             <div style="text-align: right;">
                                 <div style="font-size: 0.75rem; color: var(--text-muted);">Target Exam:</div>

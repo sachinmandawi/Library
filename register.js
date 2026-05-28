@@ -4,7 +4,10 @@ const defaultFirebaseConfig = {
     authDomain: "test-560c6.firebaseapp.com",
     databaseURL: "https://test-560c6-default-rtdb.firebaseio.com",
     projectId: "test-560c6",
-    storageBucket: "test-560c6.firebasestorage.app"
+    storageBucket: "test-560c6.firebasestorage.app",
+    messagingSenderId: "580954040987",
+    appId: "1:580954040987:web:a2f08eaeba5e130abbf43e",
+    measurementId: "G-Y5VQJL4Z2Y"
 };
 
 // Seating pricing structures
@@ -24,6 +27,7 @@ const PLANS_PRICING = {
 let database = null;
 let broadcastChannel = null;
 let allSeats = []; // Realtime synced seats from Firebase
+let compressedPhotoBase64 = null; // Store compressed student photo in memory
 
 // Load initial seat state from shared localStorage if available
 try {
@@ -76,7 +80,13 @@ function getFirebaseConfig() {
     
     if (storedConfig) {
         try {
-            return JSON.parse(storedConfig);
+            const parsed = JSON.parse(storedConfig);
+            // If it's the old sandbox demo key, clear it so we connect to the correct database
+            if (parsed.apiKey === "AIzaSyA4c3BfU2FuZGJveEtleS1EZW1vMTIzNDU") {
+                localStorage.removeItem("custom_firebase_config");
+                return defaultFirebaseConfig;
+            }
+            return parsed;
         } catch(e) {}
     }
     
@@ -271,6 +281,12 @@ function selectStudentSeat(seatId, seatNumber) {
 // Reset form view back to inputs
 function resetFormView() {
     document.getElementById("student-booking-form").reset();
+    compressedPhotoBase64 = null;
+    document.getElementById("s-photo-placeholder").style.display = "block";
+    const previewImg = document.getElementById("s-photo-preview");
+    previewImg.src = "";
+    previewImg.style.display = "none";
+    
     const dateInput = document.getElementById("s-start-date");
     if (dateInput) {
         dateInput.value = new Date().toISOString().split('T')[0];
@@ -336,6 +352,7 @@ function submitStudentForm(event) {
         seatId: seatId, // requested seat ID choice
         paymentMethod: paymentMethod,
         feeAmount: feeAmount,
+        photo: compressedPhotoBase64, // Saved compressed Base64 photo
         timestamp: Date.now(),
         status: "pending"
     };
@@ -351,7 +368,7 @@ function submitStudentForm(event) {
             console.warn("Firebase submission timed out. Falling back to local offline mode.");
             submitOffline(bookingData);
         }
-    }, 3000); // 3 seconds timeout
+    }, 15000); // 15 seconds timeout
     
     if (database) {
         try {
@@ -362,7 +379,7 @@ function submitStudentForm(event) {
                     if (!hasSubmitted) {
                         clearTimeout(timeoutId);
                         hasSubmitted = true;
-                        showSuccessScreen(name);
+                        showSuccessScreen(name, false);
                     }
                 })
                 .catch(error => {
@@ -408,13 +425,18 @@ function submitOffline(bookingData) {
         localStorage.setItem("offline_pending_bookings", JSON.stringify(localPending));
     } catch(e){}
     
-    showSuccessScreen(bookingData.name);
+    showSuccessScreen(bookingData.name, true);
 }
 
 // Display confirmation view
-function showSuccessScreen(studentName) {
+function showSuccessScreen(studentName, isOffline = false) {
     document.getElementById("success-student-name").textContent = studentName;
     document.getElementById("success-student-name-2").textContent = studentName;
+    
+    const warningEl = document.getElementById("success-offline-warning");
+    if (warningEl) {
+        warningEl.style.display = isOffline ? "block" : "none";
+    }
     
     document.getElementById("form-container").style.display = "none";
     document.getElementById("success-container").style.display = "block";
@@ -430,5 +452,45 @@ window.addEventListener("DOMContentLoaded", () => {
     const dateInput = document.getElementById("s-start-date");
     if (dateInput) {
         dateInput.value = new Date().toISOString().split('T')[0];
+    }
+    
+    // Add image input change listener for compression
+    const photoInput = document.getElementById("s-photo");
+    if (photoInput) {
+        photoInput.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement("canvas");
+                    const ctx = canvas.getContext("2d");
+                    canvas.width = 150;
+                    canvas.height = 150;
+                    
+                    // Center crop and draw to 150x150 canvas
+                    const minDim = Math.min(img.width, img.height);
+                    const sx = (img.width - minDim) / 2;
+                    const sy = (img.height - minDim) / 2;
+                    ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 150, 150);
+                    
+                    compressedPhotoBase64 = canvas.toDataURL("image/jpeg", 0.7);
+                    
+                    // Update visual UI preview
+                    const placeholder = document.getElementById("s-photo-placeholder");
+                    if (placeholder) placeholder.style.display = "none";
+                    
+                    const previewImg = document.getElementById("s-photo-preview");
+                    if (previewImg) {
+                        previewImg.src = compressedPhotoBase64;
+                        previewImg.style.display = "block";
+                    }
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
     }
 });

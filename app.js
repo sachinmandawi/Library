@@ -1735,23 +1735,20 @@ function sendExpiryReminder(memberId) {
         year: 'numeric'
     });
     
-    let daysText = "";
+    let daysStatus = "";
     if (daysDiff === 0) {
-        daysText = "today";
+        daysStatus = "Expires Today";
     } else if (daysDiff === 1) {
-        daysText = "tomorrow";
+        daysStatus = "Expires Tomorrow";
     } else if (daysDiff > 1) {
-        daysText = `in ${daysDiff} days`;
+        daysStatus = `Expires in ${daysDiff} days`;
+    } else if (daysDiff === -1) {
+        daysStatus = "Expired Yesterday";
     } else {
-        daysText = `${Math.abs(daysDiff)} days ago`;
+        daysStatus = `Expired ${Math.abs(daysDiff)} days ago`;
     }
     
-    let message = "";
-    if (daysDiff >= 0) {
-        message = `Hello ${member.name},\n\nYour membership at ${libName} for *${seatText}* is expiring *${daysText}* on *${formattedExpiryDate}*.\n\nTo ensure uninterrupted access and retain your seat, please renew your membership at the reception desk.\n\nThank you!\n${libName}`;
-    } else {
-        message = `Hello ${member.name},\n\nYour membership at ${libName} for *${seatText}* expired *${daysText}* on *${formattedExpiryDate}*.\n\nTo continue using the library services and retain your seat, please renew your membership at the reception desk.\n\nThank you!\n${libName}`;
-    }
+    const message = `Hello ${member.name},\n\nThis is an official update from *${libName}*.\n\nYour membership details:\n📌 *Seat:* ${seatText}\n📅 *Expiry Date:* ${formattedExpiryDate} (${daysStatus})\n\nTo ensure uninterrupted study hours and retain your assigned seat, please visit the reception desk to complete your renewal.\n\nThank you,\n*${libName}* Management Team`;
     
     // Clean phone number (strip leading 0, add +91 country code if not present)
     let cleanPhone = member.phone.replace(/[^0-9]/g, "");

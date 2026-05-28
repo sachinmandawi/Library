@@ -161,6 +161,14 @@ function onStudentRoomOrTypeChange() {
     const price = PLANS_PRICING[seatType][duration] || 0;
     document.getElementById("student-fee-price").textContent = `₹${price}`;
     
+    const amountPaidEl = document.getElementById("s-amount-paid");
+    const balanceAmountEl = document.getElementById("s-balance-amount");
+    if (amountPaidEl && balanceAmountEl) {
+        amountPaidEl.value = price;
+        balanceAmountEl.value = 0;
+        amountPaidEl.max = price;
+    }
+    
     const flexMsg = document.getElementById("s-flexible-msg");
     const seatPicker = document.getElementById("s-seat-picker-container");
     const badge = document.getElementById("student-selected-seat-badge");
@@ -471,6 +479,16 @@ function submitStudentForm(event) {
     const paymentMethod = paymentMethodEl ? paymentMethodEl.value : "Cash";
     
     const feeAmount = PLANS_PRICING[seatType][durationMonths.toString()];
+    const amountPaidEl = document.getElementById("s-amount-paid");
+    const amountPaid = amountPaidEl ? (parseInt(amountPaidEl.value) || 0) : feeAmount;
+    const balanceAmount = feeAmount - amountPaid;
+    
+    let paymentStatus = "Pending";
+    if (amountPaid === feeAmount) {
+        paymentStatus = "Paid";
+    } else if (amountPaid > 0) {
+        paymentStatus = "Partial";
+    }
     
     const bookingData = {
         name: name,
@@ -494,6 +512,9 @@ function submitStudentForm(event) {
         seatId: seatId, // requested seat ID choice
         paymentMethod: paymentMethod,
         feeAmount: feeAmount,
+        amountPaid: amountPaid,
+        balanceAmount: balanceAmount,
+        paymentStatus: paymentStatus,
         photo: compressedPhotoBase64, // Saved compressed Base64 photo
         timestamp: Date.now(),
         status: "pending"
@@ -635,4 +656,34 @@ window.addEventListener("DOMContentLoaded", () => {
             reader.readAsDataURL(file);
         });
     }
+    
+    // Initialize partial payment input calculations
+    initPartialPaymentListeners();
 });
+
+function initPartialPaymentListeners() {
+    const amountPaidEl = document.getElementById("s-amount-paid");
+    const balanceAmountEl = document.getElementById("s-balance-amount");
+    
+    if (amountPaidEl && balanceAmountEl) {
+        amountPaidEl.addEventListener("input", () => {
+            const seatType = document.getElementById("s-seat-type").value;
+            const duration = document.getElementById("s-duration").value;
+            const price = PLANS_PRICING[seatType][duration] || 0;
+            
+            let paid = parseFloat(amountPaidEl.value);
+            if (isNaN(paid)) paid = 0;
+            
+            if (paid > price) {
+                paid = price;
+                amountPaidEl.value = price;
+            }
+            if (paid < 0) {
+                paid = 0;
+                amountPaidEl.value = 0;
+            }
+            
+            balanceAmountEl.value = price - paid;
+        });
+    }
+}

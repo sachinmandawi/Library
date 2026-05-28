@@ -455,6 +455,63 @@ function setupFirebaseListeners() {
             saveStateToLocalStorage();
         }
     });
+    
+    // Listeners for partial payments inside the admin student modal
+    initModalPaymentListeners();
+}
+
+function initModalPaymentListeners() {
+    const feeEl = document.getElementById("m-fee-amount");
+    const paidEl = document.getElementById("m-amount-paid");
+    const balEl = document.getElementById("m-balance-amount");
+    const payStatusEl = document.getElementById("m-payment");
+    
+    if (feeEl && paidEl && balEl && payStatusEl) {
+        const updateBalanceAndStatus = (fromStatusChange = false) => {
+            const fee = parseFloat(feeEl.value) || 0;
+            let paid = parseFloat(paidEl.value) || 0;
+            
+            if (fromStatusChange) {
+                const status = payStatusEl.value;
+                if (status === "Paid") {
+                    paid = fee;
+                    paidEl.value = fee;
+                } else if (status === "Pending") {
+                    paid = 0;
+                    paidEl.value = 0;
+                } else if (status === "Partial") {
+                    if (paid >= fee || paid <= 0) {
+                        paid = Math.floor(fee / 2);
+                        paidEl.value = paid;
+                    }
+                }
+            } else {
+                if (paid > fee) {
+                    paid = fee;
+                    paidEl.value = fee;
+                }
+                if (paid < 0) {
+                    paid = 0;
+                    paidEl.value = 0;
+                }
+                
+                // Update dropdown status based on input values
+                if (paid === fee && fee > 0) {
+                    payStatusEl.value = "Paid";
+                } else if (paid === 0) {
+                    payStatusEl.value = "Pending";
+                } else {
+                    payStatusEl.value = "Partial";
+                }
+            }
+            
+            balEl.value = fee - paid;
+        };
+        
+        feeEl.addEventListener("input", () => updateBalanceAndStatus(false));
+        paidEl.addEventListener("input", () => updateBalanceAndStatus(false));
+        payStatusEl.addEventListener("change", () => updateBalanceAndStatus(true));
+    }
 }
 
 // Handle data syncing when offline
@@ -1435,6 +1492,10 @@ function openEditMemberModal(memberId) {
     document.getElementById("m-start-date").value = member.startDate;
     document.getElementById("m-expiry-date").value = member.expiryDate;
     document.getElementById("m-fee-amount").value = member.feeAmount;
+    const amountPaid = member.amountPaid !== undefined ? member.amountPaid : (member.paymentStatus === "Paid" ? member.feeAmount : 0);
+    const balanceAmount = member.balanceAmount !== undefined ? member.balanceAmount : (member.feeAmount - amountPaid);
+    document.getElementById("m-amount-paid").value = amountPaid;
+    document.getElementById("m-balance-amount").value = balanceAmount;
     document.getElementById("m-payment").value = member.paymentStatus;
     document.getElementById("m-payment-method").value = member.paymentMethod || "Cash";
     
@@ -1569,7 +1630,9 @@ function handleMemberFormSubmit(event) {
     const govId = document.getElementById("m-gov-id").value.trim() || "N/A";
     const startDate = document.getElementById("m-start-date").value;
     const expiryDate = document.getElementById("m-expiry-date").value;
-    const feeAmount = parseInt(document.getElementById("m-fee-amount").value);
+    const feeAmount = parseInt(document.getElementById("m-fee-amount").value) || 0;
+    const amountPaid = parseInt(document.getElementById("m-amount-paid").value) || 0;
+    const balanceAmount = parseInt(document.getElementById("m-balance-amount").value) || 0;
     const paymentStatus = document.getElementById("m-payment").value;
     const paymentMethod = document.getElementById("m-payment-method").value;
     
@@ -1614,6 +1677,8 @@ function handleMemberFormSubmit(event) {
         startDate: startDate,
         expiryDate: expiryDate,
         feeAmount: feeAmount,
+        amountPaid: amountPaid,
+        balanceAmount: balanceAmount,
         paymentStatus: paymentStatus,
         paymentMethod: paymentMethod,
         photo: modalPhotoBase64, // Save photo
@@ -1790,7 +1855,11 @@ function updateFeesBadge() {
     const badge = document.getElementById("fees-badge-count");
     if (!badge) return;
     
-    const pendingCount = state.members.filter(m => m.paymentStatus === "Pending").length;
+    const pendingCount = state.members.filter(m => {
+        const fee = parseInt(m.feeAmount) || 0;
+        const paid = m.amountPaid !== undefined ? (parseInt(m.amountPaid) || 0) : (m.paymentStatus === "Paid" ? fee : 0);
+        return (fee - paid) > 0;
+    }).length;
     
     if (pendingCount > 0) {
         badge.textContent = pendingCount;
@@ -1819,11 +1888,14 @@ function renderFeesTab() {
     let pendingStudentsCount = 0;
     
     state.members.forEach(m => {
-        const amount = parseInt(m.feeAmount) || 0;
-        if (m.paymentStatus === "Paid") {
-            totalCollected += amount;
-        } else {
-            totalPending += amount;
+        const fee = parseInt(m.feeAmount) || 0;
+        const paid = m.amountPaid !== undefined ? (parseInt(m.amountPaid) || 0) : (m.paymentStatus === "Paid" ? fee : 0);
+        const pending = m.balanceAmount !== undefined ? (parseInt(m.balanceAmount) || 0) : (fee - paid);
+        
+        totalCollected += paid;
+        totalPending += pending;
+        
+        if (pending > 0) {
             pendingStudentsCount++;
         }
     });
@@ -1832,9 +1904,13 @@ function renderFeesTab() {
     if (kpiPending) kpiPending.textContent = `₹${totalPending.toLocaleString('en-IN')}`;
     if (kpiCount) kpiCount.textContent = `${pendingStudentsCount} Student${pendingStudentsCount === 1 ? '' : 's'}`;
     
-    // 2. Filter Pending Payments
-    const pendingStudents = state.members.filter(m => m.paymentStatus === "Pending")
-        .sort((a, b) => b.timestamp - a.timestamp);
+    // 2. Filter Pending Payments (balanceAmount > 0)
+    const pendingStudents = state.members.filter(m => {
+        const fee = parseInt(m.feeAmount) || 0;
+        const paid = m.amountPaid !== undefined ? (parseInt(m.amountPaid) || 0) : (m.paymentStatus === "Paid" ? fee : 0);
+        const pending = m.balanceAmount !== undefined ? (parseInt(m.balanceAmount) || 0) : (fee - paid);
+        return pending > 0;
+    }).sort((a, b) => b.timestamp - a.timestamp);
         
     if (pendingStudents.length === 0) {
         pendingTbody.innerHTML = `
@@ -1878,6 +1954,10 @@ function renderFeesTab() {
                 seatText = `Room ${roomNum} - Seat ${localSeatNum}`;
             }
             
+            const fee = parseInt(member.feeAmount) || 0;
+            const paid = member.amountPaid !== undefined ? (parseInt(member.amountPaid) || 0) : (member.paymentStatus === "Paid" ? fee : 0);
+            const pending = member.balanceAmount !== undefined ? (parseInt(member.balanceAmount) || 0) : (fee - paid);
+            
             tr.innerHTML = `
                 <td>
                     <div class="member-profile">
@@ -1893,8 +1973,11 @@ function renderFeesTab() {
                     ${expiryFmtText}
                 </td>
                 <td>
-                    <div style="font-weight: 700; color: var(--accent-amber); font-size: 1rem;">₹${member.feeAmount}</div>
-                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 1px;">
+                    <div style="font-weight: 700; color: var(--accent-amber); font-size: 1rem;">₹${pending} dues</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                        ₹${paid} paid of ₹${fee}
+                    </div>
+                    <div style="font-size: 0.65rem; color: var(--accent-blue); font-weight: 500; margin-top: 1px;">
                         ${PLANS.find(p => p.id === member.planId)?.name || 'Custom Plan'}
                     </div>
                 </td>
@@ -1929,9 +2012,10 @@ function renderFeesTab() {
         recentPayments.forEach(member => {
             const item = document.createElement("div");
             const isPaid = member.paymentStatus === "Paid";
+            const isPartial = member.paymentStatus === "Partial";
             
             item.className = "alert-item";
-            item.style.borderLeftColor = isPaid ? "var(--accent-emerald)" : "var(--accent-amber)";
+            item.style.borderLeftColor = isPaid ? "var(--accent-emerald)" : (isPartial ? "var(--accent-blue)" : "var(--accent-amber)");
             
             const timeFmt = new Date(member.timestamp).toLocaleDateString('en-IN', {
                 day: 'numeric',
@@ -1940,18 +2024,22 @@ function renderFeesTab() {
                 minute: '2-digit'
             });
             
+            const fee = parseInt(member.feeAmount) || 0;
+            const paid = member.amountPaid !== undefined ? (parseInt(member.amountPaid) || 0) : (member.paymentStatus === "Paid" ? fee : 0);
+            const pending = member.balanceAmount !== undefined ? (parseInt(member.balanceAmount) || 0) : (fee - paid);
+            
             item.innerHTML = `
-                <div class="alert-avatar" style="color: ${isPaid ? 'var(--accent-emerald)' : 'var(--accent-amber)'}; background: ${isPaid ? 'rgba(16, 185, 129, 0.08)' : 'rgba(245, 158, 11, 0.08)'}; font-size: 1rem;">
-                    <i class="fa-solid ${isPaid ? 'fa-circle-check' : 'fa-clock'}"></i>
+                <div class="alert-avatar" style="color: ${isPaid ? 'var(--accent-emerald)' : (isPartial ? 'var(--accent-blue)' : 'var(--accent-amber)')}; background: ${isPaid ? 'rgba(16, 185, 129, 0.08)' : (isPartial ? 'rgba(59, 130, 246, 0.08)' : 'rgba(245, 158, 11, 0.08)')}; font-size: 1rem;">
+                    <i class="fa-solid ${isPaid ? 'fa-circle-check' : (isPartial ? 'fa-circle-exclamation' : 'fa-clock')}"></i>
                 </div>
                 <div class="alert-details">
                     <div class="alert-name" style="font-weight: 600; color: #fff;">${member.name}</div>
                     <div class="alert-info" style="font-size: 0.75rem;">
-                        ₹${member.feeAmount} • ${PLANS.find(p => p.id === member.planId)?.name || 'Custom Plan'} (${member.paymentMethod || 'Cash'})
+                        ₹${paid} paid (₹${pending} dues) • ${PLANS.find(p => p.id === member.planId)?.name || 'Custom Plan'} (${member.paymentMethod || 'Cash'})
                     </div>
                 </div>
                 <div style="text-align: right;">
-                    <div style="font-size: 0.75rem; font-weight: 700; color: ${isPaid ? 'var(--accent-emerald)' : 'var(--accent-amber)'};">
+                    <div style="font-size: 0.75rem; font-weight: 700; color: ${isPaid ? 'var(--accent-emerald)' : (isPartial ? 'var(--accent-blue)' : 'var(--accent-amber)')};">
                         ${member.paymentStatus}
                     </div>
                     <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 2px;">${timeFmt}</div>
@@ -1960,6 +2048,9 @@ function renderFeesTab() {
             recentList.appendChild(item);
         });
     }
+    
+    // 4. Render charts
+    renderFeesCharts();
 }
 
 // Send WhatsApp pending fee reminder (Option 1 style: Professional & Polite)
@@ -1970,7 +2061,11 @@ function sendFeeReminder(memberId) {
     const libName = state.settings.libraryName || "The Study Cafe";
     const planName = PLANS.find(p => p.id === member.planId)?.name || "Library Membership";
     
-    const message = `Hello ${member.name},\n\nThis is a friendly fee status update from *${libName}*.\n\n💵 *Pending Amount:* ₹${member.feeAmount}\n📦 *Plan Duration:* ${planName}\n\nKindly clear the pending dues at the desk at your earliest convenience to update your database record. If you have already paid, please share the receipt screenshot.\n\nThank you,\n*${libName}*`;
+    const fee = parseInt(member.feeAmount) || 0;
+    const paid = member.amountPaid !== undefined ? (parseInt(member.amountPaid) || 0) : (member.paymentStatus === "Paid" ? fee : 0);
+    const pending = member.balanceAmount !== undefined ? (parseInt(member.balanceAmount) || 0) : (fee - paid);
+    
+    const message = `Hello ${member.name},\n\nThis is a friendly fee status update from *${libName}*.\n\n💵 *Pending Amount:* ₹${pending}\n📦 *Plan Duration:* ${planName}\n\nKindly clear the pending dues at the desk at your earliest convenience to update your database record. If you have already paid, please share the receipt screenshot.\n\nThank you,\n*${libName}*`;
     
     let cleanPhone = member.phone.replace(/[^0-9]/g, "");
     if (cleanPhone.startsWith("0")) {
@@ -1989,17 +2084,39 @@ function markFeeAsPaidQuick(memberId) {
     const member = state.members.find(m => m.id === memberId);
     if (!member) return;
     
-    const paymentMethod = prompt(`Confirm payment of ₹${member.feeAmount} for ${member.name}.\nEnter payment method (Type "Cash" or "UPI" / "Online"):`, "Cash");
+    const fee = parseInt(member.feeAmount) || 0;
+    const paidSoFar = member.amountPaid !== undefined ? (parseInt(member.amountPaid) || 0) : (member.paymentStatus === "Paid" ? fee : 0);
+    const currentDues = member.balanceAmount !== undefined ? (parseInt(member.balanceAmount) || 0) : (fee - paidSoFar);
+    
+    const amountStr = prompt(`Collect payment for ${member.name}.\nDues Remaining: ₹${currentDues}\nEnter amount to collect:`, currentDues);
+    if (amountStr === null) return; // Cancelled
+    
+    const collectAmount = parseInt(amountStr);
+    if (isNaN(collectAmount) || collectAmount <= 0) {
+        showToast("Invalid payment amount entered.", "error");
+        return;
+    }
+    
+    if (collectAmount > currentDues) {
+        showToast(`Cannot collect more than outstanding dues (₹${currentDues}).`, "error");
+        return;
+    }
+    
+    const paymentMethod = prompt(`Enter payment method (Type "Cash" or "UPI" / "Online"):`, "Cash");
     if (paymentMethod === null) return; // Cancelled
     
     const cleanMethod = paymentMethod.trim().toLowerCase().includes("cash") ? "Cash" : "Online";
     
-    member.paymentStatus = "Paid";
+    // Update payment details
+    const newPaidAmount = paidSoFar + collectAmount;
+    member.amountPaid = newPaidAmount;
+    member.balanceAmount = fee - newPaidAmount;
+    member.paymentStatus = member.balanceAmount === 0 ? "Paid" : "Partial";
     member.paymentMethod = cleanMethod;
     member.timestamp = Date.now(); // update timestamp for recent sorting
     
     syncLocalToDatabase();
-    showToast(`Payment marked as Paid via ${cleanMethod} for ${member.name}!`, "success");
+    showToast(`Collected ₹${collectAmount} via ${cleanMethod} for ${member.name}! Status: ${member.paymentStatus}`, "success");
     refreshUI();
     
     // Automatically open receipt
@@ -2071,7 +2188,11 @@ function approvePendingRequest(requestId) {
     
     document.getElementById("m-gov-id").value = req.govId || "";
     document.getElementById("m-fee-amount").value = req.feeAmount;
-    document.getElementById("m-payment").value = "Paid";
+    const amountPaid = req.amountPaid !== undefined ? req.amountPaid : req.feeAmount;
+    const balanceAmount = req.balanceAmount !== undefined ? req.balanceAmount : 0;
+    document.getElementById("m-amount-paid").value = amountPaid;
+    document.getElementById("m-balance-amount").value = balanceAmount;
+    document.getElementById("m-payment").value = req.paymentStatus || "Paid";
     document.getElementById("m-payment-method").value = req.paymentMethod || "Cash";
     
     // Pre-select the student's chosen seat if still vacant
@@ -2363,49 +2484,62 @@ function openReceiptModal(memberId) {
     
     const receiptNo = `TSC-${member.timestamp.toString().slice(-6)}`;
     
-    const modalBody = document.getElementById("receipt-modal-body");
-    modalBody.innerHTML = `
-        <div style="font-family: monospace; font-size: 0.85rem; line-height: 1.5; color: #1e293b;">
-            <div style="text-align: center; margin-bottom: 0.8rem; border-bottom: 1px dashed #cbd5e1; padding-bottom:0.5rem;">
-                <h3 style="font-size: 1.3rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing:-0.03em;">${state.settings.libraryName.toUpperCase()}</h3>
-                <p style="font-size: 0.7rem; color: #64748b; margin-top: 0.15rem; font-family: sans-serif;">${state.settings.address} • Mob: ${state.settings.phone}</p>
-            </div>
+            const fee = parseInt(member.feeAmount) || 0;
+            const paid = member.amountPaid !== undefined ? (parseInt(member.amountPaid) || 0) : (member.paymentStatus === "Paid" ? fee : 0);
+            const pending = member.balanceAmount !== undefined ? (parseInt(member.balanceAmount) || 0) : (fee - paid);
             
-            <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 0.5rem; font-size: 0.8rem;">
-                <div style="display:flex; justify-content:space-between;"><span><strong>Receipt No:</strong> ${receiptNo}</span><span><strong>Date:</strong> ${new Date(member.timestamp).toLocaleDateString('en-IN')}</span></div>
-            </div>
-            
-            <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
-                <div><strong>Student:</strong> ${member.name}</div>
-                <div><strong>Date of Birth:</strong> ${member.dob ? new Date(member.dob).toLocaleDateString('en-IN') : 'N/A'}</div>
-                <div><strong>Phone:</strong> ${member.phone}</div>
-                <div><strong>Target Exam:</strong> ${member.targetExam || 'N/A'}</div>
-                <div><strong>Father's Name:</strong> ${member.fatherName || 'N/A'}</div>
-                <div><strong>Father's Mobile:</strong> ${member.fatherPhone || 'N/A'}</div>
-                <div><strong>Emergency Contact:</strong> ${member.emergencyName || 'N/A'} (${member.emergencyRelation || 'N/A'})</div>
-                <div><strong>Emergency Phone:</strong> ${member.emergencyPhone || 'N/A'}</div>
-            </div>
-            
-            <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
-                <div><strong>Room No:</strong> ${roomDisplay}</div>
-                <div><strong>Seat Number:</strong> ${seatDisplay}</div>
-                <div><strong>Validity:</strong> ${startDateFmt} to ${expiryDateFmt}</div>
-            </div>
-            
-            <div style="margin-bottom: 0.5rem; display: flex; justify-content: space-between; font-size: 0.95rem; font-weight: bold; color: #0f172a;">
-                <span>Total Fee Paid:</span>
-                <span>₹${member.feeAmount}</span>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.25rem;">
-                <span>Payment Mode:</span>
-                <span><strong>${member.paymentMethod || 'Cash'}</strong></span>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.5rem;">
-                <span>Payment Status:</span>
-                <span style="color: ${member.paymentStatus === 'Paid' ? '#10b981' : '#f59e0b'}; font-weight: bold;">${member.paymentStatus}</span>
-            </div>
+            modalBody.innerHTML = `
+                <div style="font-family: monospace; font-size: 0.85rem; line-height: 1.5; color: #1e293b;">
+                    <div style="text-align: center; margin-bottom: 0.8rem; border-bottom: 1px dashed #cbd5e1; padding-bottom:0.5rem;">
+                        <h3 style="font-size: 1.3rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing:-0.03em;">${state.settings.libraryName.toUpperCase()}</h3>
+                        <p style="font-size: 0.7rem; color: #64748b; margin-top: 0.15rem; font-family: sans-serif;">${state.settings.address} • Mob: ${state.settings.phone}</p>
+                    </div>
+                    
+                    <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 0.5rem; font-size: 0.8rem;">
+                        <div style="display:flex; justify-content:space-between;"><span><strong>Receipt No:</strong> ${receiptNo}</span><span><strong>Date:</strong> ${new Date(member.timestamp).toLocaleDateString('en-IN')}</span></div>
+                    </div>
+                    
+                    <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                        <div><strong>Student:</strong> ${member.name}</div>
+                        <div><strong>Date of Birth:</strong> ${member.dob ? new Date(member.dob).toLocaleDateString('en-IN') : 'N/A'}</div>
+                        <div><strong>Phone:</strong> ${member.phone}</div>
+                        <div><strong>Target Exam:</strong> ${member.targetExam || 'N/A'}</div>
+                        <div><strong>Father's Name:</strong> ${member.fatherName || 'N/A'}</div>
+                        <div><strong>Father's Mobile:</strong> ${member.fatherPhone || 'N/A'}</div>
+                        <div><strong>Emergency Contact:</strong> ${member.emergencyName || 'N/A'} (${member.emergencyRelation || 'N/A'})</div>
+                        <div><strong>Emergency Phone:</strong> ${member.emergencyPhone || 'N/A'}</div>
+                    </div>
+                    
+                    <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                        <div><strong>Room No:</strong> ${roomDisplay}</div>
+                        <div><strong>Seat Number:</strong> ${seatDisplay}</div>
+                        <div><strong>Validity:</strong> ${startDateFmt} to ${expiryDateFmt}</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 0.25rem; display: flex; justify-content: space-between; font-size: 0.8rem; color: #0f172a;">
+                        <span>Total Plan Fee:</span>
+                        <span>₹${fee}</span>
+                    </div>
+                    
+                    <div style="margin-bottom: 0.25rem; display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: bold; color: #0f172a;">
+                        <span>Amount Paid:</span>
+                        <span>₹${paid}</span>
+                    </div>
+                    
+                    <div style="margin-bottom: 0.5rem; display: flex; justify-content: space-between; font-size: 0.8rem; color: #b91c1c; font-weight: 500;">
+                        <span>Remaining Dues:</span>
+                        <span>₹${pending}</span>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.25rem;">
+                        <span>Payment Mode:</span>
+                        <span><strong>${member.paymentMethod || 'Cash'}</strong></span>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.5rem;">
+                        <span>Payment Status:</span>
+                        <span style="color: ${member.paymentStatus === 'Paid' ? '#10b981' : '#f59e0b'}; font-weight: bold;">${member.paymentStatus}</span>
+                    </div>
             
             <div style="text-align: center; border-top: 1px dashed #cbd5e1; padding-top: 0.5rem; margin-top: 0.5rem; color: #64748b; font-size: 0.72rem; font-family: sans-serif; line-height: 1.3;">
                 Thank you for studying with us!<br>
@@ -2510,6 +2644,10 @@ function shareReceiptWhatsApp() {
     const expiryDateFmt = new Date(member.expiryDate).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
     const receiptNo = `TSC-${member.timestamp.toString().slice(-6)}`;
     
+    const fee = parseInt(member.feeAmount) || 0;
+    const paid = member.amountPaid !== undefined ? (parseInt(member.amountPaid) || 0) : (member.paymentStatus === "Paid" ? fee : 0);
+    const pending = member.balanceAmount !== undefined ? (parseInt(member.balanceAmount) || 0) : (fee - paid);
+    
     // Construct WhatsApp message template
     const message = `*${state.settings.libraryName.toUpperCase()}* ☕
 ------------------------------
@@ -2533,7 +2671,9 @@ function shareReceiptWhatsApp() {
 • Validity Period: ${startDateFmt} to ${expiryDateFmt}
 
 *Billing Info:*
-• Fee Paid: ₹${member.feeAmount}
+• Total Plan Fee: ₹${fee}
+• Amount Paid: ₹${paid}
+• Remaining Dues: ₹${pending}
 • Payment Method: ${member.paymentMethod || 'Cash'}
 • Status: *${member.paymentStatus}*
 ------------------------------
@@ -3036,3 +3176,262 @@ window.addEventListener("DOMContentLoaded", () => {
         if (img) img.style.transition = "transform 0.15s cubic-bezier(0.16, 1, 0.3, 1)";
     });
 });
+
+// Render dynamic fees charts using Chart.js
+function renderFeesCharts() {
+    const canvasRevenue = document.getElementById("chart-revenue-trends");
+    const canvasSplit = document.getElementById("chart-payment-split");
+    
+    if (!canvasRevenue || !canvasSplit) return;
+    
+    // Destroy existing chart instances to avoid overlays
+    if (window.revenueTrendChart && typeof window.revenueTrendChart.destroy === 'function') {
+        window.revenueTrendChart.destroy();
+    }
+    if (window.paymentSplitChart && typeof window.paymentSplitChart.destroy === 'function') {
+        window.paymentSplitChart.destroy();
+    }
+    
+    const monthlyRevenue = {};
+    let cashTotal = 0;
+    let onlineTotal = 0;
+    
+    state.members.forEach(m => {
+        const fee = parseInt(m.feeAmount) || 0;
+        const paid = m.amountPaid !== undefined ? (parseInt(m.amountPaid) || 0) : (m.paymentStatus === "Paid" ? fee : 0);
+        
+        // Group by Month (Year-Month format for chronological sorting)
+        const date = new Date(m.timestamp || Date.now());
+        const monthKey = date.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }); // e.g. "May 2026"
+        
+        monthlyRevenue[monthKey] = (monthlyRevenue[monthKey] || 0) + paid;
+        
+        // Mode split (Cash vs UPI/Online)
+        const method = (m.paymentMethod || "Cash").toLowerCase();
+        if (method.includes("cash")) {
+            cashTotal += paid;
+        } else {
+            onlineTotal += paid;
+        }
+    });
+    
+    // Sort Month keys chronologically
+    const sortedMonths = Object.keys(monthlyRevenue).sort((a, b) => {
+        return new Date(a) - new Date(b);
+    });
+    
+    const revenueData = sortedMonths.map(m => monthlyRevenue[m]);
+    
+    // 1. Monthly Revenue Bar Chart
+    const ctxRevenue = canvasRevenue.getContext('2d');
+    window.revenueTrendChart = new Chart(ctxRevenue, {
+        type: 'bar',
+        data: {
+            labels: sortedMonths.length > 0 ? sortedMonths : ["No Data"],
+            datasets: [{
+                label: 'Monthly Revenue (₹)',
+                data: revenueData.length > 0 ? revenueData : [0],
+                backgroundColor: 'rgba(16, 185, 129, 0.45)',
+                borderColor: 'var(--accent-emerald)',
+                borderWidth: 1.5,
+                borderRadius: 4,
+                barPercentage: 0.6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderWidth: 1
+                }
+            },
+            scales: {
+                y: {
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    ticks: { color: 'rgba(255, 255, 255, 0.5)', font: { size: 9 } }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: 'rgba(255, 255, 255, 0.5)', font: { size: 9 } }
+                }
+            }
+        }
+    });
+    
+    // 2. Payment Method split doughnut chart
+    const ctxSplit = canvasSplit.getContext('2d');
+    window.paymentSplitChart = new Chart(ctxSplit, {
+        type: 'doughnut',
+        data: {
+            labels: ['Cash', 'UPI/Online'],
+            datasets: [{
+                data: [cashTotal, onlineTotal],
+                backgroundColor: [
+                    'rgba(245, 158, 11, 0.5)', // Amber
+                    'rgba(59, 130, 246, 0.5)'  // Blue
+                ],
+                borderColor: [
+                    'var(--accent-amber)',
+                    'var(--accent-blue)'
+                ],
+                borderWidth: 1.5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                    callbacks: {
+                        label: function(context) {
+                            const val = context.raw || 0;
+                            const total = cashTotal + onlineTotal;
+                            const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+                            return `${context.label}: ₹${val.toLocaleString('en-IN')} (${pct}%)`;
+                        }
+                    }
+                }
+            },
+            cutout: '65%'
+        }
+    });
+}
+
+// Preset changes for custom report date selectors
+function onReportPresetChange() {
+    const preset = document.getElementById("report-preset").value;
+    const customRow = document.getElementById("report-custom-dates-row");
+    if (!customRow) return;
+    
+    if (preset === "custom") {
+        customRow.style.display = "grid";
+        const end = new Date().toISOString().split('T')[0];
+        const start = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().split('T')[0];
+        document.getElementById("report-start-date").value = start;
+        document.getElementById("report-end-date").value = end;
+    } else {
+        customRow.style.display = "none";
+    }
+}
+
+// Generate & Download fees report CSV
+function exportFeesReport() {
+    const preset = document.getElementById("report-preset").value;
+    let startDate = null;
+    let endDate = null;
+    
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    
+    if (preset === "today") {
+        startDate = today;
+        endDate = new Date(today.getTime() + 24 * 3600 * 1000);
+    } else if (preset === "this-month") {
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        endDate = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    } else if (preset === "last-month") {
+        startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        endDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    } else if (preset === "custom") {
+        const startStr = document.getElementById("report-start-date").value;
+        const endStr = document.getElementById("report-end-date").value;
+        if (!startStr || !endStr) {
+            showToast("Please select valid start and end dates.", "error");
+            return;
+        }
+        startDate = new Date(startStr);
+        startDate.setHours(0,0,0,0);
+        endDate = new Date(endStr);
+        endDate.setHours(23,59,59,999);
+    }
+    
+    const filteredMembers = state.members.filter(m => {
+        if (!startDate || !endDate) return true;
+        const timestamp = m.timestamp || Date.now();
+        return timestamp >= startDate.getTime() && timestamp <= endDate.getTime();
+    });
+    
+    if (filteredMembers.length === 0) {
+        showToast("No financial records found in the selected range.", "info");
+        return;
+    }
+    
+    const csvRows = [];
+    csvRows.push([
+        "Student Name",
+        "Phone Number",
+        "Assigned Seat",
+        "Plan Name",
+        "Total Fee (INR)",
+        "Amount Paid (INR)",
+        "Remaining Dues (INR)",
+        "Payment Status",
+        "Payment Method",
+        "Registration Date"
+    ].map(h => `"${h}"`).join(","));
+    
+    filteredMembers.forEach(m => {
+        const fee = parseInt(m.feeAmount) || 0;
+        const paid = m.amountPaid !== undefined ? (parseInt(m.amountPaid) || 0) : (m.paymentStatus === "Paid" ? fee : 0);
+        const pending = m.balanceAmount !== undefined ? (parseInt(m.balanceAmount) || 0) : (fee - paid);
+        
+        let seatText = "";
+        if (m.seatId === "non-reserved") {
+            seatText = "Non-Reserved";
+        } else {
+            const globalSeatNum = parseInt(m.seatId.replace('seat_', ''));
+            const roomNum = Math.ceil(globalSeatNum / 100);
+            const localSeatNum = globalSeatNum - (roomNum - 1) * 100;
+            seatText = `Room ${roomNum} - Seat ${localSeatNum}`;
+        }
+        
+        const planName = PLANS.find(p => p.id === m.planId)?.name || 'Custom Plan';
+        const regDate = new Date(m.timestamp || Date.now()).toLocaleDateString('en-IN');
+        
+        const row = [
+            m.name,
+            m.phone,
+            seatText,
+            planName,
+            fee,
+            paid,
+            pending,
+            m.paymentStatus,
+            m.paymentMethod || "Cash",
+            regDate
+        ].map(val => `"${val.toString().replace(/"/g, '""')}"`).join(",");
+        
+        csvRows.push(row);
+    });
+    
+    // Add BOM for proper UTF-8 Excel handling
+    const csvContent = "\uFEFF" + csvRows.join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    
+    if (navigator.msSaveBlob) { // IE 10+
+        navigator.msSaveBlob(blob, filename);
+        return;
+    }
+    
+    const url = URL.createObjectURL(blob);
+    const filename = `StudyCafe_FeesReport_${preset}_${new Date().toISOString().split('T')[0]}.csv`;
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    showToast(`Successfully exported report for ${filteredMembers.length} students!`, "success");
+}

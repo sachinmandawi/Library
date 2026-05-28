@@ -667,6 +667,65 @@
                     </div>
                 </div>
 
+                <div class="dashboard-layout" style="grid-template-columns: 1.2fr 1fr; margin-bottom: 2rem; gap: 1.5rem;">
+                    <!-- Revenue Analytics Charts -->
+                    <div class="glass-panel" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+                        <h3 style="font-size: 1.1rem; color: #fff; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fa-solid fa-chart-line" style="color: var(--accent-emerald);"></i> Financial Analytics
+                        </h3>
+                        <div style="display: flex; gap: 1.5rem; align-items: center; justify-content: space-around; flex-wrap: wrap; min-height: 200px;">
+                            <!-- Monthly revenue chart container -->
+                            <div style="flex: 1.5; min-width: 220px; max-height: 200px; position: relative;">
+                                <canvas id="chart-revenue-trends" style="width: 100%; height: 200px;"></canvas>
+                            </div>
+                            <!-- Payment split chart container -->
+                            <div style="flex: 1; min-width: 140px; max-height: 200px; position: relative; display: flex; justify-content: center; align-items: center;">
+                                <canvas id="chart-payment-split" style="max-width: 140px; max-height: 140px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Report Downloader Card -->
+                    <div class="glass-panel" style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between;">
+                        <div>
+                            <h3 style="font-size: 1.1rem; color: #fff; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fa-solid fa-file-arrow-down" style="color: var(--accent-blue);"></i> Export Financial Reports
+                            </h3>
+                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+                                Filter and download student payment details, including total fees, amount paid, and outstanding balances in Excel-compatible CSV format.
+                            </p>
+                            
+                            <div class="form-row" style="display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                <div class="form-group">
+                                    <label class="form-label" for="report-preset">Select Date Preset</label>
+                                    <select id="report-preset" class="form-control" onchange="onReportPresetChange()">
+                                        <option value="all" selected>All Time</option>
+                                        <option value="today">Today</option>
+                                        <option value="this-month">This Month</option>
+                                        <option value="last-month">Last Month</option>
+                                        <option value="custom">Custom Date Range</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div id="report-custom-dates-row" class="form-row" style="display: none; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                <div class="form-group">
+                                    <label class="form-label" for="report-start-date">Start Date</label>
+                                    <input type="date" id="report-start-date" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="report-end-date">End Date</label>
+                                    <input type="date" id="report-end-date" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="button" class="btn btn-primary" onclick="exportFeesReport()" style="width: 100%; justify-content: center; gap: 0.5rem; height: 42px; margin-top: 1rem;">
+                            <i class="fa-solid fa-file-excel"></i> Export Report to CSV
+                        </button>
+                    </div>
+                </div>
+
                 <div class="dashboard-layout" style="grid-template-columns: 3fr 2fr;">
                     <!-- Pending Payments (Unpaid Students) -->
                     <div class="glass-panel">
@@ -868,15 +927,27 @@
                         </div>
                     </div>
 
-                    <div class="form-row">
+                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
-                            <label class="form-label">Fee Amount (₹)</label>
+                            <label class="form-label">Total Fee (₹) *</label>
                             <input type="number" id="m-fee-amount" class="form-control" required>
                         </div>
+                        <div class="form-group">
+                            <label class="form-label">Amount Paid (₹) *</label>
+                            <input type="number" id="m-amount-paid" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Remaining Balance (₹)</label>
+                            <input type="number" id="m-balance-amount" class="form-control" readonly style="background: rgba(255,255,255,0.02); color: var(--accent-amber); font-weight: 600;">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Payment Status *</label>
                             <select id="m-payment" class="form-control" required>
                                 <option value="Paid">Paid</option>
+                                <option value="Partial">Partial</option>
                                 <option value="Pending">Pending</option>
                             </select>
                         </div>
@@ -974,6 +1045,9 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    
+    <!-- Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <!-- html2pdf Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>

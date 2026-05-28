@@ -228,10 +228,23 @@
                                 </label>
                             </div>
                         </div>
-                        <div class="form-group" id="student-price-display-box" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 0; display: flex; justify-content: space-between; align-items: center;">
+                        <div class="form-group" id="student-price-display-box" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
                             <span style="font-size: 0.85rem; color: var(--text-muted);">Estimated Fee:</span>
                             <strong style="color: var(--accent-emerald); font-size: 1.2rem; font-family: 'Outfit';" id="student-fee-price">₹700</strong>
                         </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.5rem;">
+                            <div class="form-group">
+                                <label class="form-label" for="s-amount-paid">Amount Paid Now (₹) *</label>
+                                <input type="number" id="s-amount-paid" class="form-control" placeholder="Enter amount paid" required style="font-family: 'Outfit';">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="s-balance-amount">Remaining Balance (₹)</label>
+                                <input type="number" id="s-balance-amount" class="form-control" readonly style="background: rgba(255,255,255,0.02); color: var(--accent-amber); font-family: 'Outfit'; font-weight: 600;">
+                            </div>
+                        </div>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; margin-top: -0.25rem;">
+                            Note: Any unpaid balance must be cleared at the reception desk to finalize your admission.
+                        </p>
                     </div>
 
                     <!-- Section 7: Profile Picture Upload -->
@@ -294,6 +307,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
     <!-- Student Logic -->
-    <script src="register.js?v=15"></script>
+    <script src="register.js?v=16"></script>
 </body>
 </html>

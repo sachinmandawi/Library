@@ -572,8 +572,10 @@ function updateDashboardKPIs() {
         const progress = document.getElementById(`room${r}-progress`);
         const text = document.getElementById(`room${r}-text`);
         
-        if (badge) badge.textContent = `${roomOccupants} / 100`;
-        if (progress) progress.style.width = `${roomOccupants}%`;
+        const maxSeats = r === 1 ? 50 : 100;
+        
+        if (badge) badge.textContent = `${roomOccupants} / ${maxSeats}`;
+        if (progress) progress.style.width = `${(roomOccupants / maxSeats) * 100}%`;
         if (text) text.textContent = `${roomOccupants} Active Student${roomOccupants === 1 ? '' : 's'}`;
     }
 }

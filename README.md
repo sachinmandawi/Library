@@ -78,10 +78,10 @@ If your login screen returns an **"Invalid email or password"** error, you must 
 3. Under the **Build** section in the left sidebar, click on **Authentication**.
 4. *If using Authentication for the first time, click "Get Started".*
 5. Select the **Sign-in method** tab, click **Email/Password**, and toggle it to **Enabled**, then click **Save**.
-6. Switch back to the **Users** tab and click **Add user**.
-7. Enter the admin credentials:
-   * **Email:** `smandavi2003@gmail.com`
-   * **Password:** `Red?491559`
+6. Switch to the **Users** tab and click **Add user**.
+7. Enter your chosen admin credentials:
+   * **Email:** `your-admin-email@example.com`
+   * **Password:** `your-strong-password`
 8. Click **Add user**. Now go back to your app login screen and sign in!
 </details>
 

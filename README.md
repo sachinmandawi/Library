@@ -1,6 +1,4 @@
 <div align="center">
-  <img src="banner.svg" alt="The Study Cafe Animated Banner" width="100%" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);" />
-
   # 📚 The Study Cafe — Portal Control Center
 
   [![Firebase](https://img.shields.io/badge/Database-Firebase_RTDB-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)

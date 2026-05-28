@@ -448,28 +448,68 @@ function submitStudentForm(event) {
     const name = document.getElementById("s-name").value.trim();
     const phone = document.getElementById("s-phone").value.trim();
     const dob = document.getElementById("s-dob").value;
+    const gender = document.getElementById("s-gender").value;
+    const email = document.getElementById("s-email").value.trim();
+    const govId = document.getElementById("s-gov-id").value.trim();
+    
     const fatherName = document.getElementById("s-father-name").value.trim();
     const fatherPhone = document.getElementById("s-father-phone").value.trim();
-    const currentAddress = document.getElementById("s-current-address").value.trim();
-    const permanentAddress = document.getElementById("s-permanent-address").value.trim();
+    const motherName = document.getElementById("s-mother-name").value.trim();
+    const motherPhone = document.getElementById("s-mother-phone").value.trim();
     
     const emergencyName = document.getElementById("s-emergency-name").value.trim();
     const emergencyRelation = document.getElementById("s-emergency-relation").value;
     const emergencyPhone = document.getElementById("s-emergency-phone").value.trim();
+    
+    const street = document.getElementById("s-street").value.trim();
+    const city = document.getElementById("s-city").value.trim();
+    const stateVal = document.getElementById("s-state").value.trim();
+    const zip = document.getElementById("s-zip").value.trim();
     
     const targetExam = document.getElementById("s-target-exam").value;
     const expectedStartDate = document.getElementById("s-start-date").value;
     
     const seatType = document.getElementById("s-seat-type").value;
     const durationMonths = parseInt(document.getElementById("s-duration").value);
-    const govId = document.getElementById("s-gov-id").value.trim() || "N/A";
     const seatId = document.getElementById("s-seat-id").value;
     
+    // Strict client-side validations
+    if (!/^[0-9]{10}$/.test(phone)) {
+        alert("Please enter a valid 10-digit Mobile Number.");
+        return;
+    }
+    if (!gender) {
+        alert("Please select your gender.");
+        return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        alert("Please enter a valid email address.");
+        return;
+    }
+    if (!/^[0-9]{12}$/.test(govId)) {
+        alert("Please enter a valid 12-digit Aadhaar Number.");
+        return;
+    }
+    if (!/^[0-9]{10}$/.test(fatherPhone)) {
+        alert("Please enter a valid 10-digit Mobile Number for Father.");
+        return;
+    }
+    if (!/^[0-9]{10}$/.test(motherPhone)) {
+        alert("Please enter a valid 10-digit Mobile Number for Mother.");
+        return;
+    }
+    if (!/^[0-9]{10}$/.test(emergencyPhone)) {
+        alert("Please enter a valid 10-digit Mobile Number for Emergency Contact.");
+        return;
+    }
+    if (!/^[0-9]{6}$/.test(zip)) {
+        alert("Please enter a valid 6-digit Zip/Postal Code.");
+        return;
+    }
     if (!compressedPhotoBase64) {
         alert("Please upload your profile picture before submitting the registration form.");
         return;
     }
-    
     if (!seatId) {
         alert("Please tap an available seat in the grid layout to select your preferred seat number before submitting.");
         return;
@@ -490,32 +530,44 @@ function submitStudentForm(event) {
         paymentStatus = "Partial";
     }
     
+    const concatenatedAddress = `${street}, ${city}, ${stateVal} - ${zip}`;
+    
     const bookingData = {
         name: name,
         phone: phone,
         dob: dob,
+        gender: gender,
+        email: email,
+        govId: govId, // Stored under govId for backward DB compatibility
+        
         fatherName: fatherName,
         fatherPhone: fatherPhone,
-        currentAddress: currentAddress,
-        permanentAddress: permanentAddress,
+        motherName: motherName,
+        motherPhone: motherPhone,
         
         emergencyName: emergencyName,
         emergencyRelation: emergencyRelation,
         emergencyPhone: emergencyPhone,
+        
+        street: street,
+        city: city,
+        state: stateVal,
+        zip: zip,
+        currentAddress: concatenatedAddress, // Fallback compatibility
+        permanentAddress: concatenatedAddress, // Fallback compatibility
         
         targetExam: targetExam,
         expectedStartDate: expectedStartDate,
         
         seatType: seatType,
         duration: durationMonths,
-        govId: govId,
-        seatId: seatId, // requested seat ID choice
+        seatId: seatId,
         paymentMethod: paymentMethod,
         feeAmount: feeAmount,
         amountPaid: amountPaid,
         balanceAmount: balanceAmount,
         paymentStatus: paymentStatus,
-        photo: compressedPhotoBase64, // Saved compressed Base64 photo
+        photo: compressedPhotoBase64,
         timestamp: Date.now(),
         status: "pending"
     };

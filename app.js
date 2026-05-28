@@ -1344,12 +1344,18 @@ function renderPendingRequests() {
                 <div class="member-profile">
                     <div class="member-avatar ${clickableClass}" ${onclickAttr} style="${reqAvatarStyle}">${reqAvatarContent}</div>
                     <div>
-                        <div class="member-name">${req.name}</div>
+                        <div class="member-name">${req.name} <span style="font-size:0.75rem; font-weight:normal; color:var(--text-muted);">(${req.gender || 'N/A'})</span></div>
                         <div class="member-phone">${req.phone}</div>
                     </div>
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-top:5px;">
                     Father: <strong>${req.fatherName || 'N/A'}</strong> (${req.fatherPhone || 'N/A'})
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top:2px;">
+                    Mother: <strong>${req.motherName || 'N/A'}</strong> (${req.motherPhone || 'N/A'})
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top:2px;">
+                    Email: <strong>${req.email || 'N/A'}</strong>
                 </div>
                 <div style="font-size: 0.7rem; color: var(--text-muted); margin-top:2px;">Submitted today at ${dateSubmitted}</div>
             </td>
@@ -1362,7 +1368,7 @@ function renderPendingRequests() {
             </td>
             <td><strong style="color: #fff;">${req.duration} Month(s)</strong></td>
             <td>
-                <span style="font-size: 0.8rem; color: var(--text-muted); font-family: monospace;">Gov ID: ${req.govId || 'N/A'}</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted); font-family: monospace;">Aadhaar: ${req.govId || 'N/A'}</span>
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="Current: ${req.currentAddress}">
                     Addr: ${req.currentAddress || 'N/A'}
                 </div>
@@ -1471,10 +1477,18 @@ function openEditMemberModal(memberId) {
     
     document.getElementById("m-name").value = member.name;
     document.getElementById("m-phone").value = member.phone;
+    document.getElementById("m-gender").value = member.gender || "";
+    document.getElementById("m-email").value = member.email || "";
+    
     document.getElementById("m-father-name").value = member.fatherName || "";
     document.getElementById("m-father-phone").value = member.fatherPhone || "";
-    document.getElementById("m-current-address").value = member.currentAddress || "";
-    document.getElementById("m-permanent-address").value = member.permanentAddress || "";
+    document.getElementById("m-mother-name").value = member.motherName || "";
+    document.getElementById("m-mother-phone").value = member.motherPhone || "";
+    
+    document.getElementById("m-street").value = member.street || member.currentAddress || "";
+    document.getElementById("m-city").value = member.city || "";
+    document.getElementById("m-state").value = member.state || "";
+    document.getElementById("m-zip").value = member.zip || "";
     
     // Pre-fill emergency contact & target exam fields
     document.getElementById("m-emergency-name").value = member.emergencyName || "";
@@ -1613,10 +1627,17 @@ function handleMemberFormSubmit(event) {
     const editId = document.getElementById("edit-member-id").value;
     const name = document.getElementById("m-name").value.trim();
     const phone = document.getElementById("m-phone").value.trim();
+    const gender = document.getElementById("m-gender").value;
+    const email = document.getElementById("m-email").value.trim();
     const fatherName = document.getElementById("m-father-name").value.trim();
     const fatherPhone = document.getElementById("m-father-phone").value.trim();
-    const currentAddress = document.getElementById("m-current-address").value.trim();
-    const permanentAddress = document.getElementById("m-permanent-address").value.trim();
+    const motherName = document.getElementById("m-mother-name").value.trim();
+    const motherPhone = document.getElementById("m-mother-phone").value.trim();
+    
+    const street = document.getElementById("m-street").value.trim();
+    const city = document.getElementById("m-city").value.trim();
+    const stateVal = document.getElementById("m-state").value.trim();
+    const zip = document.getElementById("m-zip").value.trim();
     
     const emergencyName = document.getElementById("m-emergency-name").value.trim();
     const emergencyRelation = document.getElementById("m-emergency-relation").value;
@@ -1627,7 +1648,7 @@ function handleMemberFormSubmit(event) {
     const seatId = document.getElementById("m-seat-id").value;
     const seatType = document.getElementById("m-seat-type").value;
     const planId = document.getElementById("m-plan").value;
-    const govId = document.getElementById("m-gov-id").value.trim() || "N/A";
+    const govId = document.getElementById("m-gov-id").value.trim();
     const startDate = document.getElementById("m-start-date").value;
     const expiryDate = document.getElementById("m-expiry-date").value;
     const feeAmount = parseInt(document.getElementById("m-fee-amount").value) || 0;
@@ -1635,6 +1656,72 @@ function handleMemberFormSubmit(event) {
     const balanceAmount = parseInt(document.getElementById("m-balance-amount").value) || 0;
     const paymentStatus = document.getElementById("m-payment").value;
     const paymentMethod = document.getElementById("m-payment-method").value;
+    
+    // Strict client-side validations
+    if (!name) {
+        showToast("Please enter student Name.", "error");
+        return;
+    }
+    if (!/^[0-9]{10}$/.test(phone)) {
+        showToast("Please enter a valid 10-digit Student Mobile Number.", "error");
+        return;
+    }
+    if (!gender) {
+        showToast("Please select Gender.", "error");
+        return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showToast("Please enter a valid Email Address.", "error");
+        return;
+    }
+    if (!/^[0-9]{12}$/.test(govId)) {
+        showToast("Please enter a valid 12-digit Aadhaar Number.", "error");
+        return;
+    }
+    if (!fatherName) {
+        showToast("Please enter Father's Name.", "error");
+        return;
+    }
+    if (!/^[0-9]{10}$/.test(fatherPhone)) {
+        showToast("Please enter a valid 10-digit Father's Mobile Number.", "error");
+        return;
+    }
+    if (!motherName) {
+        showToast("Please enter Mother's Name.", "error");
+        return;
+    }
+    if (!/^[0-9]{10}$/.test(motherPhone)) {
+        showToast("Please enter a valid 10-digit Mother's Mobile Number.", "error");
+        return;
+    }
+    if (!emergencyName) {
+        showToast("Please enter Emergency Contact Name.", "error");
+        return;
+    }
+    if (!/^[0-9]{10}$/.test(emergencyPhone)) {
+        showToast("Please enter a valid 10-digit Emergency Mobile Number.", "error");
+        return;
+    }
+    if (!street) {
+        showToast("Please enter Street Address.", "error");
+        return;
+    }
+    if (!city) {
+        showToast("Please enter City / Town.", "error");
+        return;
+    }
+    if (!stateVal) {
+        showToast("Please enter State.", "error");
+        return;
+    }
+    if (!/^[0-9]{6}$/.test(zip)) {
+        showToast("Please enter a valid 6-digit Zip/Postal Code.", "error");
+        return;
+    }
+    if (!dob) {
+        showToast("Please select Date of Birth.", "error");
+        return;
+    }
     
     if (!seatId) {
         showToast("Cannot register: No seat assigned.", "error");
@@ -1654,16 +1741,25 @@ function handleMemberFormSubmit(event) {
         }
     }
     
+    const concatenatedAddress = `${street}, ${city}, ${stateVal} - ${zip}`;
     const memberId = editId || `m_${Date.now()}`;
     const memberObj = {
         id: memberId,
         name: name,
         phone: phone,
         dob: dob,
+        gender: gender,
+        email: email,
         fatherName: fatherName,
         fatherPhone: fatherPhone,
-        currentAddress: currentAddress,
-        permanentAddress: permanentAddress,
+        motherName: motherName,
+        motherPhone: motherPhone,
+        street: street,
+        city: city,
+        state: stateVal,
+        zip: zip,
+        currentAddress: concatenatedAddress,
+        permanentAddress: concatenatedAddress,
         
         emergencyName: emergencyName,
         emergencyRelation: emergencyRelation,
@@ -1681,7 +1777,7 @@ function handleMemberFormSubmit(event) {
         balanceAmount: balanceAmount,
         paymentStatus: paymentStatus,
         paymentMethod: paymentMethod,
-        photo: modalPhotoBase64, // Save photo
+        photo: modalPhotoBase64,
         timestamp: editId ? originalMember.timestamp : Date.now()
     };
     
@@ -2165,10 +2261,17 @@ function approvePendingRequest(requestId) {
     
     document.getElementById("m-name").value = req.name;
     document.getElementById("m-phone").value = req.phone;
+    document.getElementById("m-gender").value = req.gender || "";
+    document.getElementById("m-email").value = req.email || "";
     document.getElementById("m-father-name").value = req.fatherName || "";
     document.getElementById("m-father-phone").value = req.fatherPhone || "";
-    document.getElementById("m-current-address").value = req.currentAddress || "";
-    document.getElementById("m-permanent-address").value = req.permanentAddress || "";
+    document.getElementById("m-mother-name").value = req.motherName || "";
+    document.getElementById("m-mother-phone").value = req.motherPhone || "";
+    
+    document.getElementById("m-street").value = req.street || req.currentAddress || "";
+    document.getElementById("m-city").value = req.city || "";
+    document.getElementById("m-state").value = req.state || "";
+    document.getElementById("m-zip").value = req.zip || "";
     
     // Pre-fill new emergency contact & target exam fields
     document.getElementById("m-emergency-name").value = req.emergencyName || "";
@@ -2297,8 +2400,9 @@ function openSeatActionsModal(seatId) {
                                 <div class="member-avatar ${clickableClass}" ${onclickAttr} style="width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem; flex-shrink: 0; ${seatAvatarStyle}">${seatAvatarContent}</div>
                                 <div>
                                     <div style="font-size: 0.75rem; color: var(--text-muted);">Occupant:</div>
-                                    <strong style="font-size: 1.15rem; color:#fff; display:block; margin-top:0.15rem;">${member.name}</strong>
+                                    <strong style="font-size: 1.15rem; color:#fff; display:block; margin-top:0.15rem;">${member.name} <span style="font-size:0.8rem; font-weight:normal; color:var(--text-muted);">(${member.gender || 'N/A'})</span></strong>
                                     <span style="font-size: 0.8rem; color: var(--text-muted);">${member.phone}</span>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top:0.1rem;">${member.email || 'N/A'}</div>
                                 </div>
                             </div>
                             <div style="text-align: right;">
@@ -2317,6 +2421,17 @@ function openSeatActionsModal(seatId) {
                             <div>
                                 <span style="font-size: 0.7rem; color: var(--text-muted); display:block;">Father's Mobile</span>
                                 <strong style="color: #fff; font-size:0.85rem;">${member.fatherPhone || 'N/A'}</strong>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; background: rgba(255,255,255,0.02); border:1px solid var(--border-color); padding:0.6rem; border-radius: 8px;">
+                            <div>
+                                <span style="font-size: 0.7rem; color: var(--text-muted); display:block;">Mother's Name</span>
+                                <strong style="color: #fff; font-size:0.85rem;">${member.motherName || 'N/A'}</strong>
+                            </div>
+                            <div>
+                                <span style="font-size: 0.7rem; color: var(--text-muted); display:block;">Mother's Mobile</span>
+                                <strong style="color: #fff; font-size:0.85rem;">${member.motherPhone || 'N/A'}</strong>
                             </div>
                         </div>
 
@@ -2342,7 +2457,7 @@ function openSeatActionsModal(seatId) {
                                 <strong style="color: #fff; font-size:0.85rem;">${member.dob ? new Date(member.dob).toLocaleDateString('en-IN') : 'N/A'}</strong>
                             </div>
                             <div>
-                                <span style="font-size: 0.7rem; color: var(--text-muted); display:block;">Gov ID</span>
+                                <span style="font-size: 0.7rem; color: var(--text-muted); display:block;">Aadhaar Number</span>
                                 <strong style="color: #fff; font-size:0.85rem; font-family: monospace;">${member.govId || 'N/A'}</strong>
                             </div>
                         </div>
@@ -2463,6 +2578,7 @@ function openReceiptModal(memberId) {
     const member = state.members.find(m => m.id === memberId);
     if (!member) return;
     
+    const modalBody = document.getElementById("receipt-modal-body");
     const seat = state.seats.find(s => s.id === member.seatId);
     let roomDisplay = "";
     let seatDisplay = "";
@@ -2500,12 +2616,16 @@ function openReceiptModal(memberId) {
                     </div>
                     
                     <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
-                        <div><strong>Student:</strong> ${member.name}</div>
+                        <div><strong>Student:</strong> ${member.name} (${member.gender || 'N/A'})</div>
                         <div><strong>Date of Birth:</strong> ${member.dob ? new Date(member.dob).toLocaleDateString('en-IN') : 'N/A'}</div>
+                        <div><strong>Aadhaar Number:</strong> ${member.govId || 'N/A'}</div>
                         <div><strong>Phone:</strong> ${member.phone}</div>
+                        <div><strong>Email:</strong> ${member.email || 'N/A'}</div>
                         <div><strong>Target Exam:</strong> ${member.targetExam || 'N/A'}</div>
                         <div><strong>Father's Name:</strong> ${member.fatherName || 'N/A'}</div>
                         <div><strong>Father's Mobile:</strong> ${member.fatherPhone || 'N/A'}</div>
+                        <div><strong>Mother's Name:</strong> ${member.motherName || 'N/A'}</div>
+                        <div><strong>Mother's Mobile:</strong> ${member.motherPhone || 'N/A'}</div>
                         <div><strong>Emergency Contact:</strong> ${member.emergencyName || 'N/A'} (${member.emergencyRelation || 'N/A'})</div>
                         <div><strong>Emergency Phone:</strong> ${member.emergencyPhone || 'N/A'}</div>
                     </div>
@@ -2657,12 +2777,16 @@ function shareReceiptWhatsApp() {
 *Date:* ${new Date(member.timestamp).toLocaleDateString('en-IN')}
 
 *Student Details:*
-• Name: ${member.name}
+• Name: ${member.name} (${member.gender || 'N/A'})
 • Date of Birth: ${member.dob ? new Date(member.dob).toLocaleDateString('en-IN') : 'N/A'}
+• Aadhaar Number: ${member.govId || 'N/A'}
 • Phone: ${member.phone}
+• Email: ${member.email || 'N/A'}
 • Target Exam/Course: ${member.targetExam || 'N/A'}
 • Father's Name: ${member.fatherName || 'N/A'}
 • Father's Mobile: ${member.fatherPhone || 'N/A'}
+• Mother's Name: ${member.motherName || 'N/A'}
+• Mother's Mobile: ${member.motherPhone || 'N/A'}
 • Emergency Contact: ${member.emergencyName || 'N/A'} (${member.emergencyRelation || 'N/A'}) - ${member.emergencyPhone || 'N/A'}
 
 *Seat & Validity:*

@@ -815,6 +815,22 @@
                     
                     <div class="form-row">
                         <div class="form-group">
+                            <label class="form-label">Gender *</label>
+                            <select id="m-gender" class="form-control" required>
+                                <option value="" disabled selected>Select Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email ID *</label>
+                            <input type="email" id="m-email" class="form-control" required placeholder="e.g. rahul@example.com">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
                             <label class="form-label">Father's Name *</label>
                             <input type="text" id="m-father-name" class="form-control" required placeholder="e.g. Ramesh Sahu">
                         </div>
@@ -824,14 +840,37 @@
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label class="form-label">Recent/Current Address *</label>
-                        <textarea id="m-current-address" class="form-control" required placeholder="Where they currently stay in Risali/Bhilai" rows="2"></textarea>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Mother's Name *</label>
+                            <input type="text" id="m-mother-name" class="form-control" required placeholder="e.g. Savitri Sahu">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Mother's Mobile *</label>
+                            <input type="tel" id="m-mother-phone" class="form-control" required placeholder="e.g. 9876543210" pattern="[0-9]{10}">
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label class="form-label">Permanent Address *</label>
-                        <textarea id="m-permanent-address" class="form-control" required placeholder="Their home town address" rows="2"></textarea>
+                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Street Address *</label>
+                            <input type="text" id="m-street" class="form-control" required placeholder="e.g. House No. 24, Maitri Nagar">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">City / Town *</label>
+                            <input type="text" id="m-city" class="form-control" required placeholder="e.g. Bhilai">
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">State *</label>
+                            <input type="text" id="m-state" class="form-control" required placeholder="e.g. Chhattisgarh">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Zip / Postal Code *</label>
+                            <input type="text" id="m-zip" class="form-control" required placeholder="e.g. 490006" pattern="[0-9]{6}" minlength="6" maxlength="6">
+                        </div>
                     </div>
 
                     <!-- Emergency Contact & Target Exam Info -->
@@ -911,8 +950,8 @@
                     
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Government ID (Aadhaar / Voter ID) *</label>
-                            <input type="text" id="m-gov-id" class="form-control" placeholder="Aadhaar no. / College ID" required>
+                            <label class="form-label">Aadhaar Number *</label>
+                            <input type="text" id="m-gov-id" class="form-control" placeholder="12-digit Aadhaar number" required pattern="[0-9]{12}" minlength="12" maxlength="12">
                         </div>
                     </div>
 

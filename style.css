@@ -1001,8 +1001,15 @@ h1, h2, h3, h4, h5, h6 {
     display: inline-block;
 }
 
-.qr-canvas-holder canvas {
+.qr-canvas-holder canvas,
+.qr-canvas-holder img {
     display: block;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -o-crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+    -ms-interpolation-mode: nearest-neighbor;
 }
 
 .qr-url {

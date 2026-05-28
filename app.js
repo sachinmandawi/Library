@@ -288,6 +288,12 @@ function initApp() {
     // Set Default Tab
     switchTab("dashboard");
     
+    // Auto-update QR code on manual URL input changes (e.g. pasted short URL)
+    const qrInput = document.getElementById("qr-target-url");
+    if (qrInput) {
+        qrInput.addEventListener("input", updateRegistrationQRFromInput);
+    }
+    
     refreshUI();
     updateRegistrationQR();
     startLiveClock();
@@ -1986,7 +1992,15 @@ function updateRegistrationQR() {
     
     let qrUrl = hostUrl;
     if (isCustom) {
-        const configStr = btoa(JSON.stringify(config));
+        // Create compact delimited string: apiKey|projectId|databaseURL|appId
+        const parts = [
+            config.apiKey || "",
+            config.projectId || "",
+            config.databaseURL || "",
+            config.appId || ""
+        ];
+        const compactStr = parts.join('|');
+        const configStr = btoa(compactStr);
         qrUrl += `?config=${configStr}`;
     }
     
@@ -2002,7 +2016,7 @@ function updateRegistrationQR() {
             height: 180,
             colorDark : "#0a0e17",
             colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.H
+            correctLevel : QRCode.CorrectLevel.M
         });
     } catch(err) {
         console.error("QR Code library failing:", err);
@@ -2013,18 +2027,21 @@ function updateRegistrationQR() {
 function updateRegistrationQRFromInput() {
     const inputUrl = document.getElementById("qr-target-url").value;
     const qrHolder = document.getElementById("qrcode-display");
+    if (!qrHolder) return;
     qrHolder.innerHTML = "";
     
-    qrCodeGeneratorInstance = new QRCode(qrHolder, {
-        text: inputUrl,
-        width: 180,
-        height: 180,
-        colorDark : "#0a0e17",
-        colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.H
-    });
-    
-    showToast("QR Code updated.", "success");
+    try {
+        qrCodeGeneratorInstance = new QRCode(qrHolder, {
+            text: inputUrl || "https://sachinmandawi.github.io/Library/register.html",
+            width: 180,
+            height: 180,
+            colorDark : "#0a0e17",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.M
+        });
+    } catch(err) {
+        console.error("QR Code manual generation failing:", err);
+    }
 }
 
 // Print QR code frame

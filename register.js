@@ -67,7 +67,27 @@ function getFirebaseConfig() {
     const configParam = urlParams.get('config');
     if (configParam) {
         try {
-            return JSON.parse(atob(configParam));
+            const decoded = atob(configParam);
+            if (decoded.startsWith('{')) {
+                return JSON.parse(decoded);
+            } else {
+                // Delimited format: apiKey|projectId|databaseURL|appId
+                const parts = decoded.split('|');
+                if (parts.length >= 3) {
+                    const apiKey = parts[0];
+                    const projectId = parts[1];
+                    const databaseURL = parts[2];
+                    const appId = parts[3] || "";
+                    return {
+                        apiKey: apiKey,
+                        projectId: projectId,
+                        databaseURL: databaseURL,
+                        appId: appId,
+                        authDomain: projectId ? `${projectId}.firebaseapp.com` : "",
+                        storageBucket: projectId ? `${projectId}.appspot.com` : ""
+                    };
+                }
+            }
         } catch (e) {
             console.error("Failed to decode URL config:", e);
         }

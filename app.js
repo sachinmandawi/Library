@@ -213,18 +213,40 @@ function initApp() {
     document.getElementById("qr-lib-title").textContent = state.settings.libraryName;
     
     // Try to load Firebase
-    if (window.firebase && window.firebase.initializeApp) {
+    if (window.firebase && window.firebase.initializeApp && window.firebase.auth) {
         try {
-            const app = firebase.initializeApp(config);
+            const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(config);
             database = app.database();
             
-            const statusDot = document.getElementById("db-status-dot");
-            const statusText = document.getElementById("db-status-text");
-            
-            statusDot.className = "status-dot online";
-            statusText.textContent = config.apiKey === "AIzaSyA4c3BfU2FuZGJveEtleS1EZW1vMTIzNDU" ? "Demo Database" : "Private DB Connected";
-            
-            setupFirebaseListeners();
+            // Set up Firebase Authentication state observer
+            firebase.auth().onAuthStateChanged(user => {
+                const authOverlay = document.getElementById("auth-overlay");
+                const appContainer = document.getElementById("app-container");
+                
+                if (user) {
+                    // Logged in
+                    if (authOverlay) authOverlay.style.display = "none";
+                    if (appContainer) appContainer.style.display = "flex";
+                    
+                    const statusDot = document.getElementById("db-status-dot");
+                    const statusText = document.getElementById("db-status-text");
+                    if (statusDot) statusDot.className = "status-dot online";
+                    if (statusText) statusText.textContent = config.apiKey === "AIzaSyA4c3BfU2FuZGJveEtleS1EZW1vMTIzNDU" ? "Demo Database" : "Private DB Connected";
+                    
+                    setupFirebaseListeners();
+                    checkOfflinePendingBookings();
+                } else {
+                    // Logged out
+                    if (authOverlay) authOverlay.style.display = "flex";
+                    if (appContainer) appContainer.style.display = "none";
+                    
+                    // Detach listeners to prevent permission errors
+                    if (database) {
+                        database.ref("study_cafe_system").off();
+                        database.ref("pending_bookings").off();
+                    }
+                }
+            });
         } catch (err) {
             console.error("Firebase init failed, running in Offline Mode", err);
             enableOfflineMode();
@@ -301,10 +323,17 @@ function initApp() {
 
 function enableOfflineMode() {
     isOfflineMode = true;
+    
+    // Hide auth screen and show container when running in offline fallback
+    const authOverlay = document.getElementById("auth-overlay");
+    const appContainer = document.getElementById("app-container");
+    if (authOverlay) authOverlay.style.display = "none";
+    if (appContainer) appContainer.style.display = "flex";
+    
     const statusDot = document.getElementById("db-status-dot");
     const statusText = document.getElementById("db-status-text");
-    statusDot.className = "status-dot";
-    statusText.textContent = "Offline Mode";
+    if (statusDot) statusDot.className = "status-dot";
+    if (statusText) statusText.textContent = "Offline Mode";
     showToast("Running in Local Offline Mode. Changes will save in this browser.", "info");
 }
 
@@ -2456,6 +2485,62 @@ function applyLightboxTransform() {
     const img = document.getElementById("lightbox-img");
     if (img) {
         img.style.transform = `translate(${panX}px, ${panY}px) scale(${lightboxScale}) rotate(${lightboxRotation}deg)`;
+    }
+}
+
+function handleAdminLogin(event) {
+    event.preventDefault();
+    const email = document.getElementById("auth-email").value.trim();
+    const password = document.getElementById("auth-password").value;
+    const errorMsg = document.getElementById("auth-error-msg");
+    const submitBtn = document.querySelector("#auth-form button[type='submit']");
+    
+    if (errorMsg) errorMsg.style.display = "none";
+    
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Authorizing...';
+    }
+    
+    firebase.auth().signInWithEmailAndPassword(email, password)
+        .then(() => {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Login';
+            }
+            document.getElementById("auth-form").reset();
+        })
+        .catch(err => {
+            console.error("Login failed:", err);
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Login';
+            }
+            if (errorMsg) {
+                let displayErr = "Authorization failed. Please check your credentials.";
+                if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
+                    displayErr = "Invalid email or password.";
+                } else if (err.code === "auth/invalid-email") {
+                    displayErr = "Invalid email address format.";
+                } else if (err.code === "auth/network-request-failed") {
+                    displayErr = "Network error. Please check your internet connection.";
+                }
+                errorMsg.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${displayErr}`;
+                errorMsg.style.display = "flex";
+            }
+        });
+}
+
+function handleAdminLogout() {
+    if (confirm("Are you sure you want to log out from the Cafe Control Center?")) {
+        firebase.auth().signOut()
+            .then(() => {
+                showToast("Logged out successfully.", "info");
+            })
+            .catch(err => {
+                console.error("Logout failed:", err);
+                showToast("Failed to logout.", "error");
+            });
     }
 }
 

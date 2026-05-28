@@ -6,11 +6,36 @@
     <title>The Study Cafe - Admin Dashboard</title>
     <!-- Fonts & Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=5">
+    <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
 
-    <div class="app-container">
+    <!-- AUTHENTICATION OVERLAY -->
+    <div id="auth-overlay" class="auth-overlay">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <i class="fa-solid fa-mug-hot"></i>
+            </div>
+            <h2>The Study Cafe</h2>
+            <p>Admin Authorization Required</p>
+            <div id="auth-error-msg" class="auth-error-msg" style="display: none;"></div>
+            <form id="auth-form" onsubmit="handleAdminLogin(event)">
+                <div class="form-group">
+                    <label class="form-label" for="auth-email">Admin Email</label>
+                    <input type="email" id="auth-email" class="form-control" required placeholder="admin@example.com">
+                </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label class="form-label" for="auth-password">Password</label>
+                    <input type="password" id="auth-password" class="form-control" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem; justify-content: center; gap: 0.5rem; height: 45px;">
+                    <i class="fa-solid fa-right-to-bracket"></i> Login
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="app-container" id="app-container" style="display: none;">
         
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
@@ -44,6 +69,9 @@
             </nav>
             
             <div class="sidebar-footer">
+                <button onclick="handleAdminLogout()" class="btn btn-secondary" style="width: 100%; margin-bottom: 0.75rem; justify-content: center; gap: 0.5rem; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: #ef4444; height: 36px; font-size: 0.8rem;">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </button>
                 <div class="connection-status">
                     <div class="status-dot" id="db-status-dot"></div>
                     <span id="db-status-text">Connecting...</span>
@@ -780,6 +808,7 @@
 
     <!-- FIREBASE SDKs (Compat version for simple browser integration) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     
     <!-- html2pdf Library -->
@@ -789,7 +818,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <!-- Admin logic -->
-    <script src="app.js?v=19"></script>
+    <script src="app.js?v=20"></script>
 
 </body>
 </html>

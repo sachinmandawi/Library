@@ -532,6 +532,8 @@ function switchTab(tabId) {
         renderMemberTable();
     } else if (tabId === "pending") {
         renderPendingRequests();
+    } else if (tabId === "birthdays") {
+        renderBirthdayAlerts();
     } else if (tabId === "settings") {
         updateRegistrationQR();
     }
@@ -687,20 +689,25 @@ function renderDashboardAlerts() {
     });
 }
 
-// Render birthday alerts
+// Render birthday alerts in the new Birthdays tab
 function renderBirthdayAlerts() {
-    const list = document.getElementById("birthday-alert-list");
-    if (!list) return;
-    list.innerHTML = "";
+    const todayList = document.getElementById("birthday-tab-list");
+    const upcomingList = document.getElementById("upcoming-birthday-list");
+    const badge = document.getElementById("birthday-badge-count");
+    
+    if (!todayList || !upcomingList) return;
+    
+    todayList.innerHTML = "";
+    upcomingList.innerHTML = "";
     
     const today = new Date();
+    today.setHours(0,0,0,0);
     const currentMonth = today.getMonth() + 1; // 1-indexed
     const currentDate = today.getDate();
     
+    // 1. Today's Birthdays
     const birthdayMembers = state.members.filter(member => {
         if (!member.dob) return false;
-        
-        // Handle formats like YYYY-MM-DD
         const parts = member.dob.split('-');
         if (parts.length === 3) {
             const birthMonth = parseInt(parts[1], 10);
@@ -710,50 +717,141 @@ function renderBirthdayAlerts() {
         return false;
     });
     
+    // Update Sidebar Badge Count
+    if (badge) {
+        if (birthdayMembers.length > 0) {
+            badge.textContent = birthdayMembers.length;
+            badge.style.display = "inline-block";
+        } else {
+            badge.style.display = "none";
+        }
+    }
+    
+    // Render Today's Birthdays
     if (birthdayMembers.length === 0) {
-        list.innerHTML = `
+        todayList.innerHTML = `
             <div class="empty-state">
                 <i class="fa-solid fa-gift" style="color: var(--text-muted); opacity: 0.5;"></i>
                 <p>No birthdays today.</p>
             </div>
         `;
-        return;
+    } else {
+        birthdayMembers.forEach(member => {
+            const item = document.createElement("div");
+            item.className = "alert-item birthday";
+            
+            const avatarLetter = member.name.charAt(0).toUpperCase();
+            const avatarStyle = member.photo ? `background-image: url('${member.photo}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : '';
+            const avatarContent = member.photo ? '' : avatarLetter;
+            const clickableClass = member.photo ? 'clickable-avatar' : '';
+            const onclickAttr = member.photo ? `onclick="openLightbox('${member.photo}')"` : '';
+            
+            let seatInfoText = "";
+            if (member.seatId === "non-reserved") {
+                seatInfoText = "Non-Reserved";
+            } else {
+                const globalSeatNum = parseInt(member.seatId.replace('seat_', ''));
+                const roomNum = Math.ceil(globalSeatNum / 100);
+                const localSeatNum = globalSeatNum - (roomNum - 1) * 100;
+                seatInfoText = `Room ${roomNum} - Seat ${localSeatNum}`;
+            }
+            
+            item.innerHTML = `
+                <div class="alert-avatar ${clickableClass}" ${onclickAttr} style="${avatarStyle}">${avatarContent}</div>
+                <div class="alert-details">
+                    <div class="alert-name" style="font-weight: 600; color: #fff;">${member.name} 🎂</div>
+                    <div class="alert-info">${seatInfoText} • ${member.phone}</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="btn-whatsapp-remind" onclick="sendBirthdayWish('${member.id}')" title="Send WhatsApp Wish" style="background: rgba(236, 72, 153, 0.15); color: #ec4899; border: 1px solid rgba(236, 72, 153, 0.3); border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s; font-weight: 500;" onmouseover="this.style.background='rgba(236, 72, 153, 0.25)'" onmouseout="this.style.background='rgba(236, 72, 153, 0.15)'">
+                        <i class="fa-solid fa-paper-plane"></i> Wish
+                    </button>
+                </div>
+            `;
+            todayList.appendChild(item);
+        });
     }
     
-    birthdayMembers.forEach(member => {
-        const item = document.createElement("div");
-        item.className = "alert-item birthday";
-        
-        const avatarLetter = member.name.charAt(0).toUpperCase();
-        const avatarStyle = member.photo ? `background-image: url('${member.photo}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : '';
-        const avatarContent = member.photo ? '' : avatarLetter;
-        const clickableClass = member.photo ? 'clickable-avatar' : '';
-        const onclickAttr = member.photo ? `onclick="openLightbox('${member.photo}')"` : '';
-        
-        let seatInfoText = "";
-        if (member.seatId === "non-reserved") {
-            seatInfoText = "Non-Reserved";
-        } else {
-            const globalSeatNum = parseInt(member.seatId.replace('seat_', ''));
-            const roomNum = Math.ceil(globalSeatNum / 100);
-            const localSeatNum = globalSeatNum - (roomNum - 1) * 100;
-            seatInfoText = `Room ${roomNum} - Seat ${localSeatNum}`;
+    // 2. Upcoming Birthdays (Next 7 Days)
+    const upcomingMembers = [];
+    state.members.forEach(member => {
+        if (!member.dob) return;
+        const parts = member.dob.split('-');
+        if (parts.length === 3) {
+            const birthMonth = parseInt(parts[1], 10) - 1; // 0-indexed for Date constructor
+            const birthDate = parseInt(parts[2], 10);
+            
+            // Create a target date for this year's birthday
+            const bdayThisYear = new Date(today.getFullYear(), birthMonth, birthDate);
+            bdayThisYear.setHours(0,0,0,0);
+            
+            // If the birthday already passed this year, check next year
+            let diffDays = Math.ceil((bdayThisYear.getTime() - today.getTime()) / (1000 * 3600 * 24));
+            if (diffDays < 0) {
+                const bdayNextYear = new Date(today.getFullYear() + 1, birthMonth, birthDate);
+                diffDays = Math.ceil((bdayNextYear.getTime() - today.getTime()) / (1000 * 3600 * 24));
+            }
+            
+            // We want upcoming birthdays in the next 7 days, excluding today (diffDays === 0)
+            if (diffDays > 0 && diffDays <= 7) {
+                upcomingMembers.push({ ...member, daysUntil: diffDays, birthMonth, birthDate });
+            }
         }
-        
-        item.innerHTML = `
-            <div class="alert-avatar ${clickableClass}" ${onclickAttr} style="${avatarStyle}">${avatarContent}</div>
-            <div class="alert-details">
-                <div class="alert-name" style="font-weight: 600; color: #fff;">${member.name} 🎂</div>
-                <div class="alert-info">${seatInfoText} • ${member.phone}</div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <button class="btn-whatsapp-remind" onclick="sendBirthdayWish('${member.id}')" title="Send WhatsApp Wish" style="background: rgba(236, 72, 153, 0.15); color: #ec4899; border: 1px solid rgba(236, 72, 153, 0.3); border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s; font-weight: 500;" onmouseover="this.style.background='rgba(236, 72, 153, 0.25)'" onmouseout="this.style.background='rgba(236, 72, 153, 0.15)'">
-                    <i class="fa-solid fa-paper-plane"></i> Wish
-                </button>
+    });
+    
+    // Sort upcoming birthdays by days remaining
+    upcomingMembers.sort((a, b) => a.daysUntil - b.daysUntil);
+    
+    if (upcomingMembers.length === 0) {
+        upcomingList.innerHTML = `
+            <div class="empty-state">
+                <i class="fa-solid fa-calendar" style="color: var(--text-muted); opacity: 0.5;"></i>
+                <p>No upcoming birthdays in the next 7 days.</p>
             </div>
         `;
-        list.appendChild(item);
-    });
+    } else {
+        upcomingMembers.forEach(member => {
+            const item = document.createElement("div");
+            item.className = "alert-item";
+            
+            const avatarLetter = member.name.charAt(0).toUpperCase();
+            const avatarStyle = member.photo ? `background-image: url('${member.photo}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : '';
+            const avatarContent = member.photo ? '' : avatarLetter;
+            const clickableClass = member.photo ? 'clickable-avatar' : '';
+            const onclickAttr = member.photo ? `onclick="openLightbox('${member.photo}')"` : '';
+            
+            let seatInfoText = "";
+            if (member.seatId === "non-reserved") {
+                seatInfoText = "Non-Reserved";
+            } else {
+                const globalSeatNum = parseInt(member.seatId.replace('seat_', ''));
+                const roomNum = Math.ceil(globalSeatNum / 100);
+                const localSeatNum = globalSeatNum - (roomNum - 1) * 100;
+                seatInfoText = `Room ${roomNum} - Seat ${localSeatNum}`;
+            }
+            
+            const bdayString = new Date(today.getFullYear(), member.birthMonth, member.birthDate).toLocaleDateString('en-IN', {
+                day: 'numeric',
+                month: 'short'
+            });
+            
+            const daysText = member.daysUntil === 1 ? "Tomorrow" : `in ${member.daysUntil} days`;
+            
+            item.innerHTML = `
+                <div class="alert-avatar ${clickableClass}" ${onclickAttr} style="${avatarStyle}">${avatarContent}</div>
+                <div class="alert-details">
+                    <div class="alert-name" style="font-weight: 600; color: #fff;">${member.name}</div>
+                    <div class="alert-info">${seatInfoText} • ${member.phone}</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="alert-expiry-days" style="color: var(--accent-blue); background: rgba(59, 130, 246, 0.08); border-left-color: var(--accent-blue); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+                        ${bdayString} (${daysText})
+                    </div>
+                </div>
+            `;
+            upcomingList.appendChild(item);
+        });
+    }
 }
 
 // Render interactive seat boxes filtered by Room
@@ -1540,7 +1638,7 @@ function handleMemberFormSubmit(event) {
     // Save
     syncLocalToDatabase();
     closeModal("modal-member");
-    showToast(editId ? "Member updated successfully!" : "Student registered successfully!", "success");
+    showToast(editId ? "Student updated successfully!" : "Student registered successfully!", "success");
     
     // Switch map room visual filter to matches student's room
     if (newSeat) {

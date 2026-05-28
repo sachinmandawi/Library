@@ -58,7 +58,12 @@
                 </a>
                 <a class="nav-item" id="nav-members" onclick="switchTab('members')">
                     <i class="fa-solid fa-users"></i>
-                    <span>Members</span>
+                    <span>Students</span>
+                </a>
+                <a class="nav-item" id="nav-birthdays" onclick="switchTab('birthdays')">
+                    <i class="fa-solid fa-cake-candles"></i>
+                    <span>Birthdays</span>
+                    <span class="nav-badge" id="birthday-badge-count" style="display: none; background-color: #ec4899;">0</span>
                 </a>
                 <a class="nav-item" id="nav-pending" onclick="switchTab('pending')">
                     <i class="fa-solid fa-bell"></i>
@@ -125,7 +130,7 @@
                     </div>
                     <div class="kpi-card glass-panel green">
                         <div class="kpi-info">
-                            <h3>Non-Reserved Members</h3>
+                            <h3>Non-Reserved Students</h3>
                             <div class="kpi-value" id="kpi-general">0 Active</div>
                         </div>
                         <div class="kpi-icon-container">
@@ -203,7 +208,7 @@
                     <!-- Plan Distribution -->
                     <div class="glass-panel">
                         <div class="panel-header">
-                            <h3 class="panel-title">Active Members by Plan Duration</h3>
+                            <h3 class="panel-title">Active Students by Plan Duration</h3>
                         </div>
                         <div class="panel-body">
                             <div style="display: flex; flex-direction: column; gap: 1.5rem;" id="plan-summary-container">
@@ -288,11 +293,11 @@
             <section id="section-members" class="content-section">
                 <div class="section-header">
                     <div class="section-title">
-                        <h2>Member Directory</h2>
-                        <p>Search, filter, and edit active/past library subscriptions</p>
+                        <h2>Student Directory</h2>
+                        <p>Search, filter, and edit active/past student subscriptions</p>
                     </div>
                     <button class="btn btn-primary" onclick="openAddMemberModal()">
-                        <i class="fa-solid fa-plus"></i> Add New Member
+                        <i class="fa-solid fa-plus"></i> Add New Student
                     </button>
                 </div>
 
@@ -528,7 +533,7 @@
                             </div>
                             <div class="panel-body">
                                 <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-                                    This will delete all registered members, pending registration requests, and mark all 400 seats as vacant.
+                                    This will delete all registered students, pending registration requests, and mark all 400 seats as vacant.
                                 </p>
                                 <button class="btn btn-danger" onclick="resetSystemData()" style="background: rgba(239, 68, 68, 0.15); border: 1px solid var(--accent-rose); color: var(--accent-rose); width: fit-content;">
                                     <i class="fa-solid fa-trash-can"></i> Clear All Data & Reset Seats
@@ -569,6 +574,54 @@
                     </div>
                 </div>
             </section>
+
+            <!-- SECTION 6: BIRTHDAYS -->
+            <section id="section-birthdays" class="content-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <h2>Student Birthdays</h2>
+                        <p>Celebrate and wish your students on their special day</p>
+                    </div>
+                </div>
+
+                <div class="dashboard-layout">
+                    <!-- Today's Birthdays -->
+                    <div class="glass-panel">
+                        <div class="panel-header" style="background: rgba(236, 72, 153, 0.03);">
+                            <h3 class="panel-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fa-solid fa-cake-candles" style="color: #ec4899; animation: studentSeatPulse 1.5s infinite;"></i> Today's Birthdays
+                            </h3>
+                        </div>
+                        <div class="panel-body">
+                            <div class="alert-list" id="birthday-tab-list" style="max-height: 550px; overflow-y: auto;">
+                                <!-- Dynamically Rendered Today's Birthdays -->
+                                <div class="empty-state">
+                                    <i class="fa-solid fa-gift" style="color: var(--text-muted); opacity: 0.5;"></i>
+                                    <p>No birthdays today.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Birthdays (Next 7 Days) -->
+                    <div class="glass-panel">
+                        <div class="panel-header" style="background: rgba(59, 130, 246, 0.03);">
+                            <h3 class="panel-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fa-solid fa-calendar-days" style="color: var(--accent-blue);"></i> Upcoming Birthdays (Next 7 Days)
+                            </h3>
+                        </div>
+                        <div class="panel-body">
+                            <div class="alert-list" id="upcoming-birthday-list" style="max-height: 550px; overflow-y: auto;">
+                                <!-- Dynamically Rendered Upcoming Birthdays -->
+                                <div class="empty-state">
+                                    <i class="fa-solid fa-calendar" style="color: var(--text-muted); opacity: 0.5;"></i>
+                                    <p>No upcoming birthdays in the next 7 days.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -579,7 +632,7 @@
     <div class="modal-overlay" id="modal-member">
         <div class="glass-panel modal-container">
             <div class="modal-header">
-                <h3 id="modal-member-title">Add New Member</h3>
+                <h3 id="modal-member-title">Add New Student</h3>
                 <span class="modal-close" onclick="closeModal('modal-member')">&times;</span>
             </div>
             <div class="modal-body">

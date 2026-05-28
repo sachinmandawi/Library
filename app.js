@@ -392,6 +392,10 @@ function setupFirebaseListeners() {
         updateDashboardKPIs();
         renderDashboardAlerts();
         renderBirthdayAlerts();
+        updateFeesBadge();
+        if (currentTab === "fees") {
+            renderFeesTab();
+        }
     });
 
     // Listen to Pending requests
@@ -534,6 +538,8 @@ function switchTab(tabId) {
         renderPendingRequests();
     } else if (tabId === "birthdays") {
         renderBirthdayAlerts();
+    } else if (tabId === "fees") {
+        renderFeesTab();
     } else if (tabId === "settings") {
         updateRegistrationQR();
     }
@@ -1128,7 +1134,17 @@ function renderMemberTable() {
         
         const startDateFmt = new Date(member.startDate).toLocaleDateString('en-IN', {day:'numeric', month:'short'});
         const expiryDateFmt = new Date(member.expiryDate).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
-        const isExpired = new Date(member.expiryDate) < new Date().setHours(0,0,0,0);
+        
+        const todayZero = new Date();
+        todayZero.setHours(0,0,0,0);
+        const isExpired = new Date(member.expiryDate) < todayZero;
+        
+        let expiryStatusText = 'Active';
+        if (isExpired) {
+            const timeDiff = todayZero.getTime() - new Date(member.expiryDate).getTime();
+            const daysExpired = Math.ceil(timeDiff / (1000 * 3600 * 24));
+            expiryStatusText = `Expired (${daysExpired}d ago)`;
+        }
         
         const avatarLetter = member.name.charAt(0).toUpperCase();
         const avatarStyle = member.photo ? `background-image: url('${member.photo}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : '';
@@ -1181,7 +1197,7 @@ function renderMemberTable() {
             <td>
                 <div style="font-size: 0.85rem;">${startDateFmt} to ${expiryDateFmt}</div>
                 <span style="font-size: 0.75rem; font-weight:600; color: ${isExpired ? 'var(--accent-rose)' : 'var(--text-muted)'}; margin-top:2px; display:inline-block;">
-                    ${isExpired ? ' expired' : ' active'}
+                    ${expiryStatusText}
                 </span>
             </td>
             <td>
@@ -1330,6 +1346,10 @@ function refreshUI() {
     renderMemberTable();
     updatePendingBadge();
     renderPendingRequests();
+    updateFeesBadge();
+    if (currentTab === "fees") {
+        renderFeesTab();
+    }
 }
 
 // Modal actions
@@ -1766,6 +1786,227 @@ function sendBirthdayWish(memberId) {
     
     const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, "_blank");
+}
+
+// Update Fees Tab pending badge count
+function updateFeesBadge() {
+    const badge = document.getElementById("fees-badge-count");
+    if (!badge) return;
+    
+    const pendingCount = state.members.filter(m => m.paymentStatus === "Pending").length;
+    
+    if (pendingCount > 0) {
+        badge.textContent = pendingCount;
+        badge.style.display = "inline-block";
+    } else {
+        badge.style.display = "none";
+    }
+}
+
+// Render Fees Tab contents
+function renderFeesTab() {
+    const pendingTbody = document.getElementById("fees-pending-tbody");
+    const recentList = document.getElementById("fees-recent-list");
+    const kpiCollected = document.getElementById("fees-kpi-collected");
+    const kpiPending = document.getElementById("fees-kpi-pending");
+    const kpiCount = document.getElementById("fees-kpi-count");
+    
+    if (!pendingTbody || !recentList) return;
+    
+    pendingTbody.innerHTML = "";
+    recentList.innerHTML = "";
+    
+    // 1. Calculations for KPIs
+    let totalCollected = 0;
+    let totalPending = 0;
+    let pendingStudentsCount = 0;
+    
+    state.members.forEach(m => {
+        const amount = parseInt(m.feeAmount) || 0;
+        if (m.paymentStatus === "Paid") {
+            totalCollected += amount;
+        } else {
+            totalPending += amount;
+            pendingStudentsCount++;
+        }
+    });
+    
+    if (kpiCollected) kpiCollected.textContent = `₹${totalCollected.toLocaleString('en-IN')}`;
+    if (kpiPending) kpiPending.textContent = `₹${totalPending.toLocaleString('en-IN')}`;
+    if (kpiCount) kpiCount.textContent = `${pendingStudentsCount} Student${pendingStudentsCount === 1 ? '' : 's'}`;
+    
+    // 2. Filter Pending Payments
+    const pendingStudents = state.members.filter(m => m.paymentStatus === "Pending")
+        .sort((a, b) => b.timestamp - a.timestamp);
+        
+    if (pendingStudents.length === 0) {
+        pendingTbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="empty-state">
+                    <i class="fa-solid fa-circle-check" style="color: var(--accent-emerald);"></i>
+                    <p>All students have cleared their fees. No pending collections!</p>
+                </td>
+            </tr>
+        `;
+    } else {
+        const todayZero = new Date();
+        todayZero.setHours(0,0,0,0);
+        
+        pendingStudents.forEach(member => {
+            const tr = document.createElement("tr");
+            
+            const isExpired = new Date(member.expiryDate) < todayZero;
+            let expiryFmtText = "";
+            if (isExpired) {
+                const timeDiff = todayZero.getTime() - new Date(member.expiryDate).getTime();
+                const daysExpired = Math.ceil(timeDiff / (1000 * 3600 * 24));
+                expiryFmtText = `<div style="font-size: 0.7rem; color: var(--accent-rose); font-weight: 600; margin-top: 2px;"><i class="fa-solid fa-triangle-exclamation"></i> Expired (${daysExpired}d ago)</div>`;
+            } else {
+                expiryFmtText = `<div style="font-size: 0.7rem; color: var(--accent-emerald); font-weight: 600; margin-top: 2px;">Active</div>`;
+            }
+            
+            const avatarLetter = member.name.charAt(0).toUpperCase();
+            const avatarStyle = member.photo ? `background-image: url('${member.photo}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : '';
+            const avatarContent = member.photo ? '' : avatarLetter;
+            const clickableClass = member.photo ? 'clickable-avatar' : '';
+            const onclickAttr = member.photo ? `onclick="openLightbox('${member.photo}')"` : '';
+            
+            let seatText = "";
+            if (member.seatId === "non-reserved") {
+                seatText = "Non-Reserved";
+            } else {
+                const globalSeatNum = parseInt(member.seatId.replace('seat_', ''));
+                const roomNum = Math.ceil(globalSeatNum / 100);
+                const localSeatNum = globalSeatNum - (roomNum - 1) * 100;
+                seatText = `Room ${roomNum} - Seat ${localSeatNum}`;
+            }
+            
+            tr.innerHTML = `
+                <td>
+                    <div class="member-profile">
+                        <div class="member-avatar ${clickableClass}" ${onclickAttr} style="${avatarStyle}">${avatarContent}</div>
+                        <div>
+                            <div class="member-name">${member.name}</div>
+                            <div class="member-phone">${member.phone}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <strong style="color: #fff;">${seatText}</strong>
+                    ${expiryFmtText}
+                </td>
+                <td>
+                    <div style="font-weight: 700; color: var(--accent-amber); font-size: 1rem;">₹${member.feeAmount}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 1px;">
+                        ${PLANS.find(p => p.id === member.planId)?.name || 'Custom Plan'}
+                    </div>
+                </td>
+                <td>
+                    <div class="actions-cell" style="justify-content: center; gap: 8px;">
+                        <button class="btn-icon-only btn-secondary" onclick="sendFeeReminder('${member.id}')" title="Send WhatsApp Fee Reminder" style="background: rgba(37, 211, 102, 0.1); color: #25D366; border-color: rgba(37, 211, 102, 0.2);">
+                            <i class="fa-brands fa-whatsapp"></i>
+                        </button>
+                        <button class="btn-icon-only btn-secondary" onclick="markFeeAsPaidQuick('${member.id}')" title="Mark as Paid" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-emerald); border-color: rgba(16, 185, 129, 0.2);">
+                            <i class="fa-solid fa-check"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            pendingTbody.appendChild(tr);
+        });
+    }
+    
+    // 3. Render recent payments log
+    const recentPayments = [...state.members]
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, 15);
+        
+    if (recentPayments.length === 0) {
+        recentList.innerHTML = `
+            <div class="empty-state">
+                <i class="fa-solid fa-receipt" style="color: var(--text-dark); opacity: 0.4;"></i>
+                <p>No financial activity recorded yet.</p>
+            </div>
+        `;
+    } else {
+        recentPayments.forEach(member => {
+            const item = document.createElement("div");
+            const isPaid = member.paymentStatus === "Paid";
+            
+            item.className = "alert-item";
+            item.style.borderLeftColor = isPaid ? "var(--accent-emerald)" : "var(--accent-amber)";
+            
+            const timeFmt = new Date(member.timestamp).toLocaleDateString('en-IN', {
+                day: 'numeric',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            item.innerHTML = `
+                <div class="alert-avatar" style="color: ${isPaid ? 'var(--accent-emerald)' : 'var(--accent-amber)'}; background: ${isPaid ? 'rgba(16, 185, 129, 0.08)' : 'rgba(245, 158, 11, 0.08)'}; font-size: 1rem;">
+                    <i class="fa-solid ${isPaid ? 'fa-circle-check' : 'fa-clock'}"></i>
+                </div>
+                <div class="alert-details">
+                    <div class="alert-name" style="font-weight: 600; color: #fff;">${member.name}</div>
+                    <div class="alert-info" style="font-size: 0.75rem;">
+                        ₹${member.feeAmount} • ${PLANS.find(p => p.id === member.planId)?.name || 'Custom Plan'} (${member.paymentMethod || 'Cash'})
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 0.75rem; font-weight: 700; color: ${isPaid ? 'var(--accent-emerald)' : 'var(--accent-amber)'};">
+                        ${member.paymentStatus}
+                    </div>
+                    <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 2px;">${timeFmt}</div>
+                </div>
+            `;
+            recentList.appendChild(item);
+        });
+    }
+}
+
+// Send WhatsApp pending fee reminder (Option 1 style: Professional & Polite)
+function sendFeeReminder(memberId) {
+    const member = state.members.find(m => m.id === memberId);
+    if (!member) return;
+    
+    const libName = state.settings.libraryName || "The Study Cafe";
+    const planName = PLANS.find(p => p.id === member.planId)?.name || "Library Membership";
+    
+    const message = `Hello ${member.name},\n\nThis is a friendly fee status update from *${libName}*.\n\n💵 *Pending Amount:* ₹${member.feeAmount}\n📦 *Plan Duration:* ${planName}\n\nKindly clear the pending dues at the desk at your earliest convenience to update your database record. If you have already paid, please share the receipt screenshot.\n\nThank you,\n*${libName}*`;
+    
+    let cleanPhone = member.phone.replace(/[^0-9]/g, "");
+    if (cleanPhone.startsWith("0")) {
+        cleanPhone = cleanPhone.substring(1);
+    }
+    if (cleanPhone.length === 10) {
+        cleanPhone = "91" + cleanPhone;
+    }
+    
+    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
+}
+
+// Quick Mark as Paid action
+function markFeeAsPaidQuick(memberId) {
+    const member = state.members.find(m => m.id === memberId);
+    if (!member) return;
+    
+    const paymentMethod = prompt(`Confirm payment of ₹${member.feeAmount} for ${member.name}.\nEnter payment method (Type "Cash" or "UPI" / "Online"):`, "Cash");
+    if (paymentMethod === null) return; // Cancelled
+    
+    const cleanMethod = paymentMethod.trim().toLowerCase().includes("cash") ? "Cash" : "Online";
+    
+    member.paymentStatus = "Paid";
+    member.paymentMethod = cleanMethod;
+    member.timestamp = Date.now(); // update timestamp for recent sorting
+    
+    syncLocalToDatabase();
+    showToast(`Payment marked as Paid via ${cleanMethod} for ${member.name}!`, "success");
+    refreshUI();
+    
+    // Automatically open receipt
+    openReceiptModal(member.id);
 }
 
 // Delete member

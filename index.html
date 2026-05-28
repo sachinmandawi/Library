@@ -65,6 +65,11 @@
                     <span>Birthdays</span>
                     <span class="nav-badge" id="birthday-badge-count" style="display: none; background-color: #ec4899;">0</span>
                 </a>
+                <a class="nav-item" id="nav-fees" onclick="switchTab('fees')">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    <span>Fees</span>
+                    <span class="nav-badge" id="fees-badge-count" style="display: none; background-color: var(--accent-amber);">0</span>
+                </a>
                 <a class="nav-item" id="nav-pending" onclick="switchTab('pending')">
                     <i class="fa-solid fa-bell"></i>
                     <span>Pending Requests</span>
@@ -622,6 +627,88 @@
                     </div>
                 </div>
             </section>
+
+            <!-- SECTION 7: FEES MANAGEMENT -->
+            <section id="section-fees" class="content-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <h2>Fees Control Center</h2>
+                        <p>Track student payments, outstanding balances, and send payment reminders</p>
+                    </div>
+                </div>
+
+                <div class="kpi-grid" style="margin-bottom: 2rem;">
+                    <div class="kpi-card glass-panel emerald">
+                        <div class="kpi-info">
+                            <h3>Total Revenue Collected</h3>
+                            <div class="kpi-value" id="fees-kpi-collected">₹0</div>
+                        </div>
+                        <div class="kpi-icon-container">
+                            <i class="fa-solid fa-square-check"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-card glass-panel amber">
+                        <div class="kpi-info">
+                            <h3>Total Outstanding Fees</h3>
+                            <div class="kpi-value" id="fees-kpi-pending">₹0</div>
+                        </div>
+                        <div class="kpi-icon-container">
+                            <i class="fa-solid fa-hand-holding-dollar"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-card glass-panel blue">
+                        <div class="kpi-info">
+                            <h3>Students with Pending Fees</h3>
+                            <div class="kpi-value" id="fees-kpi-count">0 Students</div>
+                        </div>
+                        <div class="kpi-icon-container">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-layout" style="grid-template-columns: 3fr 2fr;">
+                    <!-- Pending Payments (Unpaid Students) -->
+                    <div class="glass-panel">
+                        <div class="panel-header" style="background: rgba(245, 158, 11, 0.03); border-bottom: 1px solid var(--border-color);">
+                            <h3 class="panel-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fa-solid fa-clock" style="color: var(--accent-amber);"></i> Unpaid Students (Pending Fees)
+                            </h3>
+                        </div>
+                        <div class="panel-body" style="padding: 0;">
+                            <div style="overflow-x: auto;">
+                                <table class="custom-table" style="width: 100%; border-collapse: collapse; text-align: left; margin-top: 0;">
+                                    <thead>
+                                        <tr style="border-bottom: 1px solid var(--border-color); background: rgba(255,255,255,0.01);">
+                                            <th style="padding: 1rem 1.2rem; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Student</th>
+                                            <th style="padding: 1rem 1.2rem; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Seat Info</th>
+                                            <th style="padding: 1rem 1.2rem; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Amount Due</th>
+                                            <th style="padding: 1rem 1.2rem; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; text-align: center;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="fees-pending-tbody">
+                                        <!-- Dynamically Rendered Unpaid Students -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment History / Manage Payments -->
+                    <div class="glass-panel">
+                        <div class="panel-header" style="background: rgba(59, 130, 246, 0.03); border-bottom: 1px solid var(--border-color);">
+                            <h3 class="panel-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fa-solid fa-receipt" style="color: var(--accent-blue);"></i> Recent Financial Activity
+                            </h3>
+                        </div>
+                        <div class="panel-body" style="padding: 0;">
+                            <div class="alert-list" id="fees-recent-list" style="max-height: 520px; overflow-y: auto; padding: 1rem;">
+                                <!-- Dynamically Rendered Fee History Log -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -895,7 +982,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <!-- Admin logic -->
-    <script src="app.js?v=24"></script>
+    <script src="app.js?v=25"></script>
 
 </body>
 </html>

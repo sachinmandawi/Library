@@ -402,6 +402,15 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--accent-rose);
 }
 
+.alert-item.birthday {
+    border-left-color: #ec4899;
+}
+
+.alert-item.birthday .alert-avatar {
+    color: #ec4899;
+    background: rgba(236, 72, 153, 0.08);
+}
+
 .empty-state {
     text-align: center;
     color: var(--text-muted);

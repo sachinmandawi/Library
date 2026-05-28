@@ -6,7 +6,7 @@
     <title>The Study Cafe - Admin Dashboard</title>
     <!-- Fonts & Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=7">
+    <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 
@@ -212,17 +212,38 @@
                         </div>
                     </div>
 
-                    <!-- Expiry Warnings -->
-                    <div class="glass-panel">
-                        <div class="panel-header">
-                            <h3 class="panel-title">Expiry & Renewal Alerts</h3>
+                    <!-- Right Sidebar Widgets -->
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        <!-- Expiry Warnings -->
+                        <div class="glass-panel" style="margin-bottom: 0;">
+                            <div class="panel-header">
+                                <h3 class="panel-title">Expiry & Renewal Alerts</h3>
+                            </div>
+                            <div class="panel-body">
+                                <div class="alert-list" id="expiry-alert-list">
+                                    <!-- Dynamically Rendered Expiry Alerts -->
+                                    <div class="empty-state">
+                                        <i class="fa-solid fa-circle-check" style="color: var(--accent-emerald);"></i>
+                                        <p>All memberships are up to date. No pending renewals!</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="panel-body">
-                            <div class="alert-list" id="expiry-alert-list">
-                                <!-- Dynamically Rendered Expiry Alerts -->
-                                <div class="empty-state">
-                                    <i class="fa-solid fa-check-circle" style="color: var(--accent-emerald);"></i>
-                                    <p>All memberships are up to date. No pending renewals!</p>
+
+                        <!-- Birthday Alerts -->
+                        <div class="glass-panel" style="margin-bottom: 0;">
+                            <div class="panel-header" style="background: rgba(236, 72, 153, 0.03);">
+                                <h3 class="panel-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="fa-solid fa-cake-candles" style="color: #ec4899;"></i> Today's Birthdays
+                                </h3>
+                            </div>
+                            <div class="panel-body">
+                                <div class="alert-list" id="birthday-alert-list">
+                                    <!-- Dynamically Rendered Birthday Alerts -->
+                                    <div class="empty-state">
+                                        <i class="fa-solid fa-gift" style="color: var(--text-muted); opacity: 0.5;"></i>
+                                        <p>No birthdays today.</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -821,7 +842,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <!-- Admin logic -->
-    <script src="app.js?v=21"></script>
+    <script src="app.js?v=22"></script>
 
 </body>
 </html>

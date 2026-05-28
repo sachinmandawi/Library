@@ -391,6 +391,7 @@ function setupFirebaseListeners() {
         renderMemberTable();
         updateDashboardKPIs();
         renderDashboardAlerts();
+        renderBirthdayAlerts();
     });
 
     // Listen to Pending requests
@@ -524,6 +525,7 @@ function switchTab(tabId) {
     if (tabId === "dashboard") {
         updateDashboardKPIs();
         renderDashboardAlerts();
+        renderBirthdayAlerts();
     } else if (tabId === "seats") {
         renderSeatGrid();
     } else if (tabId === "members") {
@@ -678,6 +680,75 @@ function renderDashboardAlerts() {
                 <div class="alert-expiry-days ${isExpired ? 'expired' : ''}">${displayDaysText}</div>
                 <button class="btn-whatsapp-remind" onclick="sendExpiryReminder('${member.id}')" title="Send WhatsApp Reminder" style="background: rgba(37, 211, 102, 0.15); color: #25D366; border: 1px solid rgba(37, 211, 102, 0.3); border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s; font-weight: 500;" onmouseover="this.style.background='rgba(37, 211, 102, 0.25)'" onmouseout="this.style.background='rgba(37, 211, 102, 0.15)'">
                     <i class="fa-brands fa-whatsapp"></i> Remind
+                </button>
+            </div>
+        `;
+        list.appendChild(item);
+    });
+}
+
+// Render birthday alerts
+function renderBirthdayAlerts() {
+    const list = document.getElementById("birthday-alert-list");
+    if (!list) return;
+    list.innerHTML = "";
+    
+    const today = new Date();
+    const currentMonth = today.getMonth() + 1; // 1-indexed
+    const currentDate = today.getDate();
+    
+    const birthdayMembers = state.members.filter(member => {
+        if (!member.dob) return false;
+        
+        // Handle formats like YYYY-MM-DD
+        const parts = member.dob.split('-');
+        if (parts.length === 3) {
+            const birthMonth = parseInt(parts[1], 10);
+            const birthDate = parseInt(parts[2], 10);
+            return birthMonth === currentMonth && birthDate === currentDate;
+        }
+        return false;
+    });
+    
+    if (birthdayMembers.length === 0) {
+        list.innerHTML = `
+            <div class="empty-state">
+                <i class="fa-solid fa-gift" style="color: var(--text-muted); opacity: 0.5;"></i>
+                <p>No birthdays today.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    birthdayMembers.forEach(member => {
+        const item = document.createElement("div");
+        item.className = "alert-item birthday";
+        
+        const avatarLetter = member.name.charAt(0).toUpperCase();
+        const avatarStyle = member.photo ? `background-image: url('${member.photo}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : '';
+        const avatarContent = member.photo ? '' : avatarLetter;
+        const clickableClass = member.photo ? 'clickable-avatar' : '';
+        const onclickAttr = member.photo ? `onclick="openLightbox('${member.photo}')"` : '';
+        
+        let seatInfoText = "";
+        if (member.seatId === "non-reserved") {
+            seatInfoText = "Non-Reserved";
+        } else {
+            const globalSeatNum = parseInt(member.seatId.replace('seat_', ''));
+            const roomNum = Math.ceil(globalSeatNum / 100);
+            const localSeatNum = globalSeatNum - (roomNum - 1) * 100;
+            seatInfoText = `Room ${roomNum} - Seat ${localSeatNum}`;
+        }
+        
+        item.innerHTML = `
+            <div class="alert-avatar ${clickableClass}" ${onclickAttr} style="${avatarStyle}">${avatarContent}</div>
+            <div class="alert-details">
+                <div class="alert-name" style="font-weight: 600; color: #fff;">${member.name} 🎂</div>
+                <div class="alert-info">${seatInfoText} • ${member.phone}</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <button class="btn-whatsapp-remind" onclick="sendBirthdayWish('${member.id}')" title="Send WhatsApp Wish" style="background: rgba(236, 72, 153, 0.15); color: #ec4899; border: 1px solid rgba(236, 72, 153, 0.3); border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s; font-weight: 500;" onmouseover="this.style.background='rgba(236, 72, 153, 0.25)'" onmouseout="this.style.background='rgba(236, 72, 153, 0.15)'">
+                    <i class="fa-solid fa-paper-plane"></i> Wish
                 </button>
             </div>
         `;
@@ -1156,6 +1227,7 @@ function updatePendingBadge() {
 function refreshUI() {
     updateDashboardKPIs();
     renderDashboardAlerts();
+    renderBirthdayAlerts();
     renderSeatGrid();
     renderMemberTable();
     updatePendingBadge();
@@ -1559,6 +1631,28 @@ function sendExpiryReminder(memberId) {
     }
     
     // Clean phone number (strip leading 0, add +91 country code if not present)
+    let cleanPhone = member.phone.replace(/[^0-9]/g, "");
+    if (cleanPhone.startsWith("0")) {
+        cleanPhone = cleanPhone.substring(1);
+    }
+    if (cleanPhone.length === 10) {
+        cleanPhone = "91" + cleanPhone;
+    }
+    
+    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
+}
+
+// Send automated WhatsApp birthday wishes
+function sendBirthdayWish(memberId) {
+    const member = state.members.find(m => m.id === memberId);
+    if (!member) return;
+    
+    const libName = state.settings.libraryName || "The Study Cafe";
+    const targetExamText = member.targetExam ? ` for *${member.targetExam}*` : "";
+    
+    const message = `Hello ${member.name},\n\nWishing you a very Happy Birthday! 🎂✨\n\nMay this special day bring you joy, happiness, and closer to your dream of cracking your exams${targetExamText}! Keep studying hard and achieving your goals.\n\nHave a fantastic day ahead! 🎉\n\nWarm regards,\n*${libName}* 📚☕`;
+    
     let cleanPhone = member.phone.replace(/[^0-9]/g, "");
     if (cleanPhone.startsWith("0")) {
         cleanPhone = cleanPhone.substring(1);

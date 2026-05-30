@@ -301,7 +301,7 @@
                     </div>
 
                     <!-- Section 6: Payment Method Preference -->
-                    <div class="form-section-container">
+                    <div class="form-section-container" id="s-payment-section">
                         <div class="form-section-title">
                             <i class="fa-solid fa-wallet"></i>
                             <span>Payment Preference</span>
@@ -379,7 +379,7 @@
                 </p>
                 <div style="background: rgba(255,255,255,0.03); border: 1px dashed var(--border-color); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: left;">
                     <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem;"><strong>Next Step:</strong></p>
-                    <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
+                    <p id="success-next-step-text" style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
                         Please head over to the reception desk. Inform the Admin of your name: <strong id="success-student-name-2" style="color: var(--accent-emerald);">Student</strong> to complete payment and activate your selected seat.
                     </p>
                 </div>
@@ -396,6 +396,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
     <!-- Student Logic -->
-    <script src="register.js?v=18"></script>
+    <script src="register.js?v=19"></script>
 </body>
 </html>

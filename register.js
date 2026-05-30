@@ -760,6 +760,16 @@ function submitOffline(bookingData) {
 // Display confirmation view
 function showSuccessScreen(studentName, isOffline = false) {
     document.getElementById("success-student-name").textContent = studentName;
+    
+    const nextStepText = document.getElementById("success-next-step-text");
+    if (nextStepText) {
+        if (isDemo) {
+            nextStepText.innerHTML = 'Please head over to the reception desk. Inform the Admin of your name: <strong id="success-student-name-2" style="color: var(--accent-emerald);">Student</strong> to activate your free trial demo seat.';
+        } else {
+            nextStepText.innerHTML = 'Please head over to the reception desk. Inform the Admin of your name: <strong id="success-student-name-2" style="color: var(--accent-emerald);">Student</strong> to complete payment and activate your selected seat.';
+        }
+    }
+    
     document.getElementById("success-student-name-2").textContent = studentName;
     
     const warningEl = document.getElementById("success-offline-warning");
@@ -798,10 +808,15 @@ window.addEventListener("DOMContentLoaded", () => {
             durationSelect.parentElement.style.display = "none";
         }
         
+        // Hide the payment section container
+        const paymentSection = document.getElementById("s-payment-section");
+        if (paymentSection) paymentSection.style.display = "none";
+        
         const amountPaidEl = document.getElementById("s-amount-paid");
         if (amountPaidEl) {
             amountPaidEl.disabled = true;
             amountPaidEl.value = 0;
+            amountPaidEl.removeAttribute("required");
         }
         
         const submitBtn = document.getElementById("btn-submit-booking");

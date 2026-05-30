@@ -457,7 +457,7 @@ window.handleComplaintSubmit = function(e) {
     const category = document.getElementById("c-category").value;
     const description = document.getElementById("c-desc").value.trim();
     
-    if (!name || !phone || !room || !category || !description) {
+    if (!name || !phone || !room || !seat || !category || !description) {
         alert("Please fill in all required fields.");
         return;
     }

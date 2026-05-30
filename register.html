@@ -224,7 +224,7 @@
                             <span>Seat Selection</span>
                         </div>
                         <div class="form-row">
-                            <div class="form-group">
+                            <div class="form-group" id="s-seat-type-group">
                                 <label class="form-label" for="s-seat-type">Seat Preference *</label>
                                 <select id="s-seat-type" class="form-control" onchange="onStudentRoomOrTypeChange()" required>
                                     <option value="non-reserved">Non-Reserved - ₹700</option>
@@ -243,7 +243,7 @@
 
                         <!-- Demo Duration Selection (Shown only for demo requests) -->
                         <div class="form-row" id="s-demo-duration-row" style="display: none; margin-top: 1rem;">
-                            <div class="form-group" style="flex: 1;">
+                            <div class="form-group" style="grid-column: span 2;">
                                 <label class="form-label" for="s-demo-duration">Demo Session Duration *</label>
                                 <select id="s-demo-duration" class="form-control">
                                     <option value="1">1 Day Trial</option>
@@ -273,7 +273,7 @@
                                         <option value="4">Room 4</option>
                                     </select>
                                 </div>
-                                <div class="form-group">
+                                <div class="form-group" id="s-selected-seat-group">
                                     <label class="form-label">Selected Seat *</label>
                                     <div id="student-selected-seat-badge" class="form-control" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); color: var(--accent-emerald); font-weight: 700; display: flex; align-items: center; justify-content: center; height: 43px;">
                                         None selected

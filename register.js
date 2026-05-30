@@ -290,21 +290,23 @@ function createStudentSeatBox(seat) {
             seatBox.classList.add("selected");
         }
         
-        seatBox.onclick = () => {
-            const seatTypeEl = document.getElementById("s-seat-type");
-            if (seatTypeEl && seatTypeEl.value === "non-reserved") {
-                seatTypeEl.value = "reserved";
-                onStudentRoomOrTypeChange();
-            }
-            
-            selectStudentSeat(seat.id, seat.number);
-            
-            // Highlight active in grid
-            document.querySelectorAll(".student-seat-box.selected").forEach(el => {
-                el.classList.remove("selected");
-            });
-            seatBox.classList.add("selected");
-        };
+        if (!isDemo) {
+            seatBox.onclick = () => {
+                const seatTypeEl = document.getElementById("s-seat-type");
+                if (seatTypeEl && seatTypeEl.value === "non-reserved") {
+                    seatTypeEl.value = "reserved";
+                    onStudentRoomOrTypeChange();
+                }
+                
+                selectStudentSeat(seat.id, seat.number);
+                
+                // Highlight active in grid
+                document.querySelectorAll(".student-seat-box.selected").forEach(el => {
+                    el.classList.remove("selected");
+                });
+                seatBox.classList.add("selected");
+            };
+        }
     }
     return seatBox;
 }
@@ -829,6 +831,22 @@ window.addEventListener("DOMContentLoaded", () => {
         if (durationSelect && durationSelect.parentElement) {
             durationSelect.parentElement.style.display = "none";
         }
+        
+        // Hide Seat Preference dropdown & Selected Seat badge
+        const seatTypeGroup = document.getElementById("s-seat-type-group");
+        if (seatTypeGroup) seatTypeGroup.style.display = "none";
+        const selectedSeatGroup = document.getElementById("s-selected-seat-group");
+        if (selectedSeatGroup) selectedSeatGroup.style.display = "none";
+        
+        // Make Choose Room span the full width of the row
+        const roomSelect = document.getElementById("s-room");
+        if (roomSelect && roomSelect.parentElement) {
+            roomSelect.parentElement.style.gridColumn = "span 2";
+        }
+        
+        // Mark visual grid as view-only
+        const seatGrid = document.getElementById("student-seat-grid");
+        if (seatGrid) seatGrid.classList.add("view-only");
         
         // Hide the payment section container
         const paymentSection = document.getElementById("s-payment-section");

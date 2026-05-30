@@ -1254,6 +1254,17 @@ h1, h2, h3, h4, h5, h6 {
     animation: studentSeatPulse 1.5s infinite;
 }
 
+.student-seat-grid.view-only .student-seat-box.vacant {
+    cursor: default !important;
+}
+
+.student-seat-grid.view-only .student-seat-box.vacant:hover {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
 .student-seat-box.occupied {
     background: rgba(59, 130, 246, 0.15);
     border: 1.5px solid var(--accent-blue);

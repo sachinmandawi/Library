@@ -462,45 +462,105 @@ window.handleComplaintSubmit = function(e) {
         return;
     }
     
-    // Generate ticket details
-    const ticketId = "TKT-" + Math.floor(100 + Math.random() * 900) + "-" + Math.floor(10 + Math.random() * 90);
-    const timestamp = new Date().toISOString();
-    
-    const complaintData = {
-        ticketId: ticketId,
-        studentName: name,
-        phone: phone,
-        room: parseInt(room),
-        seatNumber: seat ? parseInt(seat) : "",
-        category: category,
-        description: description,
-        status: "pending",
-        timestamp: timestamp,
-        adminNotes: ""
+    const cleanPhone = phone.replace(/\D/g, "");
+    if (cleanPhone.length !== 10) {
+        alert("Please enter a valid 10-digit mobile number.");
+        return;
+    }
+
+    const submitBtn = document.querySelector(".btn-submit-complaint");
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Verifying Mobile Number...";
+    }
+
+    const performSubmission = () => {
+        // Generate ticket details
+        const ticketId = "TKT-" + Math.floor(100 + Math.random() * 900) + "-" + Math.floor(10 + Math.random() * 90);
+        const timestamp = new Date().toISOString();
+        
+        const complaintData = {
+            ticketId: ticketId,
+            studentName: name,
+            phone: cleanPhone,
+            room: parseInt(room),
+            seatNumber: seat ? parseInt(seat) : "",
+            category: category,
+            description: description,
+            status: "pending",
+            timestamp: timestamp,
+            adminNotes: ""
+        };
+        
+        if (database) {
+            database.ref("study_cafe_system/complaints").push(complaintData)
+                .then(() => {
+                    showComplaintSuccess(ticketId);
+                })
+                .catch(err => {
+                    console.error("Failed to save complaint to database:", err);
+                    alert("Failed to submit issue. Please try again.");
+                })
+                .finally(() => {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = "Submit Ticket";
+                    }
+                });
+        } else {
+            // Local fallback
+            try {
+                const localState = JSON.parse(localStorage.getItem("study_cafe_state") || "{}");
+                if (!localState.complaints) localState.complaints = [];
+                localState.complaints.push(complaintData);
+                localStorage.setItem("study_cafe_state", JSON.stringify(localState));
+            } catch(e){}
+            
+            showComplaintSuccess(ticketId);
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Submit Ticket";
+            }
+        }
     };
-    
-    // Check if database is initialized
+
     if (database) {
-        database.ref("study_cafe_system/complaints").push(complaintData)
-            .then(() => {
-                showComplaintSuccess(ticketId);
+        // Verify from Firebase (Direct child look up for privacy - doesn't download entire phone list)
+        database.ref("study_cafe_system/registered_phones").child(cleanPhone).once("value")
+            .then(snapshot => {
+                if (snapshot.exists()) {
+                    performSubmission();
+                } else {
+                    alert("यह मोबाइल नंबर रजिस्टर्ड नहीं है। शिकायत केवल वही छात्र दर्ज कर सकते हैं जिनका मोबाइल नंबर लाइब्रेरी में रजिस्टर्ड है।\n\n(This mobile number is not registered. Only registered students can submit issues.)");
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = "Submit Ticket";
+                    }
+                }
             })
             .catch(err => {
-                console.error("Failed to save complaint to database:", err);
-                alert("Failed to submit issue. Please try again.");
+                console.warn("Database lookup failed. Proceeding with submission anyway...", err);
+                performSubmission();
             });
     } else {
-        // Local mock save / offline fallback
-        console.log("Database offline. Mock ticket raised:", complaintData);
-        // Save to offline state in localStorage
+        // Verify from local storage fallback
+        let isRegistered = false;
         try {
             const localState = JSON.parse(localStorage.getItem("study_cafe_state") || "{}");
-            if (!localState.complaints) localState.complaints = [];
-            localState.complaints.push(complaintData);
-            localStorage.setItem("study_cafe_state", JSON.stringify(localState));
+            if (localState.registered_phones && localState.registered_phones[cleanPhone]) {
+                isRegistered = true;
+            }
         } catch(e){}
-        
-        showComplaintSuccess(ticketId);
+
+        if (isRegistered) {
+            performSubmission();
+        } else {
+            alert("यह मोबाइल नंबर रजिस्टर्ड नहीं है। शिकायत केवल वही छात्र दर्ज कर सकते हैं जिनका मोबाइल नंबर लाइब्रेरी में रजिस्टर्ड है।\n\n(This mobile number is not registered. Only registered students can submit issues.)");
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Submit Ticket";
+            }
+        }
     }
 };
 

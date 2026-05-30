@@ -440,6 +440,23 @@ function setupFirebaseListeners() {
         } else {
             state.members = [];
         }
+        
+        // Auto-update registered_phones in Firebase from Admin dashboard
+        const regPhones = {};
+        state.members.forEach(m => {
+            if (m.phone) {
+                const cleanPhone = m.phone.replace(/\D/g, "");
+                if (cleanPhone.length === 10) {
+                    regPhones[cleanPhone] = {
+                        studentName: m.name,
+                        status: m.status || "active"
+                    };
+                }
+            }
+        });
+        dbRef.child("registered_phones").set(regPhones);
+        state.registered_phones = regPhones;
+
         saveStateToLocalStorage();
         renderMemberTable();
         updateDashboardKPIs();
@@ -590,16 +607,31 @@ function initModalPaymentListeners() {
 
 // Handle data syncing when offline
 function syncLocalToDatabase() {
+    // Generate registered phone numbers lookup
+    const regPhones = {};
+    (state.members || []).forEach(m => {
+        if (m.phone) {
+            const cleanPhone = m.phone.replace(/\D/g, "");
+            if (cleanPhone.length === 10) {
+                regPhones[cleanPhone] = {
+                    studentName: m.name,
+                    status: m.status || "active"
+                };
+            }
+        }
+    });
+
     if (isOfflineMode || !database) {
+        state.registered_phones = regPhones;
         saveStateToLocalStorage();
         return;
     }
     
-    database.ref("study_cafe_system").set({
-        settings: state.settings,
-        seats: state.seats,
-        members: state.members
-    });
+    // Write individual nodes separately to avoid wiping out complaints/feedback nodes
+    database.ref("study_cafe_system/settings").set(state.settings);
+    database.ref("study_cafe_system/seats").set(state.seats);
+    database.ref("study_cafe_system/members").set(state.members);
+    database.ref("study_cafe_system/registered_phones").set(regPhones);
 }
 
 // Check for local offline pending submissions

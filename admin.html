@@ -6,7 +6,7 @@
     <title>The Study Cafe - Admin Dashboard</title>
     <!-- Fonts & Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=9">
+    <link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 
@@ -74,6 +74,11 @@
                     <i class="fa-solid fa-bell"></i>
                     <span>Pending Requests</span>
                     <span class="nav-badge" id="pending-count" style="display: none;">0</span>
+                </a>
+                <a class="nav-item" id="nav-complaints" onclick="switchTab('complaints')">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>Complaints</span>
+                    <span class="nav-badge" id="complaints-count" style="display: none; background-color: #f43f5e;">0</span>
                 </a>
                 <a class="nav-item" id="nav-settings" onclick="switchTab('settings')">
                     <i class="fa-solid fa-sliders"></i>
@@ -426,6 +431,38 @@
                                 </thead>
                                 <tbody id="pending-table-body">
                                     <!-- Dynamic rows from Firebase pending node -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 8: COMPLAINTS -->
+            <section id="section-complaints" class="content-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <h2>Complaint Ticket System</h2>
+                        <p>Track student complaints, edit internal notes, update resolutions, and send updates</p>
+                    </div>
+                </div>
+
+                <div class="glass-panel">
+                    <div class="panel-body">
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Ticket Details</th>
+                                        <th>Student Details</th>
+                                        <th>Category</th>
+                                        <th>Issue Description</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="complaints-table-body">
+                                    <!-- Dynamic rows from Firebase complaints node -->
                                 </tbody>
                             </table>
                         </div>
@@ -1128,7 +1165,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <!-- Admin logic -->
-    <script src="app.js?v=27"></script>
+    <script src="app.js?v=28"></script>
 
 </body>
 </html>

@@ -21,6 +21,8 @@
             --accent-emerald-glow: rgba(16, 185, 129, 0.15);
             --accent-blue: #3b82f6;
             --accent-blue-glow: rgba(59, 130, 246, 0.15);
+            --accent-rose: #f43f5e;
+            --accent-rose-glow: rgba(244, 63, 94, 0.15);
             --card-bg: rgba(255, 255, 255, 0.02);
             --card-border: rgba(255, 255, 255, 0.06);
             --card-hover-border: rgba(255, 255, 255, 0.12);
@@ -28,6 +30,7 @@
             --text-muted: #94a3b8;
             --glow-green: 0 0 20px rgba(16, 185, 129, 0.3);
             --glow-blue: 0 0 20px rgba(59, 130, 246, 0.3);
+            --glow-rose: 0 0 20px rgba(244, 63, 94, 0.3);
             --font-display: 'Outfit', sans-serif;
             --font-body: 'Inter', sans-serif;
         }
@@ -1239,6 +1242,108 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Modal Overlay & Card Styling for Complaints */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(7, 11, 19, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        .modal-card {
+            background: rgba(13, 22, 39, 0.95);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            overflow: hidden;
+            animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .modal-header h3 {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin: 0;
+        }
+
+        .btn-close-modal {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.3s ease;
+            line-height: 1;
+        }
+
+        .btn-close-modal:hover {
+            color: #fff;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-body .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            color: #fff;
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .modal-body .form-control:focus {
+            outline: none;
+            border-color: var(--accent-rose);
+            box-shadow: 0 0 10px rgba(244, 63, 94, 0.15);
+        }
+
+        .modal-body select.form-control option {
+            background: #0f172a;
+            color: #fff;
+        }
+
+        .modal-body label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
     </style>
 </head>
 <body>
@@ -1256,6 +1361,7 @@
                 <a href="#gallery">Atmosphere</a>
                 <a href="#faqs">FAQs</a>
                 <a href="#contact">Contact</a>
+                <a href="#" onclick="openComplaintModal(event)" style="color: var(--accent-rose); font-weight: 600;">Report Issue</a>
                 <a href="register.html" class="btn-register-nav">Book Desk Now</a>
             </nav>
         </div>
@@ -1615,11 +1721,82 @@
         </div>
     </footer>
 
+    <!-- COMPLAINT / ISSUE MODAL -->
+    <div id="complaint-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-rose);"></i> Report An Issue</h3>
+                <button class="btn-close-modal" onclick="closeComplaintModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="complaint-form" onsubmit="handleComplaintSubmit(event)">
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label class="form-label" for="c-name">Your Name</label>
+                        <input type="text" id="c-name" class="form-control" required placeholder="Rahul Sharma">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label class="form-label" for="c-phone">Registered Mobile Number</label>
+                        <input type="tel" id="c-phone" class="form-control" required placeholder="98765 43210" pattern="^[0-9]{10}$" title="Enter a valid 10-digit mobile number">
+                    </div>
+                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label" for="c-room">Room Number</label>
+                            <select id="c-room" class="form-control" required>
+                                <option value="1">Room 1</option>
+                                <option value="2">Room 2</option>
+                                <option value="3">Room 3</option>
+                                <option value="4">Room 4</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="c-seat">Seat Number (Optional)</label>
+                            <input type="number" id="c-seat" class="form-control" placeholder="Seat No." min="1" max="100">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label class="form-label" for="c-category">Issue Category</label>
+                        <select id="c-category" class="form-control" required>
+                            <option value="">-- Select Category --</option>
+                            <option value="Wi-Fi">Wi-Fi / Internet</option>
+                            <option value="AC & Cooling">AC & Cooling</option>
+                            <option value="Cleanliness">Cleanliness & Hygiene</option>
+                            <option value="Lighting & Power">Lighting & Power Socket</option>
+                            <option value="Noise Distraction">Noise / Distraction</option>
+                            <option value="Drinking Water">Drinking Water (RO)</option>
+                            <option value="Other Issue">Other Issue</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label class="form-label" for="c-desc">Description of the Issue</label>
+                        <textarea id="c-desc" class="form-control" rows="3" required placeholder="Briefly describe what needs attention..."></textarea>
+                    </div>
+                    <button type="submit" class="btn-submit-complaint" style="width: 100%; padding: 0.85rem; border-radius: 50px; border: none; background: linear-gradient(135deg, var(--accent-rose), var(--accent-blue)); color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 1rem; cursor: pointer; box-shadow: var(--glow-rose); transition: all 0.3s ease;">
+                        Submit Ticket
+                    </button>
+                </form>
+
+                <!-- Success View -->
+                <div id="complaint-success-view" style="display: none; text-align: center; padding: 2rem 1rem;">
+                    <div style="width: 70px; height: 70px; border-radius: 50%; background: rgba(16, 185, 129, 0.1); border: 2px solid var(--accent-emerald); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem auto; color: var(--accent-emerald); font-size: 2rem;">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <h3 style="font-family: var(--font-display); color: #fff; margin-bottom: 0.5rem; font-size: 1.4rem;">Ticket Raised Successfully</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Our staff is on it. We will resolve your issue as soon as possible.</p>
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); padding: 0.8rem; border-radius: 8px; margin-bottom: 2rem;">
+                        <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.2rem;">Your Ticket ID</span>
+                        <strong id="success-ticket-id" style="font-family: var(--font-display); font-size: 1.25rem; color: var(--accent-rose); letter-spacing: 0.02em;">TKT-123-45</strong>
+                    </div>
+                    <button class="btn-primary" onclick="closeComplaintModal()" style="padding: 0.7rem 2rem; font-size: 0.95rem; display: inline-flex; align-items: center; justify-content: center;">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase Compat SDK and App Config -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     
     <!-- Landing Page Availability Logic -->
-    <script src="landing.js?v=2"></script>
+    <script src="landing.js?v=3"></script>
 </body>
 </html>

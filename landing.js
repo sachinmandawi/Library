@@ -427,6 +427,93 @@ function initFAQAccordion() {
     });
 }
 
+// Complaint Modal Control
+window.openComplaintModal = function(e) {
+    if (e) e.preventDefault();
+    const successView = document.getElementById("complaint-success-view");
+    const formView = document.getElementById("complaint-form");
+    if (successView) successView.style.display = "none";
+    if (formView) {
+        formView.style.display = "block";
+        formView.reset();
+    }
+    const modal = document.getElementById("complaint-modal");
+    if (modal) modal.style.display = "flex";
+};
+
+window.closeComplaintModal = function() {
+    const modal = document.getElementById("complaint-modal");
+    if (modal) modal.style.display = "none";
+};
+
+// Complaint Submit Handler
+window.handleComplaintSubmit = function(e) {
+    if (e) e.preventDefault();
+    
+    const name = document.getElementById("c-name").value.trim();
+    const phone = document.getElementById("c-phone").value.trim();
+    const room = document.getElementById("c-room").value;
+    const seat = document.getElementById("c-seat").value.trim();
+    const category = document.getElementById("c-category").value;
+    const description = document.getElementById("c-desc").value.trim();
+    
+    if (!name || !phone || !room || !category || !description) {
+        alert("Please fill in all required fields.");
+        return;
+    }
+    
+    // Generate ticket details
+    const ticketId = "TKT-" + Math.floor(100 + Math.random() * 900) + "-" + Math.floor(10 + Math.random() * 90);
+    const timestamp = new Date().toISOString();
+    
+    const complaintData = {
+        ticketId: ticketId,
+        studentName: name,
+        phone: phone,
+        room: parseInt(room),
+        seatNumber: seat ? parseInt(seat) : "",
+        category: category,
+        description: description,
+        status: "pending",
+        timestamp: timestamp,
+        adminNotes: ""
+    };
+    
+    // Check if database is initialized
+    if (database) {
+        database.ref("study_cafe_system/complaints").push(complaintData)
+            .then(() => {
+                showComplaintSuccess(ticketId);
+            })
+            .catch(err => {
+                console.error("Failed to save complaint to database:", err);
+                alert("Failed to submit issue. Please try again.");
+            });
+    } else {
+        // Local mock save / offline fallback
+        console.log("Database offline. Mock ticket raised:", complaintData);
+        // Save to offline state in localStorage
+        try {
+            const localState = JSON.parse(localStorage.getItem("study_cafe_state") || "{}");
+            if (!localState.complaints) localState.complaints = [];
+            localState.complaints.push(complaintData);
+            localStorage.setItem("study_cafe_state", JSON.stringify(localState));
+        } catch(e){}
+        
+        showComplaintSuccess(ticketId);
+    }
+};
+
+function showComplaintSuccess(ticketId) {
+    const formView = document.getElementById("complaint-form");
+    const successView = document.getElementById("complaint-success-view");
+    const ticketIdEl = document.getElementById("success-ticket-id");
+    
+    if (formView) formView.style.display = "none";
+    if (ticketIdEl) ticketIdEl.textContent = ticketId;
+    if (successView) successView.style.display = "block";
+}
+
 // Initialize landing components on load
 window.addEventListener("DOMContentLoaded", () => {
     loadCustomSettings();

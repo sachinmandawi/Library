@@ -25,6 +25,7 @@ let state = {
     seats: [],
     members: [],
     pending: [],
+    complaints: [],
     settings: {
         libraryName: "The Study Cafe",
         address: "1st Floor, Fancy Gift House, Near Madhurisha Hotel, Maitri Nagar, Risali, Bhilai - 490006",
@@ -508,6 +509,27 @@ function setupFirebaseListeners() {
         }
     });
     
+    // Listen to Complaints
+    dbRef.child("complaints").on("value", snapshot => {
+        const oldPendingComplaintsCount = (state.complaints || []).filter(c => c && c.status === "pending").length;
+        if (snapshot.exists()) {
+            state.complaints = Object.entries(snapshot.val()).map(([key, val]) => ({...val, id: key}));
+        } else {
+            state.complaints = [];
+        }
+        
+        const newPendingComplaintsCount = state.complaints.filter(c => c && c.status === "pending").length;
+        if (newPendingComplaintsCount > oldPendingComplaintsCount) {
+            showToast("New Student complaint ticket received!", "info");
+        }
+        
+        saveStateToLocalStorage();
+        updateComplaintsBadge();
+        if (currentTab === "complaints") {
+            renderComplaintsList();
+        }
+    });
+    
     // Listeners for partial payments inside the admin student modal
     initModalPaymentListeners();
 }
@@ -651,6 +673,8 @@ function switchTab(tabId) {
         renderFeesTab();
     } else if (tabId === "settings") {
         updateRegistrationQR();
+    } else if (tabId === "complaints") {
+        renderComplaintsList();
     }
 }
 
@@ -3208,10 +3232,12 @@ function resetSystemData() {
     
     state.members = [];
     state.pending = [];
+    state.complaints = [];
     state.seats = generateDefaultSeats();
     
     if (!isOfflineMode && database) {
         database.ref("pending_bookings").remove();
+        database.ref("study_cafe_system/complaints").remove();
         syncLocalToDatabase();
     } else {
         saveStateToLocalStorage();
@@ -3736,4 +3762,228 @@ function exportFeesReport() {
     URL.revokeObjectURL(url);
     
     showToast(`Successfully exported report for ${filteredMembers.length} students!`, "success");
+}
+
+// ==========================================
+// COMPLAINT TICKET SYSTEM WORKFLOWS
+// ==========================================
+
+// Updates the Complaints badge in the sidebar
+function updateComplaintsBadge() {
+    const badge = document.getElementById("complaints-count");
+    if (!badge) return;
+    
+    const count = (state.complaints || []).filter(c => c && c.status === "pending").length;
+    if (count > 0) {
+        badge.textContent = count;
+        badge.style.display = "inline-block";
+    } else {
+        badge.style.display = "none";
+    }
+}
+
+// Renders the list of complaints inside complaints-table-body
+function renderComplaintsList() {
+    const tableBody = document.getElementById("complaints-table-body");
+    if (!tableBody) return;
+    tableBody.innerHTML = "";
+    
+    const complaints = state.complaints || [];
+    
+    if (complaints.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center" style="padding: 2.5rem; color: var(--text-muted); font-size: 0.9rem;">
+                    <i class="fa-solid fa-circle-check" style="font-size: 2.2rem; color: var(--accent-emerald); margin-bottom: 0.75rem; display: block; text-align: center;"></i>
+                    No complaints registered. The study environment is clean and peaceful!
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    // Sort: Pending first, then In Progress, then Resolved. Within each, latest timestamp first.
+    const sorted = [...complaints].sort((a, b) => {
+        const order = { "pending": 1, "in-progress": 2, "resolved": 3 };
+        const orderA = order[a.status] || 9;
+        const orderB = order[b.status] || 9;
+        
+        if (orderA !== orderB) {
+            return orderA - orderB;
+        }
+        return new Date(b.timestamp) - new Date(a.timestamp);
+    });
+    
+    sorted.forEach(c => {
+        const tr = document.createElement("tr");
+        
+        // Status Badge Style
+        let badgeStyle = "font-weight: 700; font-size: 0.75rem; padding: 0.35rem 0.65rem; border-radius: 4px; display: inline-block;";
+        if (c.status === "pending") {
+            badgeStyle += " background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);";
+        } else if (c.status === "in-progress") {
+            badgeStyle += " background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2);";
+        } else {
+            badgeStyle += " background: rgba(16, 185, 129, 0.1); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.2);";
+        }
+        
+        // Date formatting
+        const dateObj = new Date(c.timestamp);
+        const formattedDate = dateObj.toLocaleDateString("en-IN") + " " + dateObj.toLocaleTimeString("en-IN", {hour: '2-digit', minute:'2-digit'});
+        
+        // Student Info
+        const studentInfoHtml = `
+            <div style="font-weight: 600; color: #fff;">${c.studentName}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem;">
+                <i class="fa-solid fa-phone" style="font-size:0.75rem;"></i> ${c.phone}
+            </div>
+            <div style="font-size: 0.8rem; color: var(--accent-blue); font-weight: 500; margin-top: 0.15rem;">
+                Room ${c.room} • Seat ${c.seatNumber || "Flexible"}
+            </div>
+        `;
+        
+        // Ticket Info
+        const ticketInfoHtml = `
+            <strong style="color: var(--accent-rose); font-family: var(--font-display);">${c.ticketId}</strong>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">${formattedDate}</div>
+        `;
+        
+        // Issue Category
+        let categoryIcon = "fa-triangle-exclamation";
+        if (c.category === "Wi-Fi") categoryIcon = "fa-wifi";
+        else if (c.category === "AC & Cooling") categoryIcon = "fa-snowflake";
+        else if (c.category === "Cleanliness") categoryIcon = "fa-broom";
+        else if (c.category === "Lighting & Power") categoryIcon = "fa-plug";
+        else if (c.category === "Noise Distraction") categoryIcon = "fa-volume-xmark";
+        else if (c.category === "Drinking Water") categoryIcon = "fa-bottle-water";
+        
+        const categoryHtml = `
+            <span style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; font-weight: 600; color: #ffffff;">
+                <i class="fa-solid ${categoryIcon}" style="color: var(--accent-blue); font-size: 0.9rem;"></i>
+                ${c.category}
+            </span>
+        `;
+        
+        // Actions Html
+        const actionsHtml = `
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; max-width: 180px;">
+                <select onchange="changeComplaintStatus('${c.id}', this.value)" class="select-input" style="width: 100%; padding: 0.3rem; font-size: 0.8rem; height: 32px;">
+                    <option value="pending" ${c.status === 'pending' ? 'selected' : ''}>🔴 Mark Pending</option>
+                    <option value="in-progress" ${c.status === 'in-progress' ? 'selected' : ''}>🟡 Mark In-Progress</option>
+                    <option value="resolved" ${c.status === 'resolved' ? 'selected' : ''}>🟢 Mark Resolved</option>
+                </select>
+                <div style="display: flex; gap: 0.3rem;">
+                    <a href="https://wa.me/91${c.phone}?text=${encodeURIComponent(getComplaintWhatsAppMessage(c))}" target="_blank" class="btn btn-secondary" style="padding: 0.35rem; flex: 1; height: 32px; font-size: 0.75rem; justify-content: center; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.2); color: #a7f3d0; margin-bottom: 0;" title="Send WhatsApp Update">
+                        <i class="fa-brands fa-whatsapp"></i> Update
+                    </a>
+                    <button onclick="deleteComplaint('${c.id}')" class="btn btn-secondary" style="padding: 0.35rem; flex: 0.4; height: 32px; font-size: 0.75rem; justify-content: center; background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.2); color: #fca5a5; margin-bottom: 0;" title="Delete Ticket">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Description + Admin notes input
+        const descriptionHtml = `
+            <div style="color: #cbd5e1; font-size: 0.88rem; line-height: 1.4; white-space: pre-wrap;">${c.description}</div>
+            <div style="margin-top: 0.75rem; display: flex; gap: 0.4rem; align-items: center;">
+                <input type="text" id="notes-${c.id}" class="form-control" style="height: 30px; font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(255,255,255,0.02); border-color: var(--border-color);" placeholder="Add internal staff notes..." value="${c.adminNotes || ''}">
+                <button onclick="saveComplaintNotes('${c.id}')" class="btn btn-secondary" style="height: 30px; padding: 0 0.6rem; font-size: 0.75rem; margin-bottom: 0;">Save</button>
+            </div>
+        `;
+        
+        tr.innerHTML = `
+            <td style="vertical-align: top; padding-top: 1rem;">${ticketInfoHtml}</td>
+            <td style="vertical-align: top; padding-top: 1rem;">${studentInfoHtml}</td>
+            <td style="vertical-align: top; padding-top: 1rem;">${categoryHtml}</td>
+            <td style="vertical-align: top; padding-top: 1rem; max-width: 280px;">${descriptionHtml}</td>
+            <td style="vertical-align: top; padding-top: 1.1rem;"><span style="${badgeStyle}">${c.status.toUpperCase()}</span></td>
+            <td style="vertical-align: top; padding-top: 1rem;">${actionsHtml}</td>
+        `;
+        
+        tableBody.appendChild(tr);
+    });
+}
+
+// Generate the customized WhatsApp template for complaints
+function getComplaintWhatsAppMessage(c) {
+    const libName = state.settings.libraryName;
+    if (c.status === "resolved") {
+        return `Hi ${c.studentName},\n\nआपकी Seat No. ${c.seatNumber || "Flexible"} (Room ${c.room}) के लिए दर्ज की गई [${c.category}] की समस्या (Ticket ID: ${c.ticketId}) को हल कर दिया गया है।\n\nयदि आपको अभी भी कोई समस्या आ रही है, तो कृपया एडमिन डेस्क पर संपर्क करें।\n\nधन्यवाद!\n-${libName}`;
+    } else if (c.status === "in-progress") {
+        return `Hi ${c.studentName},\n\nआपकी Seat No. ${c.seatNumber || "Flexible"} (Room ${c.room}) के लिए दर्ज की गई [${c.category}] की समस्या (Ticket ID: ${c.ticketId}) पर काम चल रहा है (In-Progress)। हमारे कर्मचारी जल्द ही इसे ठीक कर देंगे।\n\nधैर्य रखने के लिए धन्यवाद!\n-${libName}`;
+    } else {
+        return `Hi ${c.studentName},\n\nहमें आपकी Seat No. ${c.seatNumber || "Flexible"} (Room ${c.room}) के लिए दर्ज की गई [${c.category}] की समस्या (Ticket ID: ${c.ticketId}) प्राप्त हुई है। हमारा स्टाफ इसे जल्द से जल्द हल करने का प्रयास कर रहा है।\n\n-${libName}`;
+    }
+}
+
+// Update status in Firebase or localStorage
+function changeComplaintStatus(ticketId, newStatus) {
+    if (isOfflineMode || !database) {
+        // Offline update
+        state.complaints = state.complaints.map(c => {
+            if (c.id === ticketId) c.status = newStatus;
+            return c;
+        });
+        saveStateToLocalStorage();
+        updateComplaintsBadge();
+        renderComplaintsList();
+        showToast(`Status updated to ${newStatus} offline!`, "success");
+    } else {
+        database.ref("study_cafe_system/complaints").child(ticketId).update({ status: newStatus })
+            .then(() => {
+                showToast(`Ticket status updated to ${newStatus}!`, "success");
+            })
+            .catch(err => {
+                console.error("Failed to update status:", err);
+                showToast("Failed to update ticket status on server.", "error");
+            });
+    }
+}
+
+// Delete complaint ticket
+function deleteComplaint(ticketId) {
+    if (!confirm("Are you sure you want to delete this complaint ticket permanently?")) return;
+    
+    if (isOfflineMode || !database) {
+        state.complaints = state.complaints.filter(c => c.id !== ticketId);
+        saveStateToLocalStorage();
+        updateComplaintsBadge();
+        renderComplaintsList();
+        showToast("Complaint ticket deleted offline!", "success");
+    } else {
+        database.ref("study_cafe_system/complaints").child(ticketId).remove()
+            .then(() => {
+                showToast("Complaint ticket deleted successfully!", "success");
+            })
+            .catch(err => {
+                console.error("Failed to delete complaint:", err);
+                showToast("Failed to delete complaint from server.", "error");
+            });
+    }
+}
+
+// Save internal staff notes on complaint
+function saveComplaintNotes(ticketId) {
+    const input = document.getElementById(`notes-${ticketId}`);
+    if (!input) return;
+    const notes = input.value.trim();
+    
+    if (isOfflineMode || !database) {
+        state.complaints = state.complaints.map(c => {
+            if (c.id === ticketId) c.adminNotes = notes;
+            return c;
+        });
+        saveStateToLocalStorage();
+        showToast("Staff notes saved offline!", "success");
+    } else {
+        database.ref("study_cafe_system/complaints").child(ticketId).update({ adminNotes: notes })
+            .then(() => {
+                showToast("Staff notes saved successfully!", "success");
+            })
+            .catch(err => {
+                console.error("Failed to save notes:", err);
+                showToast("Failed to save notes to server.", "error");
+            });
+    }
 }

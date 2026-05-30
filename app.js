@@ -40,6 +40,8 @@ let broadcastChannel = null;
 let currentReceiptMemberId = null; // Store active receipt student ID
 let recentlyApprovedOrRejected = new Set(); // Track approved/rejected requests to prevent listener re-adds
 let modalPhotoBase64 = null; // Store compressed profile picture in memory for new/edited members
+let adminModalIsDemo = false;
+let adminModalDemoDuration = 5;
 
 // Initialize Web Audio notification sound
 function playNotificationSound() {
@@ -1328,12 +1330,16 @@ function renderMemberTable() {
         const onclickAttr = member.photo ? `onclick="openLightbox('${member.photo}')"` : '';
         
         let seatDisplayHTML = "";
+        const isDemoMember = member.status === "demo" || member.status === "demo-expired";
+        let badgeClass = isDemoMember ? (member.status === "demo" ? "demo" : "demo-expired") : "";
+        let badgeLabel = isDemoMember ? (member.status === "demo" ? "Free Demo" : "Demo Expired") : "";
+        
         if (member.seatId === "non-reserved") {
             seatDisplayHTML = `
                 <strong style="color: #fff;">Non-Reserved</strong>
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-top:1px;">Flexible</div>
-                <span class="badge general" style="display:block; width:fit-content; margin-top:2px;">
-                    Non-Reserved
+                <span class="badge ${isDemoMember ? badgeClass : 'general'}" style="display:block; width:fit-content; margin-top:2px;">
+                    ${isDemoMember ? badgeLabel : 'Non-Reserved'}
                 </span>
             `;
         } else {
@@ -1344,10 +1350,17 @@ function renderMemberTable() {
             seatDisplayHTML = `
                 <strong style="color: #fff;">Seat ${localSeatNumber}</strong>
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-top:1px;">Room ${roomNum}</div>
-                <span class="badge ${isReserved ? "reserved" : "general"}" style="display:block; width:fit-content; margin-top:2px;">
-                    ${isReserved ? "Cabin" : "Non-Reserved"}
+                <span class="badge ${isDemoMember ? badgeClass : (isReserved ? 'reserved' : 'general')}" style="display:block; width:fit-content; margin-top:2px;">
+                    ${isDemoMember ? badgeLabel : (isReserved ? "Cabin" : "Non-Reserved")}
                 </span>
             `;
+        }
+        
+        let planLabel = "";
+        if (isDemoMember) {
+            planLabel = `Free Demo Pass (${member.demoDuration || 5} Days)`;
+        } else {
+            planLabel = PLANS.find(p => p.id === member.planId)?.name || 'Custom Plan';
         }
         
         tr.innerHTML = `
@@ -1366,7 +1379,7 @@ function renderMemberTable() {
             <td>
                 <div>₹${member.feeAmount}</div>
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 1px;">
-                    ${PLANS.find(p => p.id === member.planId)?.name || 'Custom Plan'} (${member.paymentMethod || 'Cash'})
+                    ${planLabel} (${member.paymentMethod || 'Cash'})
                 </div>
             </td>
             <td>
@@ -1391,9 +1404,15 @@ function renderMemberTable() {
                     <button class="btn-icon-only btn-secondary" onclick="openEditMemberModal('${member.id}')" title="Edit Member">
                         <i class="fa-solid fa-pen" style="color: var(--accent-blue);"></i>
                     </button>
+                    ${isDemoMember ? `
+                    <button class="btn-icon-only btn-secondary" onclick="openConvertDemoModal('${member.id}')" title="Convert to Permanent">
+                        <i class="fa-solid fa-user-check" style="color: var(--accent-amber);"></i>
+                    </button>
+                    ` : `
                     <button class="btn-icon-only btn-secondary" onclick="renewMembershipPrompt('${member.id}')" title="Renew Membership">
                         <i class="fa-solid fa-arrows-rotate" style="color: var(--accent-emerald);"></i>
                     </button>
+                    `}
                     <button class="btn-icon-only btn-secondary" onclick="deleteMember('${member.id}')" title="Delete Record">
                         <i class="fa-solid fa-trash" style="color: var(--accent-rose);"></i>
                     </button>
@@ -1457,6 +1476,7 @@ function renderPendingRequests() {
         const clickableClass = req.photo ? 'clickable-avatar' : '';
         const onclickAttr = req.photo ? `onclick="openLightbox('${req.photo}')"` : '';
         
+        const isDemoReq = req.bookingType === "demo";
         tr.innerHTML = `
             <td>
                 <div class="member-profile">
@@ -1478,13 +1498,13 @@ function renderPendingRequests() {
                 <div style="font-size: 0.7rem; color: var(--text-muted); margin-top:2px;">Submitted today at ${dateSubmitted}</div>
             </td>
             <td>
-                <span class="badge ${req.seatType === 'reserved' ? 'reserved' : 'general'}">
-                    ${req.seatType === 'reserved' ? 'Reserved' : 'Non-Reserved'}
+                <span class="badge ${isDemoReq ? 'demo' : (req.seatType === 'reserved' ? 'reserved' : 'general')}">
+                    ${isDemoReq ? 'Demo Session' : (req.seatType === 'reserved' ? 'Reserved' : 'Non-Reserved')}
                 </span>
                 ${seatDetailsHTML}
-                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 3px;">Pay via: <strong>${req.paymentMethod || 'Cash'}</strong></div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 3px;">Pay via: <strong>${isDemoReq ? 'Free Trial' : (req.paymentMethod || 'Cash')}</strong></div>
             </td>
-            <td><strong style="color: #fff;">${req.duration} Month(s)</strong></td>
+            <td><strong style="color: #fff;">${isDemoReq ? `${req.demoDuration || 5} Day(s)` : `${req.duration} Month(s)`}</strong></td>
             <td>
                 <span style="font-size: 0.8rem; color: var(--text-muted); font-family: monospace;">Aadhaar: ${req.govId || 'N/A'}</span>
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="Current: ${req.currentAddress}">
@@ -1520,6 +1540,7 @@ function updatePendingBadge() {
 }
 
 function refreshUI() {
+    checkDemoExpirations();
     updateDashboardKPIs();
     renderDashboardAlerts();
     renderBirthdayAlerts();
@@ -1547,6 +1568,15 @@ function closeModal(modalId) {
 
 // Member Registration Modal logic
 function openAddMemberModal() {
+    adminModalIsDemo = false;
+    adminModalDemoDuration = 5;
+    
+    // Reset readonly/disabled fee fields
+    document.getElementById("m-fee-amount").readOnly = false;
+    document.getElementById("m-amount-paid").readOnly = false;
+    document.getElementById("m-payment").disabled = false;
+    document.getElementById("m-payment-method").disabled = false;
+    
     document.getElementById("modal-member-title").textContent = "Add New Member";
     document.getElementById("form-member").reset();
     document.getElementById("form-member").onsubmit = handleMemberFormSubmit;
@@ -1692,12 +1722,19 @@ function onModalSeatTypeChange() {
     const seatSelect = document.getElementById("m-seat-id");
     
     planSelect.innerHTML = "";
-    PLANS.filter(p => p.type === seatType).forEach(plan => {
+    if (adminModalIsDemo) {
         const opt = document.createElement("option");
-        opt.value = plan.id;
-        opt.textContent = `${plan.name} - ₹${plan.price}`;
+        opt.value = `demo-${adminModalDemoDuration}`;
+        opt.textContent = `Free Demo Pass (${adminModalDemoDuration} Days)`;
         planSelect.appendChild(opt);
-    });
+    } else {
+        PLANS.filter(p => p.type === seatType).forEach(plan => {
+            const opt = document.createElement("option");
+            opt.value = plan.id;
+            opt.textContent = `${plan.name} - ₹${plan.price}`;
+            planSelect.appendChild(opt);
+        });
+    }
     
     if (seatType === "non-reserved") {
         if (seatGroup) seatGroup.style.display = "none";
@@ -1717,12 +1754,59 @@ function onModalSeatTypeChange() {
 }
 
 function onModalPlanChange() {
-    const planId = document.getElementById("m-plan").value;
-    const plan = PLANS.find(p => p.id === planId);
-    if (plan) {
-        document.getElementById("m-fee-amount").value = plan.price;
+    if (adminModalIsDemo) {
+        document.getElementById("m-fee-amount").value = 0;
+        document.getElementById("m-fee-amount").readOnly = true;
+        document.getElementById("m-amount-paid").value = 0;
+        document.getElementById("m-amount-paid").readOnly = true;
+        document.getElementById("m-balance-amount").value = 0;
+        
+        const payStatusEl = document.getElementById("m-payment");
+        const payMethodEl = document.getElementById("m-payment-method");
+        if (payStatusEl) {
+            payStatusEl.value = "Paid";
+            payStatusEl.disabled = true;
+        }
+        if (payMethodEl) {
+            payMethodEl.value = "Free Demo";
+            payMethodEl.disabled = true;
+        }
+    } else {
+        document.getElementById("m-fee-amount").readOnly = false;
+        document.getElementById("m-amount-paid").readOnly = false;
+        const payStatusEl = document.getElementById("m-payment");
+        const payMethodEl = document.getElementById("m-payment-method");
+        if (payStatusEl) payStatusEl.disabled = false;
+        if (payMethodEl) payMethodEl.disabled = false;
+        
+        const planId = document.getElementById("m-plan").value;
+        const plan = PLANS.find(p => p.id === planId);
+        if (plan) {
+            document.getElementById("m-fee-amount").value = plan.price;
+        }
     }
     calculateExpiryDate();
+}
+
+// Expiry date calculation
+function calculateExpiryDate() {
+    const startDateVal = document.getElementById("m-start-date").value;
+    const planId = document.getElementById("m-plan").value;
+    
+    if (!startDateVal || !planId) return;
+    
+    const startDate = new Date(startDateVal);
+    
+    if (adminModalIsDemo) {
+        const durationDays = parseInt(planId.replace("demo-", "")) || adminModalDemoDuration || 5;
+        startDate.setDate(startDate.getDate() + durationDays);
+    } else {
+        const plan = PLANS.find(p => p.id === planId);
+        if (!plan) return;
+        startDate.setMonth(startDate.getMonth() + plan.duration);
+    }
+    
+    document.getElementById("m-expiry-date").value = startDate.toISOString().split('T')[0];
 }
 
 // Generate vacant seats list grouped by Rooms
@@ -1923,8 +2007,13 @@ function handleMemberFormSubmit(event) {
         return;
     }
     
-    const plan = PLANS.find(p => p.id === planId);
-    const duration = plan ? plan.duration : 1;
+    let duration;
+    if (adminModalIsDemo) {
+        duration = parseInt(planId.replace("demo-", "")) || adminModalDemoDuration || 5;
+    } else {
+        const plan = PLANS.find(p => p.id === planId);
+        duration = plan ? plan.duration : 1;
+    }
     
     let originalMember = null;
     let originalSeatId = null;
@@ -1979,6 +2068,10 @@ function handleMemberFormSubmit(event) {
         paymentStatus: paymentStatus,
         paymentMethod: paymentMethod,
         photo: modalPhotoBase64,
+        status: adminModalIsDemo ? "demo" : (originalMember ? (originalMember.status || "active") : "active"),
+        demoDuration: adminModalIsDemo ? duration : 0,
+        demoStartDate: adminModalIsDemo ? startDate : null,
+        demoEndDate: adminModalIsDemo ? expiryDate : null,
         timestamp: editId ? originalMember.timestamp : Date.now()
     };
     
@@ -2439,7 +2532,6 @@ function deleteMember(memberId) {
     }
 }
 
-// Approve pending requests (Auto pre-fills preferred seat choices)
 function approvePendingRequest(requestId) {
     const req = state.pending.find(p => p.id === requestId);
     if (!req) return;
@@ -2447,6 +2539,13 @@ function approvePendingRequest(requestId) {
     console.log("Approving request data:", req);
     
     openAddMemberModal();
+    
+    // Set demo flags after openAddMemberModal resets them
+    adminModalIsDemo = (req.bookingType === "demo");
+    adminModalDemoDuration = req.demoDuration || 5;
+    
+    // Set title accordingly
+    document.getElementById("modal-member-title").textContent = adminModalIsDemo ? "Approve Free Demo Pass" : "Add New Member";
     
     // Pre-fill photo from request
     if (req.photo) {
@@ -2518,19 +2617,29 @@ function approvePendingRequest(requestId) {
     document.getElementById("m-seat-type").value = req.seatType;
     onModalSeatTypeChange();
     
-    const matchingPlan = PLANS.find(p => p.type === req.seatType && p.duration === req.duration);
-    if (matchingPlan) {
-        document.getElementById("m-plan").value = matchingPlan.id;
+    if (adminModalIsDemo) {
+        document.getElementById("m-plan").value = `demo-${adminModalDemoDuration}`;
+    } else {
+        const matchingPlan = PLANS.find(p => p.type === req.seatType && p.duration === req.duration);
+        if (matchingPlan) {
+            document.getElementById("m-plan").value = matchingPlan.id;
+        }
     }
     
     document.getElementById("m-gov-id").value = req.govId || "";
-    document.getElementById("m-fee-amount").value = req.feeAmount;
-    const amountPaid = req.amountPaid !== undefined ? req.amountPaid : req.feeAmount;
-    const balanceAmount = req.balanceAmount !== undefined ? req.balanceAmount : 0;
-    document.getElementById("m-amount-paid").value = amountPaid;
-    document.getElementById("m-balance-amount").value = balanceAmount;
-    document.getElementById("m-payment").value = req.paymentStatus || "Paid";
-    document.getElementById("m-payment-method").value = req.paymentMethod || "Cash";
+    
+    // Trigger plan details updates and locks
+    onModalPlanChange();
+    
+    if (!adminModalIsDemo) {
+        document.getElementById("m-fee-amount").value = req.feeAmount;
+        const amountPaid = req.amountPaid !== undefined ? req.amountPaid : req.feeAmount;
+        const balanceAmount = req.balanceAmount !== undefined ? req.balanceAmount : 0;
+        document.getElementById("m-amount-paid").value = amountPaid;
+        document.getElementById("m-balance-amount").value = balanceAmount;
+        document.getElementById("m-payment").value = req.paymentStatus || "Paid";
+        document.getElementById("m-payment-method").value = req.paymentMethod || "Cash";
+    }
     
     // Pre-select the student's chosen seat if still vacant
     if (req.seatId === "non-reserved") {
@@ -3054,6 +3163,43 @@ For support, contact us at: ${state.settings.phone}`;
     window.open(whatsappUrl, '_blank');
 }
 
+// Helper to get registration URL with custom config
+function getRegistrationLink(type) {
+    let hostUrl = window.location.href;
+    if (hostUrl.includes("admin.html")) {
+        hostUrl = hostUrl.replace("admin.html", "register.html");
+    } else if (hostUrl.includes("index.html")) {
+        hostUrl = hostUrl.replace("index.html", "register.html");
+    } else if (hostUrl.endsWith("/")) {
+        hostUrl = hostUrl + "register.html";
+    } else {
+        const idx = hostUrl.lastIndexOf("/");
+        hostUrl = hostUrl.substring(0, idx + 1) + "register.html";
+    }
+    
+    let qrUrl = hostUrl + `?type=${type}`;
+    
+    const config = getFirebaseConfig();
+    const isCustom = localStorage.getItem("custom_firebase_config") !== null;
+    if (isCustom) {
+        const parts = [
+            config.apiKey || "",
+            config.projectId || "",
+            config.databaseURL || "",
+            config.appId || ""
+        ];
+        const compactStr = parts.join('|');
+        const configStr = btoa(compactStr);
+        qrUrl += `&config=${configStr}`;
+    }
+    return qrUrl;
+}
+
+function openRegistrationLink(type) {
+    const url = getRegistrationLink(type);
+    window.open(url, '_blank');
+}
+
 // Generate printable QR Poster for desk registration
 let qrCodeGeneratorInstance = null;
 
@@ -3090,19 +3236,57 @@ function updateRegistrationQR() {
     document.getElementById("qr-target-url").value = qrUrl;
     
     const qrHolder = document.getElementById("qrcode-display");
-    qrHolder.innerHTML = "";
+    if (qrHolder) {
+        qrHolder.innerHTML = "";
+        try {
+            qrCodeGeneratorInstance = new QRCode(qrHolder, {
+                text: qrUrl,
+                width: 180,
+                height: 180,
+                colorDark : "#0a0e17",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.M
+            });
+        } catch(err) {
+            console.error("QR Code library failing:", err);
+        }
+    }
+    
+    // Regenerate dashboard dual QR codes as well
+    generateDashboardQRCodes();
+}
+
+function generateDashboardQRCodes() {
+    const qrPermHolder = document.getElementById("qr-permanent");
+    const qrDemoHolder = document.getElementById("qr-demo");
+    if (!qrPermHolder || !qrDemoHolder) return;
+    
+    qrPermHolder.innerHTML = "";
+    qrDemoHolder.innerHTML = "";
+    
+    const permUrl = getRegistrationLink("permanent");
+    const demoUrl = getRegistrationLink("demo");
     
     try {
-        qrCodeGeneratorInstance = new QRCode(qrHolder, {
-            text: qrUrl,
-            width: 180,
-            height: 180,
+        new QRCode(qrPermHolder, {
+            text: permUrl,
+            width: 128,
+            height: 128,
+            colorDark : "#0a0e17",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.M
+        });
+        
+        new QRCode(qrDemoHolder, {
+            text: demoUrl,
+            width: 128,
+            height: 128,
             colorDark : "#0a0e17",
             colorLight : "#ffffff",
             correctLevel : QRCode.CorrectLevel.M
         });
     } catch(err) {
-        console.error("QR Code library failing:", err);
+        console.error("Dashboard QR Code generation failing:", err);
     }
 }
 
@@ -3128,8 +3312,31 @@ function updateRegistrationQRFromInput() {
 }
 
 // Print QR code frame
-function printQRCode() {
-    const qrDataUrl = document.querySelector("#qrcode-display canvas").toDataURL("image/png");
+function printQRCode(type) {
+    let selector = "#qrcode-display canvas";
+    let title = "Admission Registration Desk";
+    let sub = "Scan to fill the registration form & book your seat";
+    let color = "#10b981";
+    
+    if (type === "permanent") {
+        selector = "#qr-permanent canvas";
+        title = "Permanent Admission Desk";
+        sub = "Scan to register and select a seat for full membership";
+        color = "#10b981";
+    } else if (type === "demo") {
+        selector = "#qr-demo canvas";
+        title = "Free 5-Day Demo Desk";
+        sub = "Scan to register for a 1 to 5 days free demo session";
+        color = "#3b82f6";
+    }
+    
+    const canvas = document.querySelector(selector);
+    if (!canvas) {
+        showToast("QR Code not generated yet. Please wait.", "error");
+        return;
+    }
+    
+    const qrDataUrl = canvas.toDataURL("image/png");
     
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
@@ -3144,12 +3351,12 @@ function printQRCode() {
                     color: #0b0f19;
                 }
                 .poster-card {
-                    border: 6px solid #10b981;
+                    border: 6px solid ${color};
                     padding: 3rem;
                     border-radius: 25px;
                     display: inline-block;
-                    max-width: 500px;
                     box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                    max-width: 500px;
                 }
                 h1 {
                     font-size: 2.5rem;
@@ -3184,13 +3391,13 @@ function printQRCode() {
             <div class="poster-card">
                 <div style="font-size: 3rem;">☕</div>
                 <h1>${state.settings.libraryName}</h1>
-                <h3>Premium Focused Study Library</h3>
+                <h3>${title}</h3>
                 
                 <img class="qr-img" src="${qrDataUrl}" alt="Registration QR">
                 
                 <p class="p-instruction">
                     <strong>Scan to Book / Register</strong><br>
-                    Please scan the QR code to fill in your registration form details.
+                    ${sub}
                 </p>
                 
                 <div class="footer">
@@ -4036,4 +4243,174 @@ function saveComplaintNotes(ticketId) {
                 showToast("Failed to save notes to server.", "error");
             });
     }
+}
+
+let checkingExpirations = false;
+function checkDemoExpirations() {
+    if (checkingExpirations) return;
+    checkingExpirations = true;
+    
+    try {
+        let changed = false;
+        const todayZero = new Date().setHours(0,0,0,0);
+        
+        (state.members || []).forEach(member => {
+            if (member.status === "demo") {
+                const expiry = new Date(member.expiryDate);
+                if (expiry.getTime() < todayZero) {
+                    member.status = "demo-expired";
+                    
+                    // Vacate seat
+                    if (member.seatId && member.seatId !== "non-reserved") {
+                        const seat = state.seats.find(s => s.id === member.seatId);
+                        if (seat) {
+                            seat.status = "vacant";
+                            seat.assignedMemberId = null;
+                            showToast(`Demo expired for ${member.name}. Seat ${seat.number} is now vacated.`, "info");
+                        }
+                    } else {
+                        showToast(`Demo expired for ${member.name}.`, "info");
+                    }
+                    changed = true;
+                }
+            }
+        });
+        
+        if (changed) {
+            syncLocalToDatabase();
+            if (isOfflineMode || !database) {
+                refreshUI();
+            }
+        }
+    } finally {
+        checkingExpirations = false;
+    }
+}
+
+const CONVERT_PLANS = {
+    "general-monthly": { price: 700, duration: 1, type: "non-reserved" },
+    "premium-monthly": { price: 1000, duration: 1, type: "reserved" },
+    "general-quarterly": { price: 1900, duration: 3, type: "non-reserved" },
+    "premium-quarterly": { price: 2700, duration: 3, type: "reserved" },
+    "general-halfyearly": { price: 3600, duration: 6, type: "non-reserved" },
+    "premium-halfyearly": { price: 5000, duration: 6, type: "reserved" }
+};
+
+function openConvertDemoModal(memberId) {
+    const member = state.members.find(m => m.id === memberId);
+    if (!member) return;
+    
+    document.getElementById("convert-member-id").value = memberId;
+    document.getElementById("convert-student-name").textContent = member.name;
+    
+    let seatText = "Non-Reserved";
+    if (member.seatId !== "non-reserved") {
+        const seat = state.seats.find(s => s.id === member.seatId);
+        seatText = seat ? `Seat ${seat.number} (Room ${seat.room})` : member.seatId;
+    }
+    document.getElementById("convert-student-seat").textContent = seatText;
+    
+    // Default to premium if they had a reserved seat, general otherwise
+    const isReserved = member.seatId !== "non-reserved";
+    document.getElementById("convert-plan-id").value = isReserved ? "premium-monthly" : "general-monthly";
+    
+    // Set start date to today
+    document.getElementById("convert-start-date").value = new Date().toISOString().split('T')[0];
+    
+    // Trigger plan price populating and balance calculations
+    onConvertPlanChange();
+    
+    openModal("modal-convert-demo");
+}
+
+function onConvertPlanChange() {
+    const planId = document.getElementById("convert-plan-id").value;
+    const plan = CONVERT_PLANS[planId];
+    if (plan) {
+        document.getElementById("convert-amount-paid").value = plan.price;
+    }
+    calculateConvertBalance();
+}
+
+function calculateConvertBalance() {
+    const planId = document.getElementById("convert-plan-id").value;
+    const plan = CONVERT_PLANS[planId];
+    if (!plan) return;
+    
+    const amountPaid = parseInt(document.getElementById("convert-amount-paid").value) || 0;
+    const balance = plan.price - amountPaid;
+    
+    document.getElementById("convert-balance").value = balance;
+}
+
+function submitConvertDemoForm(event) {
+    event.preventDefault();
+    
+    const memberId = document.getElementById("convert-member-id").value;
+    const planId = document.getElementById("convert-plan-id").value;
+    const startDateVal = document.getElementById("convert-start-date").value;
+    const paymentMethod = document.querySelector('input[name="convert-payment-method"]:checked').value;
+    const amountPaid = parseInt(document.getElementById("convert-amount-paid").value) || 0;
+    const balanceAmount = parseInt(document.getElementById("convert-balance").value) || 0;
+    
+    if (!startDateVal) {
+        showToast("Please select a Membership Start Date.", "error");
+        return;
+    }
+    
+    const member = state.members.find(m => m.id === memberId);
+    if (!member) return;
+    
+    const plan = CONVERT_PLANS[planId];
+    if (!plan) return;
+    
+    // If transitioning from reserved to non-reserved plan, vacate their seat
+    if (plan.type === "non-reserved" && member.seatId && member.seatId !== "non-reserved") {
+        const oldSeat = state.seats.find(s => s.id === member.seatId);
+        if (oldSeat) {
+            oldSeat.status = "vacant";
+            oldSeat.assignedMemberId = null;
+        }
+        member.seatId = "non-reserved";
+    }
+    
+    if (plan.type === "reserved" && member.seatId === "non-reserved") {
+        showToast("Cannot assign a Reserved Plan to a student without an assigned seat. Please assign a seat via normal Info edit first.", "error");
+        return;
+    }
+    
+    // Update member properties to active membership status
+    member.status = "active";
+    member.planId = planId;
+    member.startDate = startDateVal;
+    member.paymentMethod = paymentMethod;
+    member.feeAmount = plan.price;
+    member.amountPaid = amountPaid;
+    member.balanceAmount = balanceAmount;
+    member.paymentStatus = balanceAmount === 0 ? "Paid" : "Partial";
+    member.duration = plan.duration;
+    
+    // Remove demo fields
+    delete member.demoStartDate;
+    delete member.demoEndDate;
+    delete member.demoDuration;
+    
+    // Calculate expiry date
+    const expiry = new Date(startDateVal);
+    expiry.setMonth(expiry.getMonth() + plan.duration);
+    member.expiryDate = expiry.toISOString().split('T')[0];
+    
+    // Update timestamp for sorting
+    member.timestamp = Date.now();
+    
+    syncLocalToDatabase();
+    closeModal("modal-convert-demo");
+    showToast(`Converted ${member.name} to permanent membership successfully!`, "success");
+    
+    refreshUI();
+    
+    // Open receipt automatically
+    setTimeout(() => {
+        openReceiptModal(memberId);
+    }, 450);
 }

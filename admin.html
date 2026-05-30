@@ -118,6 +118,43 @@
                     </div>
                 </div>
 
+                <!-- Side-by-side Admission & Demo QR Desk Card Section -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                    <!-- Permanent Admission QR Card -->
+                    <div class="glass-panel" style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; text-align: center; border-color: rgba(16, 185, 129, 0.15); box-shadow: 0 0 15px rgba(16, 185, 129, 0.03);">
+                        <div style="width: 45px; height: 45px; border-radius: 50%; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; color: var(--accent-emerald); font-size: 1.25rem; margin-bottom: 1rem;">
+                            <i class="fa-solid fa-user-plus"></i>
+                        </div>
+                        <h3 style="font-family: var(--font-display); color: #fff; font-size: 1.15rem; font-weight: 700; margin-bottom: 0.25rem;">Permanent Admission Desk</h3>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.25rem; max-width: 250px;">Scan to register and select a seat for full membership.</p>
+                        
+                        <!-- QR Code Canvas Target Container -->
+                        <div id="qr-permanent" style="background: white; padding: 0.75rem; border-radius: 8px; box-shadow: var(--shadow-sm); margin-bottom: 1.25rem; width: 144px; height: 144px; display: flex; align-items: center; justify-content: center;"></div>
+                        
+                        <div style="display: flex; gap: 0.5rem; width: 100%;">
+                            <button onclick="openRegistrationLink('permanent')" class="btn btn-secondary" style="flex: 1; font-size: 0.78rem; padding: 0.45rem 0; justify-content: center; gap: 0.35rem; margin: 0;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Link</button>
+                            <button onclick="printQRCode('permanent')" class="btn btn-secondary" style="flex: 1; font-size: 0.78rem; padding: 0.45rem 0; justify-content: center; gap: 0.35rem; margin: 0;"><i class="fa-solid fa-print"></i> Print Poster</button>
+                        </div>
+                    </div>
+
+                    <!-- Free Demo QR Card -->
+                    <div class="glass-panel" style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; text-align: center; border-color: rgba(59, 130, 246, 0.15); box-shadow: 0 0 15px rgba(59, 130, 246, 0.03);">
+                        <div style="width: 45px; height: 45px; border-radius: 50%; background: rgba(59, 130, 246, 0.1); display: flex; align-items: center; justify-content: center; color: var(--accent-blue); font-size: 1.25rem; margin-bottom: 1rem;">
+                            <i class="fa-solid fa-circle-play"></i>
+                        </div>
+                        <h3 style="font-family: var(--font-display); color: #fff; font-size: 1.15rem; font-weight: 700; margin-bottom: 0.25rem;">Free 5-Day Demo Desk</h3>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.25rem; max-width: 250px;">Scan to register for a free trial/demo session (Max 5 days).</p>
+                        
+                        <!-- QR Code Canvas Target Container -->
+                        <div id="qr-demo" style="background: white; padding: 0.75rem; border-radius: 8px; box-shadow: var(--shadow-sm); margin-bottom: 1.25rem; width: 144px; height: 144px; display: flex; align-items: center; justify-content: center;"></div>
+                        
+                        <div style="display: flex; gap: 0.5rem; width: 100%;">
+                            <button onclick="openRegistrationLink('demo')" class="btn btn-secondary" style="flex: 1; font-size: 0.78rem; padding: 0.45rem 0; justify-content: center; gap: 0.35rem; margin: 0;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Link</button>
+                            <button onclick="printQRCode('demo')" class="btn btn-secondary" style="flex: 1; font-size: 0.78rem; padding: 0.45rem 0; justify-content: center; gap: 0.35rem; margin: 0;"><i class="fa-solid fa-print"></i> Print Poster</button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- KPI Grid -->
                 <div class="kpi-grid">
                     <div class="kpi-card glass-panel emerald">
@@ -1074,6 +1111,73 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('modal-member')">Cancel</button>
                 <button type="submit" form="form-member" class="btn btn-primary" id="btn-save-member">Add Student</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CONVERT DEMO TO PERMANENT MEMBERSHIP -->
+    <div class="modal-overlay" id="modal-convert-demo">
+        <div class="glass-panel modal-container" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3>Convert Demo to Permanent</h3>
+                <span class="modal-close" onclick="closeModal('modal-convert-demo')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="form-convert-demo" onsubmit="submitConvertDemoForm(event)">
+                    <input type="hidden" id="convert-member-id">
+                    
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); padding: 0.85rem; border-radius: 8px; margin-bottom: 1.25rem;">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Student Name</div>
+                        <strong id="convert-student-name" style="font-size: 1.1rem; color: #fff; display: block; margin-top: 0.15rem;">-</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Assigned Seat</div>
+                        <span id="convert-student-seat" style="font-size: 0.9rem; color: var(--accent-blue); font-weight: 600; display: block; margin-top: 0.15rem;">-</span>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label class="form-label">Select Membership Plan *</label>
+                        <select id="convert-plan-id" class="form-control" required onchange="onConvertPlanChange()">
+                            <option value="general-monthly">Non-Reserved Monthly - ₹700</option>
+                            <option value="premium-monthly">Reserved Monthly - ₹1000</option>
+                            <option value="general-quarterly">Non-Reserved Quarterly - ₹1900</option>
+                            <option value="premium-quarterly">Reserved Quarterly - ₹2700</option>
+                            <option value="general-halfyearly">Non-Reserved Half-Yearly - ₹3600</option>
+                            <option value="premium-halfyearly">Reserved Half-Yearly - ₹5000</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Membership Start Date *</label>
+                            <input type="date" id="convert-start-date" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Payment Method *</label>
+                            <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                                <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer; color: #fff; font-size: 0.85rem;">
+                                    <input type="radio" name="convert-payment-method" value="Cash" checked style="accent-color: var(--accent-emerald);"> Cash
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer; color: #fff; font-size: 0.85rem;">
+                                    <input type="radio" name="convert-payment-method" value="Online" style="accent-color: var(--accent-emerald);"> Online
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Amount Paid (₹) *</label>
+                            <input type="number" id="convert-amount-paid" class="form-control" required oninput="calculateConvertBalance()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Remaining Balance (₹)</label>
+                            <input type="number" id="convert-balance" class="form-control" readonly style="background: rgba(255,255,255,0.02); color: var(--accent-amber); font-weight: 600;">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modal-convert-demo')">Cancel</button>
+                <button type="submit" form="form-convert-demo" class="btn btn-primary">Activate Membership</button>
             </div>
         </div>
     </div>

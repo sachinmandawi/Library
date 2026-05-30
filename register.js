@@ -25,6 +25,7 @@ const PLANS_PRICING = {
 };
 
 let database = null;
+let isDemo = false;
 let broadcastChannel = null;
 let allSeats = []; // Realtime synced seats from Firebase
 let compressedPhotoBase64 = null; // Store compressed student photo in memory
@@ -158,7 +159,8 @@ function onStudentRoomOrTypeChange() {
     const duration = document.getElementById("s-duration").value;
     
     // 1. Update Pricing display
-    const price = PLANS_PRICING[seatType][duration] || 0;
+    let price = PLANS_PRICING[seatType][duration] || 0;
+    if (isDemo) price = 0;
     document.getElementById("student-fee-price").textContent = `₹${price}`;
     
     const amountPaidEl = document.getElementById("s-amount-paid");
@@ -167,6 +169,9 @@ function onStudentRoomOrTypeChange() {
         amountPaidEl.value = price;
         balanceAmountEl.value = 0;
         amountPaidEl.max = price;
+        if (isDemo) {
+            amountPaidEl.disabled = true;
+        }
     }
     
     const flexMsg = document.getElementById("s-flexible-msg");
@@ -462,6 +467,7 @@ function resetFormView() {
 }
 
 // Form Submission handler
+// Form Submission handler
 function submitStudentForm(event) {
     event.preventDefault();
     
@@ -503,11 +509,12 @@ function submitStudentForm(event) {
     const expectedStartDate = document.getElementById("s-start-date").value;
     
     const seatType = document.getElementById("s-seat-type").value;
-    const durationMonths = parseInt(document.getElementById("s-duration").value);
+    const durationMonths = isDemo ? parseInt(document.getElementById("s-demo-duration").value) : parseInt(document.getElementById("s-duration").value);
     const seatId = document.getElementById("s-seat-id").value;
     
     // Strict client-side validations
-    if (!/^[0-9]{10}$/.test(phone)) {
+    const cleanPhone = phone.replace(/\D/g, "").slice(-10);
+    if (cleanPhone.length !== 10) {
         alert("Please enter a valid 10-digit Mobile Number.");
         return;
     }
@@ -553,18 +560,28 @@ function submitStudentForm(event) {
     }
     
     const paymentMethodEl = document.querySelector('input[name="s-payment-method"]:checked');
-    const paymentMethod = paymentMethodEl ? paymentMethodEl.value : "Cash";
+    let paymentMethod = paymentMethodEl ? paymentMethodEl.value : "Cash";
     
-    const feeAmount = PLANS_PRICING[seatType][durationMonths.toString()];
+    let feeAmount = PLANS_PRICING[seatType][durationMonths.toString()] || 0;
+    if (isDemo) feeAmount = 0;
+    
     const amountPaidEl = document.getElementById("s-amount-paid");
-    const amountPaid = amountPaidEl ? (parseInt(amountPaidEl.value) || 0) : feeAmount;
-    const balanceAmount = feeAmount - amountPaid;
+    let amountPaid = amountPaidEl ? (parseInt(amountPaidEl.value) || 0) : feeAmount;
+    if (isDemo) amountPaid = 0;
+    
+    let balanceAmount = feeAmount - amountPaid;
+    if (isDemo) balanceAmount = 0;
     
     let paymentStatus = "Pending";
-    if (amountPaid === feeAmount) {
+    if (isDemo) {
         paymentStatus = "Paid";
-    } else if (amountPaid > 0) {
-        paymentStatus = "Partial";
+        paymentMethod = "Free Demo";
+    } else {
+        if (amountPaid === feeAmount) {
+            paymentStatus = "Paid";
+        } else if (amountPaid > 0) {
+            paymentStatus = "Partial";
+        }
     }
     
     const currentAddressConcated = `${street}, ${city}, ${stateVal} - ${zip}`;
@@ -572,11 +589,11 @@ function submitStudentForm(event) {
     
     const bookingData = {
         name: name,
-        phone: phone,
+        phone: cleanPhone, // Save cleaned 10-digit phone number
         dob: dob,
         gender: gender,
         email: email,
-        govId: govId, // Stored under govId for backward DB compatibility
+        govId: govId,
         
         fatherName: fatherName,
         fatherPhone: fatherPhone,
@@ -611,53 +628,108 @@ function submitStudentForm(event) {
         paymentStatus: paymentStatus,
         photo: compressedPhotoBase64,
         timestamp: Date.now(),
-        status: "pending"
+        status: "pending",
+        bookingType: isDemo ? "demo" : "permanent",
+        demoDuration: isDemo ? durationMonths : 0
     };
     
     const submitBtn = document.getElementById("btn-submit-booking");
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
-    
-    let hasSubmitted = false;
-    const timeoutId = setTimeout(() => {
-        if (!hasSubmitted) {
-            hasSubmitted = true;
-            console.warn("Firebase submission timed out. Falling back to local offline mode.");
-            submitOffline(bookingData);
-        }
-    }, 15000); // 15 seconds timeout
-    
-    if (database) {
-        try {
-            const newRef = database.ref("pending_bookings").push();
-            bookingData.id = newRef.key;
-            newRef.set(bookingData)
-                .then(() => {
-                    if (!hasSubmitted) {
-                        clearTimeout(timeoutId);
-                        hasSubmitted = true;
-                        showSuccessScreen(name, false);
-                    }
-                })
-                .catch(error => {
-                    console.error("Firebase submit error:", error);
-                    if (!hasSubmitted) {
-                        clearTimeout(timeoutId);
-                        hasSubmitted = true;
-                        submitOffline(bookingData);
-                    }
-                });
-        } catch (err) {
-            console.error("Firebase synchronous write exception:", err);
+
+    const performSubmission = () => {
+        let hasSubmitted = false;
+        const timeoutId = setTimeout(() => {
+            if (!hasSubmitted) {
+                hasSubmitted = true;
+                console.warn("Firebase submission timed out. Falling back to local offline mode.");
+                submitOffline(bookingData);
+            }
+        }, 15000); // 15 seconds timeout
+        
+        if (database) {
+            try {
+                const newRef = database.ref("pending_bookings").push();
+                bookingData.id = newRef.key;
+                newRef.set(bookingData)
+                    .then(() => {
+                        if (!hasSubmitted) {
+                            clearTimeout(timeoutId);
+                            hasSubmitted = true;
+                            showSuccessScreen(name, false);
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Firebase submit error:", error);
+                        if (!hasSubmitted) {
+                            clearTimeout(timeoutId);
+                            hasSubmitted = true;
+                            submitOffline(bookingData);
+                        }
+                    });
+            } catch (err) {
+                console.error("Firebase synchronous write exception:", err);
+                if (!hasSubmitted) {
+                    clearTimeout(timeoutId);
+                    hasSubmitted = true;
+                    submitOffline(bookingData);
+                }
+            }
+        } else {
             if (!hasSubmitted) {
                 clearTimeout(timeoutId);
                 hasSubmitted = true;
                 submitOffline(bookingData);
             }
         }
+    };
+
+    const resetSubmitBtn = () => {
+        submitBtn.disabled = false;
+        if (isDemo) {
+            submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Free Demo Request';
+        } else {
+            submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Booking Request';
+        }
+    };
+
+    if (isDemo) {
+        // Enforce spam control (one demo per number)
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying Demo Pass...';
+        
+        if (database) {
+            database.ref("study_cafe_system/registered_phones").child(cleanPhone).once("value")
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        alert("यह मोबाइल नंबर पहले से ही लाइब्रेरी में रजिस्टर्ड है। फ्री डेमो केवल नए छात्रों के लिए है।\n\n(This mobile number is already registered. Free demos are only available for new students.)");
+                        resetSubmitBtn();
+                    } else {
+                        performSubmission();
+                    }
+                })
+                .catch(err => {
+                    console.warn("Database lookup failed during demo verification, proceeding...", err);
+                    performSubmission();
+                });
+        } else {
+            // Local fallback check
+            let isRegistered = false;
+            try {
+                const localState = JSON.parse(localStorage.getItem("study_cafe_state") || "{}");
+                if (localState.registered_phones && localState.registered_phones[cleanPhone]) {
+                    isRegistered = true;
+                }
+            } catch(e){}
+
+            if (isRegistered) {
+                alert("यह मोबाइल नंबर पहले से ही लाइब्रेरी में रजिस्टर्ड है। फ्री डेमो केवल नए छात्रों के लिए है।\n\n(This mobile number is already registered. Free demos are only available for new students.)");
+                resetSubmitBtn();
+            } else {
+                performSubmission();
+            }
+        }
     } else {
-        clearTimeout(timeoutId);
-        submitOffline(bookingData);
+        performSubmission();
     }
 }
 
@@ -706,6 +778,38 @@ function showSuccessScreen(studentName, isOffline = false) {
 // Initialize on page load
 window.addEventListener("DOMContentLoaded", () => {
     initDatabase();
+    
+    // Parse URL parameters for demo mode
+    const urlParams = new URLSearchParams(window.location.search);
+    isDemo = (urlParams.get('type') === 'demo');
+    
+    if (isDemo) {
+        const demoBadge = document.getElementById("demo-badge");
+        if (demoBadge) demoBadge.style.display = "inline-flex";
+        
+        const demoDurationRow = document.getElementById("s-demo-duration-row");
+        if (demoDurationRow) demoDurationRow.style.display = "block";
+        
+        const titleText = document.getElementById("form-title-text");
+        if (titleText) titleText.textContent = "The Study Cafe - Demo Pass";
+        
+        const durationSelect = document.getElementById("s-duration");
+        if (durationSelect && durationSelect.parentElement) {
+            durationSelect.parentElement.style.display = "none";
+        }
+        
+        const amountPaidEl = document.getElementById("s-amount-paid");
+        if (amountPaidEl) {
+            amountPaidEl.disabled = true;
+            amountPaidEl.value = 0;
+        }
+        
+        const submitBtn = document.getElementById("btn-submit-booking");
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Free Demo Request';
+        }
+    }
+
     const dateInput = document.getElementById("s-start-date");
     if (dateInput) {
         dateInput.value = new Date().toISOString().split('T')[0];
@@ -800,7 +904,7 @@ function initPartialPaymentListeners() {
         amountPaidEl.addEventListener("input", () => {
             const seatType = document.getElementById("s-seat-type").value;
             const duration = document.getElementById("s-duration").value;
-            const price = PLANS_PRICING[seatType][duration] || 0;
+            const price = isDemo ? 0 : (PLANS_PRICING[seatType][duration] || 0);
             
             let paid = parseFloat(amountPaidEl.value);
             if (isNaN(paid)) paid = 0;

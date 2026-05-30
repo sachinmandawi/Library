@@ -16,8 +16,11 @@
             <!-- Logo Section -->
             <div class="student-logo">
                 <i class="fa-solid fa-mug-hot logo-icon" style="animation: pulse 3s infinite;"></i>
-                <span class="logo-text">The Study Cafe</span>
+                <span class="logo-text" id="form-title-text">The Study Cafe</span>
                 <p id="lib-address-display">Maitri Nagar, Risali, Bhilai</p>
+                <div id="demo-badge" style="display: none; margin-top: 0.75rem; background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 4px; padding: 0.25rem 0.75rem; font-size: 0.8rem; font-weight: 700; align-items: center; gap: 0.35rem; font-family: 'Outfit'; letter-spacing: 0.05em; text-transform: uppercase;">
+                    <i class="fa-solid fa-circle-play" style="color: var(--accent-blue);"></i> Free Demo Session
+                </div>
             </div>
 
             <!-- Form Content -->
@@ -234,6 +237,20 @@
                                     <option value="1">1 Month</option>
                                     <option value="3">3 Months (Discounted)</option>
                                     <option value="6">6 Months (Best Value)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Demo Duration Selection (Shown only for demo requests) -->
+                        <div class="form-row" id="s-demo-duration-row" style="display: none; margin-top: 1rem;">
+                            <div class="form-group" style="flex: 1;">
+                                <label class="form-label" for="s-demo-duration">Demo Session Duration *</label>
+                                <select id="s-demo-duration" class="form-control">
+                                    <option value="1">1 Day Trial</option>
+                                    <option value="2">2 Days Trial</option>
+                                    <option value="3">3 Days Trial</option>
+                                    <option value="4">4 Days Trial</option>
+                                    <option value="5" selected>5 Days Free Demo (Max / Recommended)</option>
                                 </select>
                             </div>
                         </div>

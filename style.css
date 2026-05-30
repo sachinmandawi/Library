@@ -803,6 +803,18 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--text-muted);
 }
 
+.badge.demo {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.badge.demo-expired {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--accent-rose);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
 .actions-cell {
     display: flex;
     gap: 0.5rem;

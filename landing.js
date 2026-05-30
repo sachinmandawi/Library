@@ -427,6 +427,32 @@ function initFAQAccordion() {
     });
 }
 
+// Booking Choice Modal Control
+window.openBookingChoiceModal = function(e) {
+    if (e) e.preventDefault();
+    const modal = document.getElementById("booking-choice-modal");
+    if (modal) modal.style.display = "flex";
+};
+
+window.closeBookingChoiceModal = function() {
+    const modal = document.getElementById("booking-choice-modal");
+    if (modal) modal.style.display = "none";
+};
+
+window.selectBookingOption = function(type, event) {
+    if (event) event.preventDefault();
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const configStr = urlParams.get('config');
+    
+    let redirectUrl = `register.html?type=${type}`;
+    if (configStr) {
+        redirectUrl += `&config=${configStr}`;
+    }
+    
+    window.location.href = redirectUrl;
+};
+
 // Complaint Modal Control
 window.openComplaintModal = function(e) {
     if (e) e.preventDefault();

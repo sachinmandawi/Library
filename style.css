@@ -1673,3 +1673,38 @@ h1, h2, h3, h4, h5, h6 {
 .toggle-password-btn:hover {
     color: #ffffff !important;
 }
+
+/* Landing Room Tabs styling */
+.landing-room-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
+}
+
+.landing-room-tabs button {
+    border-radius: 50px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    padding: 0.65rem 1.6rem;
+    font-size: 0.9rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--card-border);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.landing-room-tabs button:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--card-hover-border);
+    color: #fff;
+}
+
+.landing-room-tabs button.active-tab {
+    background: linear-gradient(135deg, var(--accent-emerald), var(--accent-blue)) !important;
+    border-color: transparent !important;
+    color: #fff !important;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+}

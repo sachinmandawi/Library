@@ -1362,6 +1362,99 @@
         .booking-option-card:hover .option-icon {
             transform: scale(1.08);
         }
+
+        /* SEATING GRID & BOX STYLING FOR ROOMS 2-4 */
+        .student-seat-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 8px;
+            margin-top: 0.5rem;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            overflow-y: auto;
+        }
+
+        .student-seat-box {
+            aspect-ratio: 1;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            user-select: none;
+            transition: all 0.25s ease;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: var(--text-muted);
+        }
+
+        .student-seat-box.vacant {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: var(--text-muted);
+        }
+
+        .student-seat-box.occupied {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1.5px solid var(--accent-blue);
+            color: #ffffff;
+        }
+
+        .student-seat-box.maintenance {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1.5px solid var(--accent-rose);
+            color: #ffffff;
+        }
+
+        /* View-only seat grid and room tabs styling */
+        .student-seat-grid.view-only .student-seat-box.vacant {
+            cursor: default !important;
+        }
+
+        .student-seat-grid.view-only .student-seat-box.vacant:hover {
+            background: rgba(255, 255, 255, 0.02) !important;
+            border-color: rgba(255, 255, 255, 0.12) !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        .landing-room-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+        }
+
+        .landing-room-tabs button {
+            border-radius: 50px;
+            font-family: var(--font-display);
+            font-weight: 600;
+            padding: 0.65rem 1.6rem;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .landing-room-tabs button:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--card-hover-border);
+            color: #fff;
+        }
+
+        .landing-room-tabs button.active-tab {
+            background: linear-gradient(135deg, var(--accent-emerald), var(--accent-blue)) !important;
+            border-color: transparent !important;
+            color: #fff !important;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+        }
     </style>
 </head>
 <body>
@@ -1428,6 +1521,39 @@
                 <div class="counter-stat-box" style="border-left: 1px solid rgba(255,255,255,0.06); padding-left: 1.5rem;">
                     <h4 id="live-occupied" class="glow-text-blue">...</h4>
                     <p>Occupied Seats</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- REAL-TIME INTERACTIVE SEAT MAP SECTION -->
+    <section id="live-occupancy-map" class="live-map-section" style="padding: 6rem 0; background: rgba(13, 22, 39, 0.2); border-bottom: 1px solid var(--card-border);">
+        <div class="container">
+            <div class="section-header">
+                <h2>Real-Time Seating Map</h2>
+                <p>Observe the live availability of seats across all four study halls. Select a room to view the layout.</p>
+                <div class="divider-glow"></div>
+            </div>
+
+            <!-- Room Navigation Tabs -->
+            <div class="landing-room-tabs">
+                <button class="active-tab" id="btn-landing-room-1" onclick="changeLandingMapRoom(1)">Room 1 (Silent Zone)</button>
+                <button id="btn-landing-room-2" onclick="changeLandingMapRoom(2)">Room 2 (General Hall)</button>
+                <button id="btn-landing-room-3" onclick="changeLandingMapRoom(3)">Room 3 (Discussion Room)</button>
+                <button id="btn-landing-room-4" onclick="changeLandingMapRoom(4)">Room 4 (Executive Cabin)</button>
+            </div>
+
+            <!-- Legends -->
+            <div class="landing-legend-container" style="display: flex; gap: 1.5rem; margin-bottom: 2rem; justify-content: center; font-size: 0.85rem; color: var(--text-muted); flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 0.4rem;"><span style="display: inline-block; width: 14px; height: 14px; border-radius: 4px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.12);"></span> Available</div>
+                <div style="display: flex; align-items: center; gap: 0.4rem;"><span style="display: inline-block; width: 14px; height: 14px; border-radius: 4px; background: var(--accent-blue); box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); border: 1px solid rgba(255,255,255,0.15);"></span> Occupied</div>
+                <div style="display: flex; align-items: center; gap: 0.4rem;"><span style="display: inline-block; width: 14px; height: 14px; border-radius: 4px; background: var(--accent-rose); box-shadow: 0 0 10px rgba(244, 63, 94, 0.3); border: 1px solid rgba(255,255,255,0.15);"></span> Maintenance</div>
+            </div>
+
+            <!-- Seat Grid Container -->
+            <div style="background: rgba(13, 22, 39, 0.4); border: 1px solid var(--card-border); border-radius: 24px; padding: 2.5rem 1.5rem; max-width: 900px; margin: 0 auto; box-shadow: 0 20px 40px rgba(0,0,0,0.5); overflow-x: auto;">
+                <div class="student-seat-grid view-only" id="landing-seat-grid-container" style="margin: 0 auto;">
+                    <!-- Visual layout is rendered here -->
                 </div>
             </div>
         </div>
@@ -1850,6 +1976,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     
     <!-- Landing Page Availability Logic -->
-    <script src="landing.js?v=7"></script>
+    <script src="landing.js?v=20"></script>
 </body>
 </html>

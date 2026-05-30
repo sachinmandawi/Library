@@ -181,16 +181,32 @@ function onStudentRoomOrTypeChange() {
     
     if (seatType === "non-reserved") {
         if (flexMsg) flexMsg.style.display = "block";
-        if (seatPicker) seatPicker.style.display = "none";
         
-        selectedSeatId = "non-reserved";
-        if (badge) {
-            badge.textContent = "Non-Reserved";
-            badge.style.color = "var(--accent-emerald)";
-            badge.style.borderColor = "var(--accent-emerald)";
-        }
-        if (seatSelect) {
-            seatSelect.innerHTML = '<option value="non-reserved" selected>Non-Reserved</option>';
+        if (isDemo) {
+            if (seatPicker) seatPicker.style.display = "block";
+            selectedSeatId = "non-reserved";
+            if (badge) {
+                badge.textContent = "Non-Reserved Seating (Viewing Only)";
+                badge.style.color = "var(--accent-emerald)";
+                badge.style.borderColor = "var(--accent-emerald)";
+            }
+            if (seatSelect) {
+                seatSelect.innerHTML = '<option value="non-reserved" selected>Non-Reserved</option>';
+            }
+            // Populate seats data so they can see live room occupancy/availability
+            const selectedRoom = parseInt(document.getElementById("s-room").value) || 1;
+            renderStudentSeatGrid(allSeats, selectedRoom, "reserved");
+        } else {
+            if (seatPicker) seatPicker.style.display = "none";
+            selectedSeatId = "non-reserved";
+            if (badge) {
+                badge.textContent = "Non-Reserved";
+                badge.style.color = "var(--accent-emerald)";
+                badge.style.borderColor = "var(--accent-emerald)";
+            }
+            if (seatSelect) {
+                seatSelect.innerHTML = '<option value="non-reserved" selected>Non-Reserved</option>';
+            }
         }
         return;
     } else {
@@ -275,6 +291,12 @@ function createStudentSeatBox(seat) {
         }
         
         seatBox.onclick = () => {
+            const seatTypeEl = document.getElementById("s-seat-type");
+            if (seatTypeEl && seatTypeEl.value === "non-reserved") {
+                seatTypeEl.value = "reserved";
+                onStudentRoomOrTypeChange();
+            }
+            
             selectStudentSeat(seat.id, seat.number);
             
             // Highlight active in grid

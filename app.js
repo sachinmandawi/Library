@@ -3832,8 +3832,24 @@ function renderComplaintsList() {
         const formattedDate = dateObj.toLocaleDateString("en-IN") + " " + dateObj.toLocaleTimeString("en-IN", {hour: '2-digit', minute:'2-digit'});
         
         // Student Info
+        const cleanComplaintPhone = c.phone.replace(/\D/g, "");
+        const registeredStudent = (state.members || []).find(m => {
+            const cleanMemberPhone = m.phone.replace(/\D/g, "");
+            return cleanMemberPhone === cleanComplaintPhone;
+        });
+
+        let verificationBadge = "";
+        if (registeredStudent) {
+            verificationBadge = ` <span style="font-size: 0.65rem; padding: 0.1rem 0.35rem; vertical-align: middle; background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 4px; font-weight: 700; display: inline-flex; align-items: center; gap: 0.15rem;"><i class="fa-solid fa-circle-check"></i> Verified</span>`;
+        } else {
+            verificationBadge = ` <span style="font-size: 0.65rem; padding: 0.1rem 0.35rem; vertical-align: middle; background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.3); border-radius: 4px; font-weight: 700; display: inline-flex; align-items: center; gap: 0.15rem;"><i class="fa-solid fa-circle-xmark"></i> Unregistered</span>`;
+        }
+
         const studentInfoHtml = `
-            <div style="font-weight: 600; color: #fff;">${c.studentName}</div>
+            <div style="font-weight: 600; color: #fff; display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                <span>${c.studentName}</span>
+                ${verificationBadge}
+            </div>
             <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem;">
                 <i class="fa-solid fa-phone" style="font-size:0.75rem;"></i> ${c.phone}
             </div>

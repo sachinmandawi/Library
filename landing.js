@@ -143,20 +143,24 @@ function renderHomeSeatingPlan(seatsData) {
     let room1Seats = [];
     if (seatsData) {
         const allSeats = Array.isArray(seatsData) ? seatsData : Object.values(seatsData);
-        room1Seats = allSeats.filter(s => s && s.room === 1);
+        room1Seats = allSeats.filter(s => s && s.room === 1 && s.number <= 69);
     }
     
-    // Realistic fallback mock statuses if room 1 seats count is not matching 50
-    if (room1Seats.length < 50) {
+    // Realistic fallback mock statuses if room 1 seats count is not matching 69
+    if (room1Seats.length < 69) {
         room1Seats = [];
         const mockStatuses = [
-            "vacant", "vacant", "occupied", "vacant", "occupied", "occupied", "vacant", "vacant", "occupied", "vacant", // 1-10
-            "vacant", "occupied", "occupied", "vacant", "vacant", "occupied", "vacant", "occupied", "vacant", "vacant", // 11-20
-            "occupied", "vacant", "vacant", "occupied", "vacant", "occupied", "occupied", "vacant", "vacant", "maintenance", // 21-30
-            "vacant", "occupied", "vacant", "vacant", "occupied", "vacant", "occupied", "occupied", "vacant", "vacant", // 31-40
-            "occupied", "vacant", "occupied", "vacant", "vacant", "occupied", "vacant", "vacant", "maintenance", "occupied" // 41-50
+            "vacant", "vacant", "occupied", "vacant", "occupied", "occupied", "vacant", "vacant", "occupied", "vacant", 
+            "vacant", "occupied", "occupied", "vacant", "vacant", "occupied", "vacant", // 1-17 (17 seats)
+            "occupied", "vacant", "vacant", "occupied", "vacant", "occupied", "occupied", "vacant", "vacant", "maintenance", 
+            "vacant", "occupied", "vacant", "vacant", "occupied", // 18-32 (15 seats)
+            "occupied", "vacant", "occupied", "vacant", "vacant", "occupied", "vacant", "vacant", "maintenance", "occupied", 
+            "vacant", "vacant", "occupied", "vacant", "occupied", // 33-47 (15 seats)
+            "occupied", "vacant", "vacant", "occupied", "vacant", "vacant", "occupied", "vacant", "vacant", "occupied", 
+            "vacant", "occupied", "occupied", "vacant", "vacant", "occupied", "vacant", "occupied", // 48-65 (18 seats)
+            "vacant", "occupied", "vacant", "occupied" // 66-69 (4 seats)
         ];
-        for (let i = 1; i <= 50; i++) {
+        for (let i = 1; i <= 69; i++) {
             room1Seats.push({
                 id: `seat_${i}`,
                 number: i,
@@ -173,12 +177,15 @@ function renderHomeSeatingPlan(seatsData) {
     const container = document.createElement("div");
     container.className = "physical-layout-container";
     
-    // 1. Top Row (1 to 10)
+    // 1. Top Row (66 to 69 - Ordered right 66 to left 69 -> 69, 68, 67, 66)
     const topRow = document.createElement("div");
     topRow.className = "layout-row top-row";
     const topBlock = document.createElement("div");
     topBlock.className = "top-block";
-    room1Seats.slice(0, 10).forEach(seat => {
+    
+    // Slicing 66 to 69 and reversing it
+    const topSlices = room1Seats.slice(65, 69).reverse();
+    topSlices.forEach(seat => {
         topBlock.appendChild(createStaticSeatBox(seat));
     });
     topRow.appendChild(topBlock);
@@ -194,10 +201,11 @@ function renderHomeSeatingPlan(seatsData) {
     const middleSection = document.createElement("div");
     middleSection.className = "layout-middle-section";
     
-    // Left Column (11 to 20)
+    // Left Column (1 to 17 - Bottom to top -> Reversed 17 down to 1)
     const leftCol = document.createElement("div");
     leftCol.className = "layout-column left-column";
-    room1Seats.slice(10, 20).forEach(seat => {
+    const leftSlices = room1Seats.slice(0, 17).reverse();
+    leftSlices.forEach(seat => {
         leftCol.appendChild(createStaticSeatBox(seat));
     });
     middleSection.appendChild(leftCol);
@@ -212,10 +220,11 @@ function renderHomeSeatingPlan(seatsData) {
     const midDouble = document.createElement("div");
     midDouble.className = "layout-middle-double-block";
     
-    // Middle Left (21 to 30)
+    // Middle Left (18 to 32 - Top to bottom -> Normal 18 to 32)
     const midLeftCol = document.createElement("div");
     midLeftCol.className = "layout-column mid-left-column";
-    room1Seats.slice(20, 30).forEach(seat => {
+    const midLeftSlices = room1Seats.slice(17, 32);
+    midLeftSlices.forEach(seat => {
         midLeftCol.appendChild(createStaticSeatBox(seat));
     });
     midDouble.appendChild(midLeftCol);
@@ -225,10 +234,11 @@ function renderHomeSeatingPlan(seatsData) {
     partition.className = "layout-partition";
     midDouble.appendChild(partition);
     
-    // Middle Right (31 to 40)
+    // Middle Right (33 to 47 - Bottom to top -> Reversed 47 down to 33)
     const midRightCol = document.createElement("div");
     midRightCol.className = "layout-column mid-right-column";
-    room1Seats.slice(30, 40).forEach(seat => {
+    const midRightSlices = room1Seats.slice(32, 47).reverse();
+    midRightSlices.forEach(seat => {
         midRightCol.appendChild(createStaticSeatBox(seat));
     });
     midDouble.appendChild(midRightCol);
@@ -241,10 +251,11 @@ function renderHomeSeatingPlan(seatsData) {
     walkwayV2.textContent = "Walkway";
     middleSection.appendChild(walkwayV2);
     
-    // Right Column (41 to 50)
+    // Right Column (48 to 65 - Bottom to top -> Reversed 65 down to 48)
     const rightCol = document.createElement("div");
     rightCol.className = "layout-column right-column";
-    room1Seats.slice(40, 50).forEach(seat => {
+    const rightSlices = room1Seats.slice(47, 65).reverse();
+    rightSlices.forEach(seat => {
         rightCol.appendChild(createStaticSeatBox(seat));
     });
     middleSection.appendChild(rightCol);

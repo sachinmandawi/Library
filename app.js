@@ -99,17 +99,30 @@ function showToast(message, type = "info") {
 // Generate default seats (400 seats total across 4 rooms, each room has 100 seats)
 function generateDefaultSeats() {
     const seats = [];
-    for (let i = 1; i <= 400; i++) {
-        const room = Math.ceil(i / 100);
-        const positionInRoom = i - (room - 1) * 100;
+    let seatIndex = 1;
+    // Generate Room 1: 69 seats
+    for (let s = 1; s <= 69; s++) {
         seats.push({
-            id: `seat_${i}`,
-            number: positionInRoom,
-            room: room,
+            id: `seat_${seatIndex++}`,
+            number: s,
+            room: 1,
             type: "general",
             status: "vacant",
             assignedMemberId: null
         });
+    }
+    // Generate Room 2, 3, 4: 100 seats each
+    for (let r = 2; r <= 4; r++) {
+        for (let s = 1; s <= 100; s++) {
+            seats.push({
+                id: `seat_${seatIndex++}`,
+                number: s,
+                room: r,
+                type: "general",
+                status: "vacant",
+                assignedMemberId: null
+            });
+        }
     }
     return seats;
 }
@@ -1005,15 +1018,19 @@ function renderPhysicalLayoutRoom1(grid, roomSeats, today) {
     const container = document.createElement("div");
     container.className = "physical-layout-container";
     
-    // Sort roomSeats by number to ensure they are sequential
-    roomSeats.sort((a, b) => a.number - b.number);
+    // Filter roomSeats to ensure we only render up to seat 69
+    const activeSeats = roomSeats.filter(s => s.number <= 69);
     
-    // 1. Top Row (1 to 10)
+    // Sort roomSeats by number to ensure they are sequential
+    activeSeats.sort((a, b) => a.number - b.number);
+    
+    // 1. Top Row (66 to 69 - Ordered right 66 to left 69 -> 69, 68, 67, 66)
     const topRow = document.createElement("div");
     topRow.className = "layout-row top-row";
     const topBlock = document.createElement("div");
     topBlock.className = "top-block";
-    roomSeats.slice(0, 10).forEach(seat => {
+    const topSlices = activeSeats.slice(65, 69).reverse();
+    topSlices.forEach(seat => {
         topBlock.appendChild(createSeatBox(seat, today));
     });
     topRow.appendChild(topBlock);
@@ -1029,10 +1046,11 @@ function renderPhysicalLayoutRoom1(grid, roomSeats, today) {
     const middleSection = document.createElement("div");
     middleSection.className = "layout-middle-section";
     
-    // Left Column (11 to 20)
+    // Left Column (1 to 17 - Bottom to top -> Reversed 17 down to 1)
     const leftCol = document.createElement("div");
     leftCol.className = "layout-column left-column";
-    roomSeats.slice(10, 20).forEach(seat => {
+    const leftSlices = activeSeats.slice(0, 17).reverse();
+    leftSlices.forEach(seat => {
         leftCol.appendChild(createSeatBox(seat, today));
     });
     middleSection.appendChild(leftCol);
@@ -1047,10 +1065,11 @@ function renderPhysicalLayoutRoom1(grid, roomSeats, today) {
     const midDouble = document.createElement("div");
     midDouble.className = "layout-middle-double-block";
     
-    // Middle Left (21 to 30)
+    // Middle Left (18 to 32 - Top to bottom -> Normal 18 to 32)
     const midLeftCol = document.createElement("div");
     midLeftCol.className = "layout-column mid-left-column";
-    roomSeats.slice(20, 30).forEach(seat => {
+    const midLeftSlices = activeSeats.slice(17, 32);
+    midLeftSlices.forEach(seat => {
         midLeftCol.appendChild(createSeatBox(seat, today));
     });
     midDouble.appendChild(midLeftCol);
@@ -1060,10 +1079,11 @@ function renderPhysicalLayoutRoom1(grid, roomSeats, today) {
     partition.className = "layout-partition";
     midDouble.appendChild(partition);
     
-    // Middle Right (31 to 40)
+    // Middle Right (33 to 47 - Bottom to top -> Reversed 47 down to 33)
     const midRightCol = document.createElement("div");
     midRightCol.className = "layout-column mid-right-column";
-    roomSeats.slice(30, 40).forEach(seat => {
+    const midRightSlices = activeSeats.slice(32, 47).reverse();
+    midRightSlices.forEach(seat => {
         midRightCol.appendChild(createSeatBox(seat, today));
     });
     midDouble.appendChild(midRightCol);
@@ -1076,10 +1096,11 @@ function renderPhysicalLayoutRoom1(grid, roomSeats, today) {
     walkwayV2.textContent = "Walkway";
     middleSection.appendChild(walkwayV2);
     
-    // Right Column (41 to 50)
+    // Right Column (48 to 65 - Bottom to top -> Reversed 65 down to 48)
     const rightCol = document.createElement("div");
     rightCol.className = "layout-column right-column";
-    roomSeats.slice(40, 50).forEach(seat => {
+    const rightSlices = activeSeats.slice(47, 65).reverse();
+    rightSlices.forEach(seat => {
         rightCol.appendChild(createSeatBox(seat, today));
     });
     middleSection.appendChild(rightCol);

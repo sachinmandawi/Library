@@ -446,8 +446,9 @@ function setupFirebaseListeners() {
         state.members.forEach(m => {
             if (m.phone) {
                 const cleanPhone = m.phone.replace(/\D/g, "");
-                if (cleanPhone.length === 10) {
-                    regPhones[cleanPhone] = {
+                const phone10 = cleanPhone.slice(-10);
+                if (phone10.length === 10) {
+                    regPhones[phone10] = {
                         studentName: m.name,
                         status: m.status || "active"
                     };
@@ -612,8 +613,9 @@ function syncLocalToDatabase() {
     (state.members || []).forEach(m => {
         if (m.phone) {
             const cleanPhone = m.phone.replace(/\D/g, "");
-            if (cleanPhone.length === 10) {
-                regPhones[cleanPhone] = {
+            const phone10 = cleanPhone.slice(-10);
+            if (phone10.length === 10) {
+                regPhones[phone10] = {
                     studentName: m.name,
                     status: m.status || "active"
                 };

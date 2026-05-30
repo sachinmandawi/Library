@@ -462,7 +462,7 @@ window.handleComplaintSubmit = function(e) {
         return;
     }
     
-    const cleanPhone = phone.replace(/\D/g, "");
+    const cleanPhone = phone.replace(/\D/g, "").slice(-10);
     if (cleanPhone.length !== 10) {
         alert("Please enter a valid 10-digit mobile number.");
         return;

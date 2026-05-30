@@ -1234,15 +1234,15 @@ h1, h2, h3, h4, h5, h6 {
 
 .student-seat-box.vacant {
     cursor: pointer;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: var(--text-muted);
+    background: rgba(16, 185, 129, 0.06);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    color: var(--accent-emerald);
 }
 
 .student-seat-box.vacant:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+    background: rgba(16, 185, 129, 0.12);
+    border-color: var(--accent-emerald);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
     transform: translateY(-1px);
 }
 
@@ -1259,8 +1259,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .student-seat-grid.view-only .student-seat-box.vacant:hover {
-    background: rgba(255, 255, 255, 0.02) !important;
-    border-color: rgba(255, 255, 255, 0.12) !important;
+    background: rgba(16, 185, 129, 0.06) !important;
+    border-color: rgba(16, 185, 129, 0.25) !important;
     box-shadow: none !important;
     transform: none !important;
 }

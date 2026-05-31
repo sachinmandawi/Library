@@ -1503,7 +1503,7 @@ h1, h2, h3, h4, h5, h6 {
     flex-direction: row;
     justify-content: space-between;
     align-items: stretch;
-    height: 1060px;
+    height: 1120px;
     gap: 0.25rem;
 }
 
@@ -1600,21 +1600,21 @@ h1, h2, h3, h4, h5, h6 {
     .student-seat-grid.physical-layout-active .physical-layout-container,
     .seat-grid-container.physical-layout-active .physical-layout-container {
         transform: scale(0.8) !important;
-        margin-bottom: -240px;
+        margin-bottom: -250px;
     }
 }
 @media (max-width: 580px) {
     .student-seat-grid.physical-layout-active .physical-layout-container,
     .seat-grid-container.physical-layout-active .physical-layout-container {
         transform: scale(0.65) !important;
-        margin-bottom: -420px;
+        margin-bottom: -438px;
     }
 }
 @media (max-width: 450px) {
     .student-seat-grid.physical-layout-active .physical-layout-container,
     .seat-grid-container.physical-layout-active .physical-layout-container {
         transform: scale(0.5) !important;
-        margin-bottom: -600px;
+        margin-bottom: -625px;
     }
 }
 

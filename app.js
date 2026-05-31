@@ -203,7 +203,7 @@ function initApp() {
             if (state.members && state.members.some(m => m.id === "m_1" || m.name === "Rahul Sahu")) {
                 loadMockData();
                 saveStateToLocalStorage();
-            } else if (!state.seats || state.seats.length !== 400) {
+            } else if (!state.seats || state.seats.length !== 369) {
                 state.seats = generateDefaultSeats();
                 state.members.forEach(member => {
                     const seat = state.seats.find(s => s.id === member.seatId);
@@ -780,7 +780,7 @@ function updateDashboardKPIs() {
         const progress = document.getElementById(`room${r}-progress`);
         const text = document.getElementById(`room${r}-text`);
         
-        const maxSeats = r === 1 ? 50 : 100;
+        const maxSeats = r === 1 ? 69 : 100;
         
         if (badge) badge.textContent = `${roomOccupants} / ${maxSeats}`;
         if (progress) progress.style.width = `${(roomOccupants / maxSeats) * 100}%`;
@@ -3438,7 +3438,7 @@ function restoreData(event) {
         try {
             const importedState = JSON.parse(e.target.result);
             if (importedState.seats && importedState.members && importedState.settings) {
-                if (importedState.seats.length !== 400) {
+                if (importedState.seats.length !== 369) {
                     importedState.seats = generateDefaultSeats();
                     importedState.members.forEach(member => {
                         const seat = importedState.seats.find(s => s.id === member.seatId);
@@ -3467,7 +3467,7 @@ function resetSystemData() {
     if (!confirm("⚠️ Warning: Are you sure you want to delete all students, bookings, and pending requests? This cannot be undone!")) {
         return;
     }
-    if (!confirm("Confirm again: Do you really want to reset all 400 seats to vacant?")) {
+    if (!confirm("Confirm again: Do you really want to reset all 369 seats to vacant?")) {
         return;
     }
     

@@ -27,9 +27,9 @@ let database = null;
 let activeLandingRoom = 1;
 let allSeatsData = [];
 let seatsCount = {
-    total: 400,
+    total: 369,
     occupied: 280,
-    vacant: 120
+    vacant: 89
 };
 
 // Fetch Firebase Configuration
@@ -471,7 +471,7 @@ function initSeatsListener() {
                         }
                     });
                     
-                    // Fallback to total 400 seats if DB is partially loaded
+                    // Fallback to total 369 seats if DB is partially loaded
                     if (vacant + occupied < 10) {
                         loadOfflineFallback();
                     } else {

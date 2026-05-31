@@ -1471,7 +1471,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .physical-layout-container {
-    width: 580px;
+    width: 680px;
     margin: 0 auto;
     background: rgba(10, 14, 23, 0.4);
     border: 1px solid var(--border-color);
@@ -1505,7 +1505,7 @@ h1, h2, h3, h4, h5, h6 {
     flex-direction: row;
     justify-content: space-between;
     align-items: stretch;
-    height: 920px;
+    height: 1060px;
     gap: 0.25rem;
 }
 
@@ -1556,7 +1556,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .vertical-walkway {
-    width: 50px;
+    width: 60px;
     writing-mode: vertical-rl;
     text-orientation: mixed;
 }
@@ -1591,11 +1591,35 @@ h1, h2, h3, h4, h5, h6 {
 /* Sizing overrides inside physical layout to fit perfectly */
 .physical-layout-container .seat-box,
 .physical-layout-container .student-seat-box {
-    width: 44px !important;
-    height: 44px !important;
+    width: 54px !important;
+    height: 54px !important;
     border-radius: 8px !important;
-    font-size: 0.8rem !important;
+    font-size: 0.85rem !important;
 }
+
+/* Responsive scaling for active seating layouts on smaller screens */
+@media (max-width: 768px) {
+    .student-seat-grid.physical-layout-active .physical-layout-container,
+    .seat-grid-container.physical-layout-active .physical-layout-container {
+        transform: scale(0.8) !important;
+        margin-bottom: -240px;
+    }
+}
+@media (max-width: 580px) {
+    .student-seat-grid.physical-layout-active .physical-layout-container,
+    .seat-grid-container.physical-layout-active .physical-layout-container {
+        transform: scale(0.65) !important;
+        margin-bottom: -420px;
+    }
+}
+@media (max-width: 450px) {
+    .student-seat-grid.physical-layout-active .physical-layout-container,
+    .seat-grid-container.physical-layout-active .physical-layout-container {
+        transform: scale(0.5) !important;
+        margin-bottom: -600px;
+    }
+}
+
 
 /* Authentication Login Screen Overlay */
 .auth-overlay {

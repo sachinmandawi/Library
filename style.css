@@ -1212,8 +1212,6 @@ h1, h2, h3, h4, h5, h6 {
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
-    max-height: 240px;
-    overflow-y: auto;
 }
 
 .student-seat-box {

@@ -3284,26 +3284,43 @@ function generateDashboardQRCodes() {
 
 // Re-generate QR manually
 function updateRegistrationQRFromInput() {
-    const inputUrl = document.getElementById("qr-target-url").value;
-    const qrHolder = document.getElementById("qrcode-display");
-    if (!qrHolder) return;
-    qrHolder.innerHTML = "";
-    
-    try {
-        qrCodeGeneratorInstance = new QRCode(qrHolder, {
-            text: inputUrl || "https://sachinmandawi.github.io/Library/register.html",
-            width: 180,
-            height: 180,
-            colorDark : "#0a0e17",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.M
-        });
-    } catch(err) {
-        console.error("QR Code manual generation failing:", err);
+    const btn = document.getElementById("btn-regenerate-qr");
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating QR Link...';
     }
     
-    // Also update dashboard dual QR codes in real-time
-    generateDashboardQRCodes();
+    showToast("Regenerating registration QR codes...", "info");
+    
+    setTimeout(() => {
+        const inputUrl = document.getElementById("qr-target-url").value;
+        const qrHolder = document.getElementById("qrcode-display");
+        if (qrHolder) {
+            qrHolder.innerHTML = "";
+            try {
+                qrCodeGeneratorInstance = new QRCode(qrHolder, {
+                    text: inputUrl || "https://sachinmandawi.github.io/Library/register.html",
+                    width: 180,
+                    height: 180,
+                    colorDark : "#0a0e17",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.M
+                });
+            } catch(err) {
+                console.error("QR Code manual generation failing:", err);
+            }
+        }
+        
+        // Also update dashboard dual QR codes in real-time
+        generateDashboardQRCodes();
+        
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Regenerate QR Link';
+        }
+        
+        showToast("QR Codes regenerated successfully!", "success");
+    }, 750);
 }
 
 // Print QR code frame

@@ -1599,6 +1599,11 @@ h1, h2, h3, h4, h5, h6 {
     flex-grow: 1;
 }
 
+.layout-bottom-spacer {
+    width: 100px;
+    flex-shrink: 0;
+}
+
 /* Sizing overrides inside physical layout to fit perfectly */
 .physical-layout-container .seat-box,
 .physical-layout-container .student-seat-box {

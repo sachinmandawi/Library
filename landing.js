@@ -268,6 +268,10 @@ function renderHomeSeatingPlan(seatsData) {
     const bottomSection = document.createElement("div");
     bottomSection.className = "layout-bottom-section";
     
+    const spacer = document.createElement("div");
+    spacer.className = "layout-bottom-spacer";
+    bottomSection.appendChild(spacer);
+    
     const gate = document.createElement("div");
     gate.className = "layout-gate";
     gate.textContent = "Gate 🚪";
@@ -426,6 +430,10 @@ function renderLandingPhysicalLayoutRoom1(gridContainer, roomSeats) {
     // 4. Bottom Walkway & Gate
     const bottomSection = document.createElement("div");
     bottomSection.className = "layout-bottom-section";
+    
+    const spacer = document.createElement("div");
+    spacer.className = "layout-bottom-spacer";
+    bottomSection.appendChild(spacer);
     
     const gate = document.createElement("div");
     gate.className = "layout-gate";

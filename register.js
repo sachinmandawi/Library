@@ -410,6 +410,10 @@ function renderStudentPhysicalLayoutRoom1(gridContainer, roomSeats) {
     const bottomSection = document.createElement("div");
     bottomSection.className = "layout-bottom-section";
     
+    const spacer = document.createElement("div");
+    spacer.className = "layout-bottom-spacer";
+    bottomSection.appendChild(spacer);
+    
     const gate = document.createElement("div");
     gate.className = "layout-gate";
     gate.textContent = "Gate 🚪";

@@ -3269,6 +3269,7 @@ function openSeatActionsModal(seatId) {
     mBtnMaintenance.style.display = "block";
     mBtnMaintenance.textContent = isMaintenance ? "Restore Seat" : "Maintenance Block";
     mBtnActions.style.display = "block";
+    mBtnActions.style.gridColumn = "";
     if (mBtnTransfer) mBtnTransfer.style.display = "none";
     
     if (isMaintenance) {
@@ -3400,6 +3401,7 @@ function openSeatActionsModal(seatId) {
                 mBtnActions.onclick = () => releaseSeatFromModal(member.id);
             } else {
                 modalBody.innerHTML = `<p>Occupant record missing. Sync issue occurred.</p>`;
+                mBtnActions.style.gridColumn = "span 2";
                 mBtnActions.textContent = "Force Vacate";
                 mBtnActions.onclick = () => forceResetSeat(seat.id);
             }
@@ -3417,6 +3419,7 @@ function openSeatActionsModal(seatId) {
                 </div>
             `;
             
+            mBtnActions.style.gridColumn = "span 2";
             mBtnActions.textContent = "Assign Member";
             mBtnActions.className = "btn btn-primary";
             mBtnActions.onclick = () => {

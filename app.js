@@ -271,7 +271,8 @@ function initApp() {
     document.getElementById("set-lib-name").value = state.settings.libraryName;
     document.getElementById("set-lib-phone").value = state.settings.phone || "9876543210";
     document.getElementById("set-lib-addr").value = state.settings.address;
-    document.getElementById("qr-lib-title").textContent = state.settings.libraryName;
+    const qrLibTitle = document.getElementById("qr-lib-title");
+    if (qrLibTitle) qrLibTitle.textContent = state.settings.libraryName;
     
     // Set max date limit on Member DOB input in the modal to prevent future birth dates
     const dobInput = document.getElementById("m-dob");
@@ -591,7 +592,8 @@ function setupFirebaseListeners() {
     dbRef.child("settings").on("value", snapshot => {
         if (snapshot.exists()) {
             state.settings = snapshot.val();
-            document.getElementById("qr-lib-title").textContent = state.settings.libraryName;
+            const qrLibTitle = document.getElementById("qr-lib-title");
+            if (qrLibTitle) qrLibTitle.textContent = state.settings.libraryName;
             document.getElementById("set-lib-name").value = state.settings.libraryName;
             document.getElementById("set-lib-addr").value = state.settings.address;
             saveStateToLocalStorage();
@@ -3444,7 +3446,8 @@ function saveSettings() {
     state.settings.address = newAddr;
     
     syncLocalToDatabase();
-    document.getElementById("qr-lib-title").textContent = newName;
+    const qrLibTitle = document.getElementById("qr-lib-title");
+    if (qrLibTitle) qrLibTitle.textContent = newName;
     showToast("Library settings saved.", "success");
     updateRegistrationQR();
 }

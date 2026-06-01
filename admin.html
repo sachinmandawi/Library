@@ -6,7 +6,7 @@
     <title>The Study Cafe - Admin Dashboard</title>
     <!-- Fonts & Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=10">
+    <link rel="stylesheet" href="style.css?v=33">
 </head>
 <body>
 
@@ -1196,7 +1196,7 @@
 
     <!-- MODAL 2: SEAT DETAIL / ACTION MODAL -->
     <div class="modal-overlay" id="modal-seat-actions">
-        <div class="glass-panel modal-container" style="max-width: 420px;">
+        <div class="glass-panel modal-container" style="max-width: 540px; width: 95%;">
             <div class="modal-header">
                 <h3>Seat Status Details</h3>
                 <span class="modal-close" onclick="closeModal('modal-seat-actions')">&times;</span>
@@ -1204,12 +1204,12 @@
             <div class="modal-body" id="seat-modal-body">
                 <!-- Dynamically written content based on seat occupant status -->
             </div>
-            <div class="modal-footer" style="justify-content: space-between;">
-                <div style="display: flex; gap: 0.5rem;">
+            <div class="modal-footer" style="justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                     <button class="btn btn-danger" id="btn-seat-maintenance" onclick="toggleSeatMaintenance()">Block / Maintenance</button>
                     <button class="btn btn-secondary" id="btn-seat-transfer" style="display: none; background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);" onclick="startSeatTransferFromModal()">Transfer Seat</button>
                 </div>
-                <div style="display: flex; gap: 0.5rem;">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-left: auto;">
                     <button class="btn btn-secondary" onclick="closeModal('modal-seat-actions')">Close</button>
                     <button class="btn btn-primary" id="btn-seat-primary-action">Action</button>
                 </div>
@@ -1289,7 +1289,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <!-- Admin logic -->
-    <script src="app.js?v=32"></script>
+    <script src="app.js?v=33"></script>
 
 </body>
 </html>

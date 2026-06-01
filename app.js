@@ -3183,62 +3183,10 @@ function openRegistrationLink(type) {
 let qrCodeGeneratorInstance = null;
 
 function updateRegistrationQR() {
-    let hostUrl = window.location.href;
-    if (hostUrl.includes("admin.html")) {
-        hostUrl = hostUrl.replace("admin.html", "register.html");
-    } else if (hostUrl.includes("index.html")) {
-        hostUrl = hostUrl.replace("index.html", "register.html");
-    } else if (hostUrl.endsWith("/")) {
-        hostUrl = hostUrl + "register.html";
-    } else {
-        const idx = hostUrl.lastIndexOf("/");
-        hostUrl = hostUrl.substring(0, idx + 1) + "register.html";
-    }
-    
-    const config = getFirebaseConfig();
-    const isCustom = localStorage.getItem("custom_firebase_config") !== null;
-    
-    let qrUrl = hostUrl;
-    if (isCustom) {
-        // Create compact delimited string: apiKey|projectId|databaseURL|appId
-        const parts = [
-            config.apiKey || "",
-            config.projectId || "",
-            config.databaseURL || "",
-            config.appId || ""
-        ];
-        const compactStr = parts.join('|');
-        const configStr = btoa(compactStr);
-        qrUrl += `?config=${configStr}`;
-    }
-    
-    const qrInputEl = document.getElementById("qr-target-url");
-    if (qrInputEl) {
-        qrInputEl.value = qrUrl;
-    }
-    
-    const qrHolder = document.getElementById("qrcode-display");
-    if (qrHolder) {
-        qrHolder.innerHTML = "";
-        try {
-            qrCodeGeneratorInstance = new QRCode(qrHolder, {
-                text: qrUrl,
-                width: 180,
-                height: 180,
-                colorDark : "#0a0e17",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.M
-            });
-        } catch(err) {
-            console.error("QR Code library failing:", err);
-        }
-    }
-    
-    // Regenerate dashboard dual QR codes as well
-    generateDashboardQRCodes();
+    generateSettingsQRCodes();
 }
 
-function generateDashboardQRCodes() {
+function generateSettingsQRCodes() {
     const qrPermHolder = document.getElementById("qr-permanent");
     const qrDemoHolder = document.getElementById("qr-demo");
     if (!qrPermHolder || !qrDemoHolder) return;
@@ -3252,8 +3200,8 @@ function generateDashboardQRCodes() {
     try {
         new QRCode(qrPermHolder, {
             text: permUrl,
-            width: 128,
-            height: 128,
+            width: 144,
+            height: 144,
             colorDark : "#0a0e17",
             colorLight : "#ffffff",
             correctLevel : QRCode.CorrectLevel.M
@@ -3261,14 +3209,14 @@ function generateDashboardQRCodes() {
         
         new QRCode(qrDemoHolder, {
             text: demoUrl,
-            width: 128,
-            height: 128,
+            width: 144,
+            height: 144,
             colorDark : "#0a0e17",
             colorLight : "#ffffff",
             correctLevel : QRCode.CorrectLevel.M
         });
     } catch(err) {
-        console.error("Dashboard QR Code generation failing:", err);
+        console.error("Settings QR Code generation failing:", err);
     }
 }
 

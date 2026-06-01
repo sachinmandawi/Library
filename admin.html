@@ -118,42 +118,7 @@
                     </div>
                 </div>
 
-                <!-- Side-by-side Admission & Demo QR Desk Card Section -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-                    <!-- Permanent Admission QR Card -->
-                    <div class="glass-panel" style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; text-align: center; border-color: rgba(16, 185, 129, 0.15); box-shadow: 0 0 15px rgba(16, 185, 129, 0.03);">
-                        <div style="width: 45px; height: 45px; border-radius: 50%; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; color: var(--accent-emerald); font-size: 1.25rem; margin-bottom: 1rem;">
-                            <i class="fa-solid fa-user-plus"></i>
-                        </div>
-                        <h3 style="font-family: var(--font-display); color: #fff; font-size: 1.15rem; font-weight: 700; margin-bottom: 0.25rem;">Permanent Admission Desk</h3>
-                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.25rem; max-width: 250px;">Scan to register and select a seat for full membership.</p>
-                        
-                        <!-- QR Code Canvas Target Container -->
-                        <div id="qr-permanent" style="background: white; padding: 0.75rem; border-radius: 8px; box-shadow: var(--shadow-sm); margin-bottom: 1.25rem; width: 144px; height: 144px; display: flex; align-items: center; justify-content: center;"></div>
-                        
-                        <div style="display: flex; gap: 0.5rem; width: 100%;">
-                            <button onclick="openRegistrationLink('permanent')" class="btn btn-secondary" style="flex: 1; font-size: 0.78rem; padding: 0.45rem 0; justify-content: center; gap: 0.35rem; margin: 0;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Link</button>
-                            <button onclick="printQRCode('permanent')" class="btn btn-secondary" style="flex: 1; font-size: 0.78rem; padding: 0.45rem 0; justify-content: center; gap: 0.35rem; margin: 0;"><i class="fa-solid fa-print"></i> Print Poster</button>
-                        </div>
-                    </div>
 
-                    <!-- Free Demo QR Card -->
-                    <div class="glass-panel" style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; text-align: center; border-color: rgba(59, 130, 246, 0.15); box-shadow: 0 0 15px rgba(59, 130, 246, 0.03);">
-                        <div style="width: 45px; height: 45px; border-radius: 50%; background: rgba(59, 130, 246, 0.1); display: flex; align-items: center; justify-content: center; color: var(--accent-blue); font-size: 1.25rem; margin-bottom: 1rem;">
-                            <i class="fa-solid fa-circle-play"></i>
-                        </div>
-                        <h3 style="font-family: var(--font-display); color: #fff; font-size: 1.15rem; font-weight: 700; margin-bottom: 0.25rem;">Free 5-Day Demo Desk</h3>
-                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.25rem; max-width: 250px;">Scan to register for a free trial/demo session (Max 5 days).</p>
-                        
-                        <!-- QR Code Canvas Target Container -->
-                        <div id="qr-demo" style="background: white; padding: 0.75rem; border-radius: 8px; box-shadow: var(--shadow-sm); margin-bottom: 1.25rem; width: 144px; height: 144px; display: flex; align-items: center; justify-content: center;"></div>
-                        
-                        <div style="display: flex; gap: 0.5rem; width: 100%;">
-                            <button onclick="openRegistrationLink('demo')" class="btn btn-secondary" style="flex: 1; font-size: 0.78rem; padding: 0.45rem 0; justify-content: center; gap: 0.35rem; margin: 0;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Link</button>
-                            <button onclick="printQRCode('demo')" class="btn btn-secondary" style="flex: 1; font-size: 0.78rem; padding: 0.45rem 0; justify-content: center; gap: 0.35rem; margin: 0;"><i class="fa-solid fa-print"></i> Print Poster</button>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- KPI Grid -->
                 <div class="kpi-grid">
@@ -621,28 +586,43 @@
                         </div>
                     </div>
 
-                    <!-- Right Column: Live QR Generator for student registrations -->
-                    <div>
-                        <div class="glass-panel" style="position: sticky; top: 1.5rem;">
-                            <div class="panel-header">
-                                <h3 class="panel-title">Registration QR Code</h3>
+                    <!-- Right Column: Registration QR Codes Stacked Top and Bottom -->
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        
+                        <!-- Permanent Admission QR Card -->
+                        <div class="glass-panel" style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; text-align: center; border-color: rgba(16, 185, 129, 0.15); box-shadow: 0 0 15px rgba(16, 185, 129, 0.03);">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; color: var(--accent-emerald); font-size: 1.15rem; margin-bottom: 0.75rem;">
+                                <i class="fa-solid fa-user-plus"></i>
                             </div>
-                            <div class="panel-body">
-                                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.25rem;">
-                                    Print this QR code and paste it on your reception desk. Students can scan it on their phones to fill in their details.
-                                </p>
-
-                                
-                                <div class="qr-view-container">
-                                    <div class="qr-canvas-holder" id="qrcode-display"></div>
-                                    <h3 style="margin-top: 0.5rem; color: #ffffff;" id="qr-lib-title">The Study Cafe</h3>
-                                    <p style="font-size: 0.8rem; color: var(--text-muted);">Scan to register & book your seat</p>
-                                    <button class="btn btn-primary" onclick="printQRCode()" style="margin-top: 0.5rem;">
-                                        <i class="fa-solid fa-print"></i> Print Poster
-                                    </button>
-                                </div>
+                            <h3 style="font-family: var(--font-display); color: #fff; font-size: 1.1rem; font-weight: 700; margin-bottom: 0.25rem;">Permanent Admission Desk</h3>
+                            <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem; max-width: 250px;">Scan to register and select a seat for full membership.</p>
+                            
+                            <!-- QR Code Canvas Target Container -->
+                            <div id="qr-permanent" style="background: white; padding: 0.75rem; border-radius: 8px; box-shadow: var(--shadow-sm); margin-bottom: 1rem; width: 144px; height: 144px; display: flex; align-items: center; justify-content: center;"></div>
+                            
+                            <div style="display: flex; gap: 0.5rem; width: 100%;">
+                                <button onclick="openRegistrationLink('permanent')" class="btn btn-secondary" style="flex: 1; font-size: 0.75rem; padding: 0.45rem 0; justify-content: center; gap: 0.35rem; margin: 0;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Link</button>
+                                <button onclick="printQRCode('permanent')" class="btn btn-secondary" style="flex: 1; font-size: 0.75rem; padding: 0.45rem 0; justify-content: center; gap: 0.35rem; margin: 0;"><i class="fa-solid fa-print"></i> Print Poster</button>
                             </div>
                         </div>
+
+                        <!-- Free Demo QR Card -->
+                        <div class="glass-panel" style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; text-align: center; border-color: rgba(59, 130, 246, 0.15); box-shadow: 0 0 15px rgba(59, 130, 246, 0.03);">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(59, 130, 246, 0.1); display: flex; align-items: center; justify-content: center; color: var(--accent-blue); font-size: 1.15rem; margin-bottom: 0.75rem;">
+                                <i class="fa-solid fa-circle-play"></i>
+                            </div>
+                            <h3 style="font-family: var(--font-display); color: #fff; font-size: 1.1rem; font-weight: 700; margin-bottom: 0.25rem;">Free 5-Day Demo Desk</h3>
+                            <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem; max-width: 250px;">Scan to register for a free trial/demo session (Max 5 days).</p>
+                            
+                            <!-- QR Code Canvas Target Container -->
+                            <div id="qr-demo" style="background: white; padding: 0.75rem; border-radius: 8px; box-shadow: var(--shadow-sm); margin-bottom: 1rem; width: 144px; height: 144px; display: flex; align-items: center; justify-content: center;"></div>
+                            
+                            <div style="display: flex; gap: 0.5rem; width: 100%;">
+                                <button onclick="openRegistrationLink('demo')" class="btn btn-secondary" style="flex: 1; font-size: 0.75rem; padding: 0.45rem 0; justify-content: center; gap: 0.35rem; margin: 0;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Link</button>
+                                <button onclick="printQRCode('demo')" class="btn btn-secondary" style="flex: 1; font-size: 0.75rem; padding: 0.45rem 0; justify-content: center; gap: 0.35rem; margin: 0;"><i class="fa-solid fa-print"></i> Print Poster</button>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </section>

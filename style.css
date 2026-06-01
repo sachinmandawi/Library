@@ -1573,6 +1573,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .layout-bottom-section {
+    position: relative;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -1580,6 +1581,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .layout-gate {
+    position: absolute;
+    left: 100px;
+    top: 50%;
+    transform: translateY(-50%);
     width: 80px;
     height: 38px;
     border: 1.5px solid #ef4444;
@@ -1597,11 +1602,6 @@ h1, h2, h3, h4, h5, h6 {
 
 .bottom-walkway {
     flex-grow: 1;
-}
-
-.layout-bottom-spacer {
-    width: 100px;
-    flex-shrink: 0;
 }
 
 /* Sizing overrides inside physical layout to fit perfectly */

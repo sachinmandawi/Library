@@ -1171,19 +1171,15 @@ function renderPhysicalLayoutRoom1(grid, roomSeats, today) {
     const bottomSection = document.createElement("div");
     bottomSection.className = "layout-bottom-section";
     
-    const spacer = document.createElement("div");
-    spacer.className = "layout-bottom-spacer";
-    bottomSection.appendChild(spacer);
+    const bottomWalkway = document.createElement("div");
+    bottomWalkway.className = "layout-walkway horizontal-walkway bottom-walkway";
+    bottomWalkway.textContent = "Walkway";
+    bottomSection.appendChild(bottomWalkway);
     
     const gate = document.createElement("div");
     gate.className = "layout-gate";
     gate.textContent = "Gate 🚪";
     bottomSection.appendChild(gate);
-    
-    const bottomWalkway = document.createElement("div");
-    bottomWalkway.className = "layout-walkway horizontal-walkway bottom-walkway";
-    bottomWalkway.textContent = "Walkway";
-    bottomSection.appendChild(bottomWalkway);
     
     container.appendChild(bottomSection);
     

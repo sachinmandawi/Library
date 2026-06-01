@@ -1776,11 +1776,13 @@ function openAddMemberModal() {
     adminModalIsDemo = false;
     adminModalDemoDuration = 5;
     
-    // Reset readonly/disabled fee fields
+    // Reset readonly/disabled fee fields and seat selection
     document.getElementById("m-fee-amount").readOnly = false;
     document.getElementById("m-amount-paid").readOnly = false;
     document.getElementById("m-payment").disabled = false;
     document.getElementById("m-payment-method").disabled = false;
+    document.getElementById("m-seat-type").disabled = false;
+    document.getElementById("m-seat-id").disabled = false;
     
     document.getElementById("modal-member-title").textContent = "Add New Member";
     document.getElementById("form-member").reset();
@@ -1924,6 +1926,10 @@ function openEditMemberModal(memberId) {
     
     // Set amount paid as read-only since it calculates from installments
     document.getElementById("m-amount-paid").readOnly = true;
+    
+    // Disable seat selection to prevent seat transfer
+    document.getElementById("m-seat-type").disabled = true;
+    document.getElementById("m-seat-id").disabled = true;
 
     // Load installments
     let invoices = member.invoices || [];

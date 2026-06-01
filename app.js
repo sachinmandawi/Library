@@ -3403,7 +3403,7 @@ function renderInvoiceReceiptDetails(member, invoiceObj) {
                     <tbody>
         `;
         invoiceObj.payments.forEach(p => {
-            const pDate = new Date(p.date).toLocaleDateString('en-IN', {day:'2-digit', month:'2-digit'});
+            const pDate = new Date(p.date).toLocaleDateString('en-IN', {day:'2-digit', month:'2-digit', year:'numeric'});
             installmentsHTML += `
                 <tr style="color: #334155;">
                     <td style="padding: 0.15rem 0;">${pDate}</td>

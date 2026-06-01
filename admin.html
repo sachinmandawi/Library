@@ -1205,8 +1205,9 @@
                 <!-- Dynamically written content based on seat occupant status -->
             </div>
             <div class="modal-footer" style="justify-content: space-between;">
-                <div>
+                <div style="display: flex; gap: 0.5rem;">
                     <button class="btn btn-danger" id="btn-seat-maintenance" onclick="toggleSeatMaintenance()">Block / Maintenance</button>
+                    <button class="btn btn-secondary" id="btn-seat-transfer" style="display: none; background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);" onclick="startSeatTransferFromModal()">Transfer Seat</button>
                 </div>
                 <div style="display: flex; gap: 0.5rem;">
                     <button class="btn btn-secondary" onclick="closeModal('modal-seat-actions')">Close</button>

@@ -1,4 +1,4 @@
-// The Study Cafe - Admin Panel Logic (Shift-free, 4 Rooms, 400 Seats Version with Receipt & WhatsApp)
+// The Study Cafe - Admin Panel Logic (Shift-free, 4 Rooms, 369 Seats Version with Receipt & WhatsApp)
 
 const DEFAULT_FIREBASE_CONFIG = {
     apiKey: "AIzaSyDW0-_Xzvwvkm9wpZ9j2ihDQmIAalrn7lM",
@@ -19,6 +19,44 @@ const PLANS = [
     { id: 'general-halfyearly', name: 'Non-Reserved Half-Yearly', price: 3600, type: 'non-reserved', duration: 6 },
     { id: 'premium-halfyearly', name: 'Reserved Half-Yearly', price: 5000, type: 'reserved', duration: 6 }
 ];
+
+// Helper to get room, seat number and display text from a seatId
+function getSeatRoomAndNumber(seatId) {
+    if (!seatId || seatId === "non-reserved") {
+        return { room: 0, number: 0, text: "Non-Reserved" };
+    }
+    const seat = state.seats.find(s => s.id === seatId);
+    if (seat) {
+        return { room: seat.room, number: seat.number, text: `Room ${seat.room} - Seat ${seat.number}` };
+    }
+    // Fallback if seat is not found in state
+    const globalSeatNum = parseInt(seatId.replace('seat_', ''));
+    if (isNaN(globalSeatNum)) {
+        return { room: 0, number: 0, text: seatId };
+    }
+    let room = 1;
+    let number = globalSeatNum;
+    if (globalSeatNum <= 69) {
+        room = 1;
+        number = globalSeatNum;
+    } else if (globalSeatNum <= 169) {
+        room = 2;
+        number = globalSeatNum - 69;
+    } else if (globalSeatNum <= 269) {
+        room = 3;
+        number = globalSeatNum - 169;
+    } else {
+        room = 4;
+        number = globalSeatNum - 269;
+    }
+    return { room, number, text: `Room ${room} - Seat ${number}` };
+}
+
+// Helper to convert seatId to user-friendly "Room X - Seat Y"
+function getSeatDisplayName(seatId) {
+    return getSeatRoomAndNumber(seatId).text;
+}
+
 
 // App State
 let state = {
@@ -99,7 +137,7 @@ function showToast(message, type = "info") {
     }, 4000);
 }
 
-// Generate default seats (400 seats total across 4 rooms, each room has 100 seats)
+// Generate default seats (369 seats total across 4 rooms: Room 1 has 69 seats, Rooms 2-4 have 100 seats each)
 function generateDefaultSeats() {
     const seats = [];
     let seatIndex = 1;
@@ -227,6 +265,12 @@ function initApp() {
     document.getElementById("set-lib-phone").value = state.settings.phone || "9876543210";
     document.getElementById("set-lib-addr").value = state.settings.address;
     document.getElementById("qr-lib-title").textContent = state.settings.libraryName;
+    
+    // Set max date limit on Member DOB input in the modal to prevent future birth dates
+    const dobInput = document.getElementById("m-dob");
+    if (dobInput) {
+        dobInput.max = new Date().toISOString().split('T')[0];
+    }
     
     // Try to load Firebase
     if (window.firebase && window.firebase.initializeApp && window.firebase.auth) {
@@ -837,15 +881,7 @@ function renderDashboardAlerts() {
         const clickableClass = member.photo ? 'clickable-avatar' : '';
         const onclickAttr = member.photo ? `onclick="openLightbox('${member.photo}')"` : '';
         
-        let seatInfoText = "";
-        if (member.seatId === "non-reserved") {
-            seatInfoText = "Non-Reserved";
-        } else {
-            const globalSeatNum = parseInt(member.seatId.replace('seat_', ''));
-            const roomNum = Math.ceil(globalSeatNum / 100);
-            const localSeatNum = globalSeatNum - (roomNum - 1) * 100;
-            seatInfoText = `Room ${roomNum} - Seat ${localSeatNum}`;
-        }
+        const seatInfoText = getSeatDisplayName(member.seatId);
         
         item.innerHTML = `
             <div class="alert-avatar ${clickableClass}" ${onclickAttr} style="${alertAvatarStyle}">${alertAvatarContent}</div>
@@ -921,15 +957,7 @@ function renderBirthdayAlerts() {
             const clickableClass = member.photo ? 'clickable-avatar' : '';
             const onclickAttr = member.photo ? `onclick="openLightbox('${member.photo}')"` : '';
             
-            let seatInfoText = "";
-            if (member.seatId === "non-reserved") {
-                seatInfoText = "Non-Reserved";
-            } else {
-                const globalSeatNum = parseInt(member.seatId.replace('seat_', ''));
-                const roomNum = Math.ceil(globalSeatNum / 100);
-                const localSeatNum = globalSeatNum - (roomNum - 1) * 100;
-                seatInfoText = `Room ${roomNum} - Seat ${localSeatNum}`;
-            }
+            const seatInfoText = getSeatDisplayName(member.seatId);
             
             item.innerHTML = `
                 <div class="alert-avatar ${clickableClass}" ${onclickAttr} style="${avatarStyle}">${avatarContent}</div>
@@ -995,15 +1023,7 @@ function renderBirthdayAlerts() {
             const clickableClass = member.photo ? 'clickable-avatar' : '';
             const onclickAttr = member.photo ? `onclick="openLightbox('${member.photo}')"` : '';
             
-            let seatInfoText = "";
-            if (member.seatId === "non-reserved") {
-                seatInfoText = "Non-Reserved";
-            } else {
-                const globalSeatNum = parseInt(member.seatId.replace('seat_', ''));
-                const roomNum = Math.ceil(globalSeatNum / 100);
-                const localSeatNum = globalSeatNum - (roomNum - 1) * 100;
-                seatInfoText = `Room ${roomNum} - Seat ${localSeatNum}`;
-            }
+            const seatInfoText = getSeatDisplayName(member.seatId);
             
             const bdayString = new Date(today.getFullYear(), member.birthMonth, member.birthDate).toLocaleDateString('en-IN', {
                 day: 'numeric',
@@ -1230,7 +1250,7 @@ function renderMemberTable() {
         filteredMembers = filteredMembers.filter(m => 
             m.name.toLowerCase().includes(searchVal) || 
             m.phone.includes(searchVal) || 
-            m.seatId.replace("seat_", "").includes(searchVal)
+            getSeatDisplayName(m.seatId).toLowerCase().includes(searchVal)
         );
     }
     
@@ -1343,13 +1363,12 @@ function renderMemberTable() {
                 </span>
             `;
         } else {
-            const roomNum = seat ? seat.room : Math.ceil(parseInt(member.seatId.replace("seat_", "")) / 100);
-            const localSeatNumber = seat ? seat.number : (parseInt(member.seatId.replace("seat_", "")) - (roomNum - 1) * 100);
+            const seatInfo = getSeatRoomAndNumber(member.seatId);
             const plan = PLANS.find(p => p.id === member.planId);
             const isReserved = plan ? plan.type === "reserved" : (seat ? seat.type === "reserved" : false);
             seatDisplayHTML = `
-                <strong style="color: #fff;">Seat ${localSeatNumber}</strong>
-                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top:1px;">Room ${roomNum}</div>
+                <strong style="color: #fff;">Seat ${seatInfo.number}</strong>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top:1px;">Room ${seatInfo.room}</div>
                 <span class="badge ${isDemoMember ? badgeClass : (isReserved ? 'reserved' : 'general')}" style="display:block; width:fit-content; margin-top:2px;">
                     ${isDemoMember ? badgeLabel : (isReserved ? "Cabin" : "Non-Reserved")}
                 </span>
@@ -1463,11 +1482,8 @@ function renderPendingRequests() {
         if (req.seatId === "non-reserved") {
             seatDetailsHTML = `<div style="font-size: 0.75rem; color: #fff; margin-top: 5px;">Requested: <strong>Non-Reserved</strong></div>`;
         } else {
-            const seat = state.seats.find(s => s.id === req.seatId);
-            const roomNum = seat ? seat.room : Math.ceil(parseInt(req.seatId.replace("seat_",""))/100);
-            const globalSeatNum = parseInt(req.seatId.replace("seat_",""));
-            const seatNum = seat ? seat.number : (globalSeatNum - (roomNum - 1) * 100);
-            seatDetailsHTML = `<div style="font-size: 0.75rem; color: #fff; margin-top: 5px;">Requested: <strong>Room ${roomNum} - Seat ${seatNum}</strong></div>`;
+            const seatInfo = getSeatRoomAndNumber(req.seatId);
+            seatDetailsHTML = `<div style="font-size: 0.75rem; color: #fff; margin-top: 5px;">Requested: <strong>Room ${seatInfo.room} - Seat ${seatInfo.number}</strong></div>`;
         }
         
         const reqAvatarLetter = req.name.charAt(0).toUpperCase();
@@ -1849,21 +1865,6 @@ function onModalSeatVacancyChange(keepSeatId = null) {
     }
 }
 
-// Expiry date calculation
-function calculateExpiryDate() {
-    const startDateVal = document.getElementById("m-start-date").value;
-    const planId = document.getElementById("m-plan").value;
-    
-    if (!startDateVal || !planId) return;
-    
-    const plan = PLANS.find(p => p.id === planId);
-    if (!plan) return;
-    
-    const startDate = new Date(startDateVal);
-    startDate.setMonth(startDate.getMonth() + plan.duration);
-    
-    document.getElementById("m-expiry-date").value = startDate.toISOString().split('T')[0];
-}
 
 // Add or update student
 function handleMemberFormSubmit(event) {
@@ -2173,15 +2174,7 @@ function sendExpiryReminder(memberId) {
     const timeDiff = expiry.getTime() - today.getTime();
     const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
     
-    let seatText = "";
-    if (member.seatId === "non-reserved") {
-        seatText = "Non-Reserved (Flexible)";
-    } else {
-        const globalSeatNum = parseInt(member.seatId.replace('seat_', ''));
-        const roomNum = Math.ceil(globalSeatNum / 100);
-        const localSeatNum = globalSeatNum - (roomNum - 1) * 100;
-        seatText = `Seat ${localSeatNum} (Room ${roomNum})`;
-    }
+    const seatText = getSeatDisplayName(member.seatId);
     
     const libName = state.settings.libraryName || "The Study Cafe";
     const formattedExpiryDate = new Date(member.expiryDate).toLocaleDateString('en-IN', {
@@ -2334,15 +2327,7 @@ function renderFeesTab() {
             const clickableClass = member.photo ? 'clickable-avatar' : '';
             const onclickAttr = member.photo ? `onclick="openLightbox('${member.photo}')"` : '';
             
-            let seatText = "";
-            if (member.seatId === "non-reserved") {
-                seatText = "Non-Reserved";
-            } else {
-                const globalSeatNum = parseInt(member.seatId.replace('seat_', ''));
-                const roomNum = Math.ceil(globalSeatNum / 100);
-                const localSeatNum = globalSeatNum - (roomNum - 1) * 100;
-                seatText = `Room ${roomNum} - Seat ${localSeatNum}`;
-            }
+            const seatText = getSeatDisplayName(member.seatId);
             
             const fee = parseInt(member.feeAmount) || 0;
             const paid = member.amountPaid !== undefined ? (parseInt(member.amountPaid) || 0) : (member.paymentStatus === "Paid" ? fee : 0);
@@ -2930,12 +2915,11 @@ function openReceiptModal(memberId) {
         roomDisplay = "N/A";
         seatDisplay = "Non-Reserved";
     } else {
-        const roomNum = seat ? seat.room : Math.ceil(parseInt(member.seatId.replace("seat_", "")) / 100);
-        const seatNum = seat ? seat.number : (parseInt(member.seatId.replace("seat_", "")) - (roomNum - 1) * 100);
+        const seatInfo = getSeatRoomAndNumber(member.seatId);
         const plan = PLANS.find(p => p.id === member.planId);
         const isReserved = plan ? plan.type === "reserved" : (seat ? seat.type === "reserved" : false);
-        roomDisplay = `Room ${roomNum}`;
-        seatDisplay = `Seat ${seatNum} (${isReserved ? 'Reserved' : 'Non-Reserved'})`;
+        roomDisplay = `Room ${seatInfo.room}`;
+        seatDisplay = `Seat ${seatInfo.number} (${isReserved ? 'Reserved' : 'Non-Reserved'})`;
     }
     
     const startDateFmt = new Date(member.startDate).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
@@ -3095,12 +3079,11 @@ function shareReceiptWhatsApp() {
         roomDisplay = "N/A";
         seatDisplay = "Non-Reserved";
     } else {
-        const roomNum = seat ? seat.room : Math.ceil(parseInt(member.seatId.replace("seat_", "")) / 100);
-        const seatNum = seat ? seat.number : (parseInt(member.seatId.replace("seat_", "")) - (roomNum - 1) * 100);
+        const seatInfo = getSeatRoomAndNumber(member.seatId);
         const plan = PLANS.find(p => p.id === member.planId);
         const isReserved = plan ? plan.type === "reserved" : (seat ? seat.type === "reserved" : false);
-        roomDisplay = `Room ${roomNum}`;
-        seatDisplay = `Seat ${seatNum} (${isReserved ? 'Reserved' : 'Non-Reserved'})`;
+        roomDisplay = `Room ${seatInfo.room}`;
+        seatDisplay = `Seat ${seatInfo.number} (${isReserved ? 'Reserved' : 'Non-Reserved'})`;
     }
     
     const startDateFmt = new Date(member.startDate).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
@@ -3952,15 +3935,7 @@ function exportFeesReport() {
         const paid = m.amountPaid !== undefined ? (parseInt(m.amountPaid) || 0) : (m.paymentStatus === "Paid" ? fee : 0);
         const pending = m.balanceAmount !== undefined ? (parseInt(m.balanceAmount) || 0) : (fee - paid);
         
-        let seatText = "";
-        if (m.seatId === "non-reserved") {
-            seatText = "Non-Reserved";
-        } else {
-            const globalSeatNum = parseInt(m.seatId.replace('seat_', ''));
-            const roomNum = Math.ceil(globalSeatNum / 100);
-            const localSeatNum = globalSeatNum - (roomNum - 1) * 100;
-            seatText = `Room ${roomNum} - Seat ${localSeatNum}`;
-        }
+        const seatText = getSeatDisplayName(m.seatId);
         
         const planName = PLANS.find(p => p.id === m.planId)?.name || 'Custom Plan';
         const regDate = new Date(m.timestamp || Date.now()).toLocaleDateString('en-IN');

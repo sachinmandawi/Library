@@ -867,7 +867,14 @@ window.addEventListener("DOMContentLoaded", () => {
 
     const dateInput = document.getElementById("s-start-date");
     if (dateInput) {
-        dateInput.value = new Date().toISOString().split('T')[0];
+        const todayStr = new Date().toISOString().split('T')[0];
+        dateInput.value = todayStr;
+        dateInput.min = todayStr;
+    }
+    
+    const dobInput = document.getElementById("s-dob");
+    if (dobInput) {
+        dobInput.max = new Date().toISOString().split('T')[0];
     }
     
     // Add image input change listener for compression

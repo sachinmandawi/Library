@@ -1463,13 +1463,13 @@ h1, h2, h3, h4, h5, h6 {
 .seat-grid-container.physical-layout-active,
 .student-seat-grid.physical-layout-active {
     display: block;
-    overflow-x: auto;
-    padding: 1.5rem;
+    overflow: hidden; /* Prevent scrolls since we zoom/scale to fit */
+    padding: 1rem 0.5rem;
     max-height: none; /* remove max-height on student seat picker */
 }
 
 .physical-layout-container {
-    width: 680px;
+    width: 580px;
     margin: 0 auto;
     background: rgba(10, 14, 23, 0.4);
     border: 1px solid var(--border-color);
@@ -1481,6 +1481,19 @@ h1, h2, h3, h4, h5, h6 {
     flex-direction: column;
     gap: 0.75rem;
     user-select: none;
+}
+
+/* Desktop form card zoom scale for Room 1 to fit inside 650px container */
+.student-seat-grid.physical-layout-active .physical-layout-container {
+    zoom: 0.82;
+    margin: 0 auto;
+}
+@supports not (zoom: 1) {
+    .student-seat-grid.physical-layout-active .physical-layout-container {
+        transform: scale(0.82);
+        transform-origin: center top;
+        margin-bottom: -200px;
+    }
 }
 
 .layout-row {
@@ -1503,7 +1516,7 @@ h1, h2, h3, h4, h5, h6 {
     flex-direction: row;
     justify-content: space-between;
     align-items: stretch;
-    height: 1120px;
+    height: 920px;
     gap: 0.25rem;
 }
 
@@ -1589,32 +1602,56 @@ h1, h2, h3, h4, h5, h6 {
 /* Sizing overrides inside physical layout to fit perfectly */
 .physical-layout-container .seat-box,
 .physical-layout-container .student-seat-box {
-    width: 54px !important;
-    height: 54px !important;
+    width: 44px !important;
+    height: 44px !important;
     border-radius: 8px !important;
-    font-size: 0.85rem !important;
+    font-size: 0.8rem !important;
 }
 
 /* Responsive scaling for active seating layouts on smaller screens */
 @media (max-width: 768px) {
     .student-seat-grid.physical-layout-active .physical-layout-container,
     .seat-grid-container.physical-layout-active .physical-layout-container {
-        transform: scale(0.8) !important;
-        margin-bottom: -250px;
+        zoom: 0.8 !important;
+        margin: 0 auto;
+    }
+    @supports not (zoom: 1) {
+        .student-seat-grid.physical-layout-active .physical-layout-container,
+        .seat-grid-container.physical-layout-active .physical-layout-container {
+            transform: scale(0.8) !important;
+            transform-origin: center top;
+            margin-bottom: -220px !important;
+        }
     }
 }
 @media (max-width: 580px) {
     .student-seat-grid.physical-layout-active .physical-layout-container,
     .seat-grid-container.physical-layout-active .physical-layout-container {
-        transform: scale(0.65) !important;
-        margin-bottom: -438px;
+        zoom: 0.62 !important;
+        margin: 0 auto;
+    }
+    @supports not (zoom: 1) {
+        .student-seat-grid.physical-layout-active .physical-layout-container,
+        .seat-grid-container.physical-layout-active .physical-layout-container {
+            transform: scale(0.62) !important;
+            transform-origin: center top;
+            margin-bottom: -418px !important;
+        }
     }
 }
 @media (max-width: 450px) {
     .student-seat-grid.physical-layout-active .physical-layout-container,
     .seat-grid-container.physical-layout-active .physical-layout-container {
-        transform: scale(0.5) !important;
-        margin-bottom: -625px;
+        zoom: 0.46 !important;
+        margin: 0 auto;
+    }
+    @supports not (zoom: 1) {
+        .student-seat-grid.physical-layout-active .physical-layout-container,
+        .seat-grid-container.physical-layout-active .physical-layout-container {
+            transform: scale(0.46) !important;
+            transform-origin: center top;
+            margin-bottom: -590px !important;
+        }
     }
 }
 

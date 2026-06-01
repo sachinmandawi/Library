@@ -171,125 +171,6 @@ function removeInstallmentFromForm(index) {
     }
 }
 
-// Seat Transfer Mode State & Handlers
-let transferSession = null;
-
-function showTransferBanner(memberName, sourceSeatNumber) {
-    removeTransferBanner();
-    
-    const banner = document.createElement("div");
-    banner.id = "seat-transfer-banner";
-    banner.style.cssText = "position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); border: 1px solid var(--border-color); color: #fff; padding: 0.8rem 1.5rem; border-radius: 50px; z-index: 9999; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 1rem; font-family: 'Outfit', sans-serif; font-size: 0.9rem; animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);";
-    banner.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <i class="fa-solid fa-right-left" style="color: var(--accent-blue);"></i>
-            <span>Transferring <strong>${memberName}</strong> from <strong>Seat ${sourceSeatNumber}</strong>. Click a vacant seat to complete transfer.</span>
-        </div>
-        <button onclick="cancelTransferSession()" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; padding: 0.3rem 0.8rem; border-radius: 20px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s; border: none; border-radius: 50px;">
-            Cancel
-        </button>
-    `;
-    document.body.appendChild(banner);
-}
-
-function removeTransferBanner() {
-    const banner = document.getElementById("seat-transfer-banner");
-    if (banner) banner.remove();
-}
-
-function startSeatTransfer(memberId) {
-    const member = state.members.find(m => m.id === memberId);
-    if (!member) return;
-
-    const seat = state.seats.find(s => s.id === member.seatId);
-    const sourceSeatNum = seat ? seat.number : "N/A";
-
-    transferSession = {
-        memberId: member.id,
-        memberName: member.name,
-        sourceSeatId: member.seatId,
-        sourceSeatNumber: sourceSeatNum
-    };
-
-    closeModal("modal-seat-actions");
-    showTransferBanner(member.name, sourceSeatNum);
-    showToast(`Transfer mode active: Click a vacant seat to transfer ${member.name}.`, "info");
-}
-
-function cancelTransferSession() {
-    transferSession = null;
-    removeTransferBanner();
-    showToast("Seat transfer cancelled.", "info");
-}
-
-function startSeatTransferFromModal() {
-    const member = state.members.find(m => m.seatId === selectedSeatIdForActions);
-    if (member) {
-        startSeatTransfer(member.id);
-    }
-}
-
-function handleTransferToSeat(targetSeatId) {
-    if (!transferSession) return;
-
-    const targetSeat = state.seats.find(s => s.id === targetSeatId);
-    if (!targetSeat) return;
-
-    if (targetSeat.id === transferSession.sourceSeatId) {
-        showToast("Cannot transfer to the same seat!", "error");
-        cancelTransferSession();
-        return;
-    }
-
-    if (targetSeat.status !== "vacant") {
-        showToast(`Seat ${targetSeat.number} is occupied or unavailable. Select a vacant seat.`, "error");
-        return;
-    }
-
-    const member = state.members.find(m => m.id === transferSession.memberId);
-    if (!member) {
-        cancelTransferSession();
-        return;
-    }
-
-    if (confirm(`Confirm: Transfer ${transferSession.memberName} from Seat ${transferSession.sourceSeatNumber} to Seat ${targetSeat.number}?`)) {
-        const oldSeatId = transferSession.sourceSeatId;
-        const newSeatId = targetSeat.id;
-
-        // 1. Vacate old seat
-        const oldSeat = state.seats.find(s => s.id === oldSeatId);
-        if (oldSeat) {
-            oldSeat.status = "vacant";
-            oldSeat.assignedMemberId = null;
-        }
-
-        // 2. Occupy new seat
-        targetSeat.status = "occupied";
-        targetSeat.assignedMemberId = member.id;
-        targetSeat.type = oldSeat ? oldSeat.type : "reserved";
-
-        // 3. Update member's seatId
-        member.seatId = newSeatId;
-
-        // 4. Update seatId in active invoice and invoice history
-        if (member.invoices) {
-            member.invoices.forEach(inv => {
-                if (inv.timestamp === member.timestamp) {
-                    inv.seatId = newSeatId;
-                }
-            });
-        }
-
-        // 5. Precisely patch database
-        const affectedSeatIds = [oldSeatId, newSeatId];
-        patchFirebaseData(member.id, affectedSeatIds);
-
-        showToast(`Transferred ${member.name} to Seat ${targetSeat.number} successfully!`, "success");
-        cancelTransferSession();
-        refreshUI();
-    }
-}
-
 
 // App State
 let state = {
@@ -674,109 +555,8 @@ function enableOfflineMode() {
     showToast("Running in Local Offline Mode. Changes will save in this browser.", "info");
 }
 
-// Database auto-recovery for student Turn
-function checkAndRestoreStudentTurn() {
-    if (isOfflineMode || !database) return;
-    
-    database.ref("study_cafe_system/members/m_1779943822077").once("value")
-        .then(snapshot => {
-            if (!snapshot.exists()) {
-                console.log("Restoring student Turn to database...");
-                const studentData = {
-                    id: "m_1779943822077",
-                    name: "Turn",
-                    phone: "1234509876",
-                    dob: "2026-05-28",
-                    gender: "N/A",
-                    email: "N/A",
-                    fatherName: "asdfghjkl",
-                    fatherPhone: "1234567890",
-                    motherName: "N/A",
-                    motherPhone: "N/A",
-                    street: "Munmuna",
-                    city: "Munmuna",
-                    state: "Chhattisgarh",
-                    zip: "490006",
-                    permanentStreet: "asdfg",
-                    permanentCity: "asdfg",
-                    permanentState: "Chhattisgarh",
-                    permanentZip: "490006",
-                    currentAddress: "Munmuna",
-                    permanentAddress: "asdfg",
-                    emergencyName: "Sachin Mandavi",
-                    emergencyRelation: "Mother",
-                    emergencyPhone: "1234567890",
-                    targetExam: "UPSC",
-                    seatId: "seat_4",
-                    planId: "premium-monthly",
-                    duration: 1,
-                    govId: "1234567890",
-                    startDate: "28/5/2026",
-                    expiryDate: "28/6/2026",
-                    feeAmount: 1000,
-                    amountPaid: 1000,
-                    balanceAmount: 0,
-                    paymentStatus: "Paid",
-                    paymentMethod: "Cash",
-                    photo: "",
-                    status: "active",
-                    demoDuration: 0,
-                    demoStartDate: null,
-                    demoEndDate: null,
-                    timestamp: 1779943822077,
-                    invoices: [
-                        {
-                            id: "inv_1779943822077",
-                            planId: "premium-monthly",
-                            packageName: "Reserved Monthly",
-                            duration: 1,
-                            startDate: "28/5/2026",
-                            expiryDate: "28/6/2026",
-                            feeAmount: 1000,
-                            amountPaid: 1000,
-                            balanceAmount: 0,
-                            paymentStatus: "Paid",
-                            paymentMethod: "Cash",
-                            seatId: "seat_4",
-                            timestamp: 1779943822077,
-                            payments: [
-                                {
-                                    amount: 1000,
-                                    method: "Cash",
-                                    date: "2026-05-28",
-                                    notes: "Initial payment"
-                                }
-                            ]
-                        }
-                    ]
-                };
-                
-                // Write student back to database
-                database.ref("study_cafe_system/members/m_1779943822077").set(studentData);
-                
-                // Re-occupy Seat 4 if it is vacant
-                database.ref("study_cafe_system/seats/3").once("value")
-                    .then(seatSnapshot => {
-                        const seatVal = seatSnapshot.val();
-                        if (seatVal && seatVal.status === "vacant") {
-                            seatVal.status = "occupied";
-                            seatVal.assignedMemberId = "m_1779943822077";
-                            database.ref("study_cafe_system/seats/3").set(seatVal);
-                        }
-                    });
-            }
-        })
-        .catch(err => {
-            console.error("Error checking/restoring student Turn:", err);
-        });
-}
-
 // Realtime sync listeners
 function setupFirebaseListeners() {
-    if (!database) return;
-    
-    // Check and restore student Turn if missing
-    checkAndRestoreStudentTurn();
     if (!database) return;
     
     const dbRef = database.ref("study_cafe_system");
@@ -1738,7 +1518,7 @@ function renderMemberTable() {
         const tr = document.createElement("tr");
         const seat = state.seats.find(s => s.id === member.seatId);
         
-        const startDateFmt = new Date(member.startDate).toLocaleDateString('en-IN', {day:'numeric', month:'short'});
+        const startDateFmt = new Date(member.startDate).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
         const expiryDateFmt = new Date(member.expiryDate).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
         
         const todayZero = new Date();
@@ -2991,6 +2771,7 @@ function renderFeesTab() {
             const timeFmt = new Date(member.timestamp).toLocaleDateString('en-IN', {
                 day: 'numeric',
                 month: 'short',
+                year: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit'
             });
@@ -3352,10 +3133,6 @@ function removePendingRequest(requestId) {
 let selectedSeatIdForActions = null;
 
 function openSeatActionsModal(seatId) {
-    if (transferSession) {
-        handleTransferToSeat(seatId);
-        return;
-    }
     selectedSeatIdForActions = seatId;
     const seat = state.seats.find(s => s.id === seatId);
     if (!seat) return;
@@ -3363,15 +3140,12 @@ function openSeatActionsModal(seatId) {
     const modalBody = document.getElementById("seat-modal-body");
     const mBtnActions = document.getElementById("btn-seat-primary-action");
     const mBtnMaintenance = document.getElementById("btn-seat-maintenance");
-    const mBtnTransfer = document.getElementById("btn-seat-transfer");
     
     const isMaintenance = seat.status === "maintenance";
     
     mBtnMaintenance.style.display = "block";
     mBtnMaintenance.textContent = isMaintenance ? "Restore Seat" : "Maintenance Block";
     mBtnActions.style.display = "block";
-    mBtnActions.style.gridColumn = "";
-    if (mBtnTransfer) mBtnTransfer.style.display = "none";
     
     if (isMaintenance) {
         mBtnActions.style.display = "none";
@@ -3398,8 +3172,6 @@ function openSeatActionsModal(seatId) {
                 const seatAvatarContent = member.photo ? '' : seatAvatarLetter;
                 const clickableClass = member.photo ? 'clickable-avatar' : '';
                 const onclickAttr = member.photo ? `onclick="openLightbox('${member.photo}')"` : '';
-                
-                if (mBtnTransfer) mBtnTransfer.style.display = "block";
                 
                 modalBody.innerHTML = `
                     <div style="display: flex; flex-direction: column; gap: 0.8rem;">
@@ -3502,7 +3274,6 @@ function openSeatActionsModal(seatId) {
                 mBtnActions.onclick = () => releaseSeatFromModal(member.id);
             } else {
                 modalBody.innerHTML = `<p>Occupant record missing. Sync issue occurred.</p>`;
-                mBtnActions.style.gridColumn = "span 2";
                 mBtnActions.textContent = "Force Vacate";
                 mBtnActions.onclick = () => forceResetSeat(seat.id);
             }
@@ -3520,7 +3291,6 @@ function openSeatActionsModal(seatId) {
                 </div>
             `;
             
-            mBtnActions.style.gridColumn = "span 2";
             mBtnActions.textContent = "Assign Member";
             mBtnActions.className = "btn btn-primary";
             mBtnActions.onclick = () => {
@@ -3571,13 +3341,10 @@ function toggleSeatMaintenance() {
     } else {
         activeOccupantId = seat.assignedMemberId;
         if (activeOccupantId) {
-            if (!confirm(`Warning: Seat ${seat.number} has active student booking. Blocking it will vacate occupant from the seat. Proceed?`)) {
+            if (!confirm(`Warning: Seat ${seat.number} has active student booking. Blocking it will vacate occupant. Proceed?`)) {
                 return;
             }
-            const member = state.members.find(m => m.id === activeOccupantId);
-            if (member) {
-                member.seatId = ""; // Unassign the seat, keeping the student profile intact
-            }
+            state.members = state.members.filter(m => m.id !== activeOccupantId);
         }
         
         seat.status = "maintenance";

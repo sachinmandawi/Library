@@ -674,8 +674,109 @@ function enableOfflineMode() {
     showToast("Running in Local Offline Mode. Changes will save in this browser.", "info");
 }
 
+// Database auto-recovery for student Turn
+function checkAndRestoreStudentTurn() {
+    if (isOfflineMode || !database) return;
+    
+    database.ref("study_cafe_system/members/m_1779943822077").once("value")
+        .then(snapshot => {
+            if (!snapshot.exists()) {
+                console.log("Restoring student Turn to database...");
+                const studentData = {
+                    id: "m_1779943822077",
+                    name: "Turn",
+                    phone: "1234509876",
+                    dob: "2026-05-28",
+                    gender: "N/A",
+                    email: "N/A",
+                    fatherName: "asdfghjkl",
+                    fatherPhone: "1234567890",
+                    motherName: "N/A",
+                    motherPhone: "N/A",
+                    street: "Munmuna",
+                    city: "Munmuna",
+                    state: "Chhattisgarh",
+                    zip: "490006",
+                    permanentStreet: "asdfg",
+                    permanentCity: "asdfg",
+                    permanentState: "Chhattisgarh",
+                    permanentZip: "490006",
+                    currentAddress: "Munmuna",
+                    permanentAddress: "asdfg",
+                    emergencyName: "Sachin Mandavi",
+                    emergencyRelation: "Mother",
+                    emergencyPhone: "1234567890",
+                    targetExam: "UPSC",
+                    seatId: "seat_4",
+                    planId: "premium-monthly",
+                    duration: 1,
+                    govId: "1234567890",
+                    startDate: "28/5/2026",
+                    expiryDate: "28/6/2026",
+                    feeAmount: 1000,
+                    amountPaid: 1000,
+                    balanceAmount: 0,
+                    paymentStatus: "Paid",
+                    paymentMethod: "Cash",
+                    photo: "",
+                    status: "active",
+                    demoDuration: 0,
+                    demoStartDate: null,
+                    demoEndDate: null,
+                    timestamp: 1779943822077,
+                    invoices: [
+                        {
+                            id: "inv_1779943822077",
+                            planId: "premium-monthly",
+                            packageName: "Reserved Monthly",
+                            duration: 1,
+                            startDate: "28/5/2026",
+                            expiryDate: "28/6/2026",
+                            feeAmount: 1000,
+                            amountPaid: 1000,
+                            balanceAmount: 0,
+                            paymentStatus: "Paid",
+                            paymentMethod: "Cash",
+                            seatId: "seat_4",
+                            timestamp: 1779943822077,
+                            payments: [
+                                {
+                                    amount: 1000,
+                                    method: "Cash",
+                                    date: "2026-05-28",
+                                    notes: "Initial payment"
+                                }
+                            ]
+                        }
+                    ]
+                };
+                
+                // Write student back to database
+                database.ref("study_cafe_system/members/m_1779943822077").set(studentData);
+                
+                // Re-occupy Seat 4 if it is vacant
+                database.ref("study_cafe_system/seats/3").once("value")
+                    .then(seatSnapshot => {
+                        const seatVal = seatSnapshot.val();
+                        if (seatVal && seatVal.status === "vacant") {
+                            seatVal.status = "occupied";
+                            seatVal.assignedMemberId = "m_1779943822077";
+                            database.ref("study_cafe_system/seats/3").set(seatVal);
+                        }
+                    });
+            }
+        })
+        .catch(err => {
+            console.error("Error checking/restoring student Turn:", err);
+        });
+}
+
 // Realtime sync listeners
 function setupFirebaseListeners() {
+    if (!database) return;
+    
+    // Check and restore student Turn if missing
+    checkAndRestoreStudentTurn();
     if (!database) return;
     
     const dbRef = database.ref("study_cafe_system");
@@ -3470,10 +3571,13 @@ function toggleSeatMaintenance() {
     } else {
         activeOccupantId = seat.assignedMemberId;
         if (activeOccupantId) {
-            if (!confirm(`Warning: Seat ${seat.number} has active student booking. Blocking it will vacate occupant. Proceed?`)) {
+            if (!confirm(`Warning: Seat ${seat.number} has active student booking. Blocking it will vacate occupant from the seat. Proceed?`)) {
                 return;
             }
-            state.members = state.members.filter(m => m.id !== activeOccupantId);
+            const member = state.members.find(m => m.id === activeOccupantId);
+            if (member) {
+                member.seatId = ""; // Unassign the seat, keeping the student profile intact
+            }
         }
         
         seat.status = "maintenance";

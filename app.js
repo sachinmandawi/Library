@@ -3148,19 +3148,28 @@ For support, contact us at: ${state.settings.phone}`;
 
 // Helper to get registration URL with custom config
 function getRegistrationLink(type) {
-    let hostUrl = window.location.href;
-    if (hostUrl.includes("admin.html")) {
-        hostUrl = hostUrl.replace("admin.html", "register.html");
-    } else if (hostUrl.includes("index.html")) {
-        hostUrl = hostUrl.replace("index.html", "register.html");
-    } else if (hostUrl.endsWith("/")) {
-        hostUrl = hostUrl + "register.html";
-    } else {
-        const idx = hostUrl.lastIndexOf("/");
-        hostUrl = hostUrl.substring(0, idx + 1) + "register.html";
+    const inputEl = document.getElementById("qr-target-url");
+    let baseUrl = "";
+    if (inputEl && inputEl.value) {
+        baseUrl = inputEl.value.split('?')[0].split('#')[0];
     }
     
-    let qrUrl = hostUrl + `?type=${type}`;
+    if (!baseUrl) {
+        let hostUrl = window.location.href;
+        if (hostUrl.includes("admin.html")) {
+            hostUrl = hostUrl.replace("admin.html", "register.html");
+        } else if (hostUrl.includes("index.html")) {
+            hostUrl = hostUrl.replace("index.html", "register.html");
+        } else if (hostUrl.endsWith("/")) {
+            hostUrl = hostUrl + "register.html";
+        } else {
+            const idx = hostUrl.lastIndexOf("/");
+            hostUrl = hostUrl.substring(0, idx + 1) + "register.html";
+        }
+        baseUrl = hostUrl;
+    }
+    
+    let qrUrl = baseUrl + `?type=${type}`;
     
     const config = getFirebaseConfig();
     const isCustom = localStorage.getItem("custom_firebase_config") !== null;
@@ -3292,6 +3301,9 @@ function updateRegistrationQRFromInput() {
     } catch(err) {
         console.error("QR Code manual generation failing:", err);
     }
+    
+    // Also update dashboard dual QR codes in real-time
+    generateDashboardQRCodes();
 }
 
 // Print QR code frame

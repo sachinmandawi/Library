@@ -717,6 +717,32 @@ function submitStudentForm(event) {
         }
     };
 
+    const checkSeatAndSubmit = () => {
+        if (seatId && seatId !== "non-reserved" && database) {
+            const seatIdx = allSeats.findIndex(s => s.id === seatId);
+            if (seatIdx !== -1) {
+                database.ref(`study_cafe_system/seats/${seatIdx}`).once("value")
+                    .then(snapshot => {
+                        const val = snapshot.val();
+                        if (val && val.status === "occupied") {
+                            alert("यह सीट अभी-अभी किसी अन्य छात्र द्वारा बुक कर ली गई है। कृपया सबमिट करने से पहले कोई दूसरी सीट चुनें।\n\n(This seat has just been occupied by another student. Please choose another seat before submitting.)");
+                            resetSubmitBtn();
+                        } else {
+                            performSubmission();
+                        }
+                    })
+                    .catch(err => {
+                        console.warn("Seat occupancy live check failed, proceeding:", err);
+                        performSubmission();
+                    });
+            } else {
+                performSubmission();
+            }
+        } else {
+            performSubmission();
+        }
+    };
+
     if (isDemo) {
         // Enforce spam control (one demo per number)
         submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying Demo Pass...';
@@ -728,12 +754,12 @@ function submitStudentForm(event) {
                         alert("यह मोबाइल नंबर पहले से ही लाइब्रेरी में रजिस्टर्ड है। फ्री डेमो केवल नए छात्रों के लिए है।\n\n(This mobile number is already registered. Free demos are only available for new students.)");
                         resetSubmitBtn();
                     } else {
-                        performSubmission();
+                        checkSeatAndSubmit();
                     }
                 })
                 .catch(err => {
                     console.warn("Database lookup failed during demo verification, proceeding...", err);
-                    performSubmission();
+                    checkSeatAndSubmit();
                 });
         } else {
             // Local fallback check
@@ -749,11 +775,11 @@ function submitStudentForm(event) {
                 alert("यह मोबाइल नंबर पहले से ही लाइब्रेरी में रजिस्टर्ड है। फ्री डेमो केवल नए छात्रों के लिए है।\n\n(This mobile number is already registered. Free demos are only available for new students.)");
                 resetSubmitBtn();
             } else {
-                performSubmission();
+                checkSeatAndSubmit();
             }
         }
     } else {
-        performSubmission();
+        checkSeatAndSubmit();
     }
 }
 

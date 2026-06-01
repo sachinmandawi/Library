@@ -57,6 +57,120 @@ function getSeatDisplayName(seatId) {
     return getSeatRoomAndNumber(seatId).text;
 }
 
+// Debounce helper to optimize search input calls
+function debounce(func, delay) {
+    let timeoutId;
+    return function (...args) {
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            func.apply(this, args);
+        }, delay);
+    };
+}
+
+const debouncedRenderMemberTable = debounce(renderMemberTable, 250);
+
+// Get plan name helper
+function getPlanName(planId) {
+    if (planId && planId.startsWith("demo-")) {
+        return `Free Demo Pass (${planId.replace("demo-", "")} Days)`;
+    }
+    const plan = PLANS.find(p => p.id === planId);
+    return plan ? plan.name : planId;
+}
+
+// Render installments inside the member form modal
+function renderModalInstallments() {
+    const container = document.getElementById("m-installments-list");
+    if (!container) return;
+    container.innerHTML = "";
+
+    if (!currentModalInstallments || currentModalInstallments.length === 0) {
+        container.innerHTML = `<div style="color: var(--text-muted); font-size: 0.8rem; text-align: center; padding: 0.5rem 0;">No installments recorded.</div>`;
+        return;
+    }
+
+    currentModalInstallments.forEach((inst, index) => {
+        const dateStr = inst.date ? new Date(inst.date).toLocaleDateString('en-IN', {day:'2-digit', month:'2-digit', year:'numeric'}) : "";
+        const div = document.createElement("div");
+        div.style.cssText = "display: flex; align-items: center; justify-content: space-between; padding: 0.35rem 0.5rem; background: rgba(255,255,255,0.03); border-radius: 4px; border: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem; color: #fff; margin-bottom: 0.25rem;";
+        div.innerHTML = `
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 0.1rem;">
+                <div style="font-weight: 500;">₹${inst.amount} - ${inst.method}</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted);">${inst.note || 'No note'} | ${dateStr}</div>
+            </div>
+            <button type="button" onclick="removeInstallmentFromForm(${index})" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0 0.25rem;">
+                <i class="fa-solid fa-trash-can" style="font-size: 0.8rem;"></i>
+            </button>
+        `;
+        container.appendChild(div);
+    });
+}
+
+// Recalculate installments totals
+function recalculateModalInstallmentTotals() {
+    const feeAmountInput = document.getElementById("m-fee-amount");
+    const amountPaidInput = document.getElementById("m-amount-paid");
+    const balanceAmountInput = document.getElementById("m-balance-amount");
+    const paymentStatusInput = document.getElementById("m-payment");
+
+    const feeAmount = parseFloat(feeAmountInput.value) || 0;
+    
+    // Sum up installments
+    const totalPaid = currentModalInstallments.reduce((sum, inst) => sum + (parseFloat(inst.amount) || 0), 0);
+    amountPaidInput.value = totalPaid;
+
+    const remaining = feeAmount - totalPaid;
+    balanceAmountInput.value = remaining >= 0 ? remaining : 0;
+
+    if (remaining <= 0) {
+        paymentStatusInput.value = "Paid";
+    } else if (totalPaid > 0) {
+        paymentStatusInput.value = "Partial";
+    } else {
+        paymentStatusInput.value = "Unpaid";
+    }
+}
+
+// Add installment from modal form
+function addInstallmentFromForm() {
+    const amountInput = document.getElementById("new-inst-amount");
+    const methodSelect = document.getElementById("new-inst-method");
+    const noteInput = document.getElementById("new-inst-note");
+
+    const amount = parseFloat(amountInput.value);
+    if (isNaN(amount) || amount <= 0) {
+        showToast("Please enter a valid amount greater than 0", "error");
+        return;
+    }
+
+    const newInst = {
+        id: "pay_" + Date.now(),
+        date: new Date().toISOString(),
+        amount: amount,
+        method: methodSelect.value,
+        note: noteInput.value.trim()
+    };
+
+    currentModalInstallments.push(newInst);
+    
+    // Clear inputs
+    amountInput.value = "";
+    noteInput.value = "";
+
+    renderModalInstallments();
+    recalculateModalInstallmentTotals();
+}
+
+// Remove installment from modal form
+function removeInstallmentFromForm(index) {
+    if (confirm("Are you sure you want to delete this installment?")) {
+        currentModalInstallments.splice(index, 1);
+        renderModalInstallments();
+        recalculateModalInstallmentTotals();
+    }
+}
+
 
 // App State
 let state = {
@@ -80,6 +194,7 @@ let recentlyApprovedOrRejected = new Set(); // Track approved/rejected requests 
 let modalPhotoBase64 = null; // Store compressed profile picture in memory for new/edited members
 let adminModalIsDemo = false;
 let adminModalDemoDuration = 5;
+let currentModalInstallments = [];
 
 // Initialize Web Audio notification sound
 function playNotificationSound() {
@@ -707,6 +822,53 @@ function syncLocalToDatabase() {
     database.ref("study_cafe_system/seats").set(state.seats);
     database.ref("study_cafe_system/members").set(state.members);
     database.ref("study_cafe_system/registered_phones").set(regPhones);
+}
+
+// Lightweight data patching for Firebase to write only modified nodes
+function patchFirebaseData(changedMemberId = null, changedSeatIds = []) {
+    // Generate registered phone numbers lookup
+    const regPhones = {};
+    (state.members || []).forEach(m => {
+        if (m.phone) {
+            const cleanPhone = m.phone.replace(/\D/g, "");
+            const phone10 = cleanPhone.slice(-10);
+            if (phone10.length === 10) {
+                regPhones[phone10] = {
+                    studentName: m.name,
+                    status: m.status || "active"
+                };
+            }
+        }
+    });
+
+    state.registered_phones = regPhones;
+    saveStateToLocalStorage();
+
+    if (isOfflineMode || !database) return;
+    
+    // Write registered phones lookup
+    database.ref("study_cafe_system/registered_phones").set(regPhones);
+
+    // Patch member precisely
+    if (changedMemberId) {
+        const member = state.members.find(m => m.id === changedMemberId);
+        if (member) {
+            database.ref(`study_cafe_system/members/${member.id}`).set(member);
+        } else {
+            // Deleted
+            database.ref(`study_cafe_system/members/${changedMemberId}`).remove();
+        }
+    }
+
+    // Patch seats precisely
+    if (changedSeatIds && changedSeatIds.length > 0) {
+        changedSeatIds.forEach(seatId => {
+            const idx = state.seats.findIndex(s => s.id === seatId);
+            if (idx !== -1) {
+                database.ref(`study_cafe_system/seats/${idx}`).set(state.seats[idx]);
+            }
+        });
+    }
 }
 
 // Check for local offline pending submissions
@@ -1652,6 +1814,14 @@ function openAddMemberModal() {
     }
     
     onModalSeatTypeChange();
+    
+    // Clear installments and hide section for new members
+    currentModalInstallments = [];
+    const instSection = document.getElementById("m-installments-section");
+    if (instSection) {
+        instSection.style.display = "none";
+    }
+
     openModal("modal-member");
 }
 
@@ -1751,6 +1921,36 @@ function openEditMemberModal(memberId) {
     document.getElementById("m-balance-amount").value = balanceAmount;
     document.getElementById("m-payment").value = member.paymentStatus;
     document.getElementById("m-payment-method").value = member.paymentMethod || "Cash";
+    
+    // Set amount paid as read-only since it calculates from installments
+    document.getElementById("m-amount-paid").readOnly = true;
+
+    // Load installments
+    let invoices = member.invoices || [];
+    if (invoices.length === 0) {
+        // Fallback for old data
+        const fallbackPayments = member.payments || [];
+        if (fallbackPayments.length === 0 && (amountPaid > 0)) {
+            fallbackPayments.push({
+                id: "pay_" + (member.timestamp || Date.now()),
+                date: member.startDate ? new Date(member.startDate).toISOString() : new Date().toISOString(),
+                amount: amountPaid,
+                method: member.paymentMethod || "Cash",
+                note: "Initial Payment"
+            });
+        }
+        currentModalInstallments = [...fallbackPayments];
+    } else {
+        // Load payments from active invoice
+        const activeInvoice = invoices.find(inv => inv.timestamp === member.timestamp) || invoices[invoices.length - 1];
+        currentModalInstallments = activeInvoice && activeInvoice.payments ? [...activeInvoice.payments] : [];
+    }
+    
+    const instSection = document.getElementById("m-installments-section");
+    if (instSection) {
+        instSection.style.display = "block";
+    }
+    renderModalInstallments();
     
     onModalSeatVacancyChange(member.seatId);
     
@@ -1894,7 +2094,7 @@ function onModalSeatVacancyChange(keepSeatId = null) {
 
 
 // Add or update student
-function handleMemberFormSubmit(event) {
+async function handleMemberFormSubmit(event) {
     event.preventDefault();
     
     if (!modalPhotoBase64) {
@@ -2053,6 +2253,23 @@ function handleMemberFormSubmit(event) {
         }
     }
     
+    // Concurrency Check: Check if seat is occupied by another student on Firebase
+    if (seatId && seatId !== "non-reserved" && seatId !== originalSeatId && database && !isOfflineMode) {
+        const seatIdx = state.seats.findIndex(s => s.id === seatId);
+        if (seatIdx !== -1) {
+            try {
+                const snapshot = await database.ref(`study_cafe_system/seats/${seatIdx}`).once("value");
+                const val = snapshot.val();
+                if (val && val.status === "occupied" && val.assignedMemberId !== editId) {
+                    showToast(`Failed to Save: Seat ${val.number} has just been occupied by another student! Please select a different seat.`, "error");
+                    return;
+                }
+            } catch (err) {
+                console.warn("Live seat check failed:", err);
+            }
+        }
+    }
+    
     const currentAddressConcated = `${street}, ${city}, ${stateVal} - ${zip}`;
     const permanentAddressConcated = `${permanentStreet}, ${permanentCity}, ${permanentState} - ${permanentZip}`;
     
@@ -2103,6 +2320,124 @@ function handleMemberFormSubmit(event) {
         timestamp: editId ? originalMember.timestamp : Date.now()
     };
     
+    // Manage Invoice History and Installments
+    if (!editId) {
+        // New Registration
+        const invoiceId = "inv_" + Date.now();
+        const initPayments = [];
+        if (amountPaid > 0) {
+            initPayments.push({
+                id: "pay_" + Date.now(),
+                date: new Date().toISOString(),
+                amount: amountPaid,
+                method: paymentMethod,
+                note: "Initial Payment"
+            });
+        }
+        const newInvoice = {
+            id: invoiceId,
+            timestamp: Date.now(),
+            planName: getPlanName(planId),
+            planId: planId,
+            seatId: seatId,
+            startDate: startDate,
+            expiryDate: expiryDate,
+            feeAmount: feeAmount,
+            amountPaid: amountPaid,
+            balanceAmount: balanceAmount,
+            paymentStatus: paymentStatus,
+            paymentMethod: paymentMethod,
+            payments: initPayments
+        };
+        memberObj.invoices = [newInvoice];
+        memberObj.payments = [...initPayments];
+        memberObj.timestamp = newInvoice.timestamp;
+    } else if (originalMember) {
+        let invoices = originalMember.invoices || [];
+        if (invoices.length === 0) {
+            // Build fallback for backward compatibility
+            const origPaid = originalMember.amountPaid !== undefined ? originalMember.amountPaid : (originalMember.paymentStatus === "Paid" ? (originalMember.feeAmount || 0) : 0);
+            const fallbackPayments = originalMember.payments || [];
+            if (fallbackPayments.length === 0 && origPaid > 0) {
+                fallbackPayments.push({
+                    id: "pay_" + (originalMember.timestamp || Date.now()),
+                    date: originalMember.startDate ? new Date(originalMember.startDate).toISOString() : new Date().toISOString(),
+                    amount: origPaid,
+                    method: originalMember.paymentMethod || "Cash",
+                    note: "Initial Payment"
+                });
+            }
+            invoices.push({
+                id: "inv_" + (originalMember.timestamp || Date.now()),
+                timestamp: originalMember.timestamp || Date.now(),
+                planName: getPlanName(originalMember.planId),
+                planId: originalMember.planId,
+                seatId: originalMember.seatId,
+                startDate: originalMember.startDate,
+                expiryDate: originalMember.expiryDate,
+                feeAmount: originalMember.feeAmount || 0,
+                amountPaid: origPaid,
+                balanceAmount: originalMember.balanceAmount !== undefined ? originalMember.balanceAmount : ((originalMember.feeAmount || 0) - origPaid),
+                paymentStatus: originalMember.paymentStatus,
+                paymentMethod: originalMember.paymentMethod || "Cash",
+                payments: fallbackPayments
+            });
+        }
+
+        const isDemoConversion = (originalMember.status === "demo" && memberObj.status === "active");
+        const isRenewal = (originalMember.startDate !== startDate || originalMember.expiryDate !== expiryDate || originalMember.planId !== planId);
+
+        if (isRenewal || isDemoConversion) {
+            // New Term billing cycle
+            const invoiceId = "inv_" + Date.now();
+            const newInvoice = {
+                id: invoiceId,
+                timestamp: Date.now(),
+                planName: getPlanName(planId),
+                planId: planId,
+                seatId: seatId,
+                startDate: startDate,
+                expiryDate: expiryDate,
+                feeAmount: feeAmount,
+                amountPaid: amountPaid,
+                balanceAmount: balanceAmount,
+                paymentStatus: paymentStatus,
+                paymentMethod: paymentMethod,
+                payments: currentModalInstallments.length > 0 ? [...currentModalInstallments] : [
+                    {
+                        id: "pay_" + Date.now(),
+                        date: new Date().toISOString(),
+                        amount: amountPaid,
+                        method: paymentMethod,
+                        note: isDemoConversion ? "Demo Converted" : "Renewal Payment"
+                    }
+                ]
+            };
+            invoices.push(newInvoice);
+            memberObj.invoices = invoices;
+            memberObj.payments = [...newInvoice.payments];
+            memberObj.timestamp = newInvoice.timestamp;
+        } else {
+            // Updating active plan details or installments
+            let activeInvoice = invoices.find(inv => inv.timestamp === originalMember.timestamp) || invoices[invoices.length - 1];
+            if (activeInvoice) {
+                activeInvoice.planName = getPlanName(planId);
+                activeInvoice.planId = planId;
+                activeInvoice.seatId = seatId;
+                activeInvoice.startDate = startDate;
+                activeInvoice.expiryDate = expiryDate;
+                activeInvoice.feeAmount = feeAmount;
+                activeInvoice.amountPaid = amountPaid;
+                activeInvoice.balanceAmount = balanceAmount;
+                activeInvoice.paymentStatus = paymentStatus;
+                activeInvoice.paymentMethod = paymentMethod;
+                activeInvoice.payments = [...currentModalInstallments];
+            }
+            memberObj.invoices = invoices;
+            memberObj.payments = [...currentModalInstallments];
+        }
+    }
+    
     // Clear old seat status if editing
     if (editId && originalMember && originalSeatId && originalSeatId !== "non-reserved") {
         const oldSeat = state.seats.find(s => s.id === originalSeatId);
@@ -2143,8 +2478,13 @@ function handleMemberFormSubmit(event) {
         }
     }
     
-    // Save
-    syncLocalToDatabase();
+    // Precise database patch instead of syncLocalToDatabase()
+    const affectedSeatIds = [];
+    if (originalSeatId && originalSeatId !== "non-reserved") affectedSeatIds.push(originalSeatId);
+    if (seatId && seatId !== "non-reserved") affectedSeatIds.push(seatId);
+    
+    patchFirebaseData(memberId, affectedSeatIds);
+    
     closeModal("modal-member");
     showToast(editId ? "Student updated successfully!" : "Student registered successfully!", "success");
     
@@ -2169,7 +2509,16 @@ function togglePaymentStatus(memberId) {
     if (!member) return;
     
     member.paymentStatus = member.paymentStatus === "Paid" ? "Pending" : "Paid";
-    syncLocalToDatabase();
+    
+    // Also update the active invoice payment status
+    if (member.invoices && member.invoices.length > 0) {
+        let activeInvoice = member.invoices.find(inv => inv.timestamp === member.timestamp) || member.invoices[member.invoices.length - 1];
+        if (activeInvoice) {
+            activeInvoice.paymentStatus = member.paymentStatus;
+        }
+    }
+    
+    patchFirebaseData(memberId);
     showToast(`Payment marked as ${member.paymentStatus} for ${member.name}`, "info");
     refreshUI();
 }
@@ -2517,7 +2866,60 @@ function markFeeAsPaidQuick(memberId) {
     member.paymentMethod = cleanMethod;
     member.timestamp = Date.now(); // update timestamp for recent sorting
     
-    syncLocalToDatabase();
+    // Ensure invoice history is initialized
+    let invoices = member.invoices || [];
+    if (invoices.length === 0) {
+        const origPaid = paidSoFar;
+        const fallbackPayments = member.payments || [];
+        if (fallbackPayments.length === 0 && origPaid > 0) {
+            fallbackPayments.push({
+                id: "pay_" + (member.timestamp || Date.now()),
+                date: member.startDate ? new Date(member.startDate).toISOString() : new Date().toISOString(),
+                amount: origPaid,
+                method: member.paymentMethod || "Cash",
+                note: "Initial Payment"
+            });
+        }
+        invoices.push({
+            id: "inv_" + (member.timestamp || Date.now()),
+            timestamp: member.timestamp || Date.now(),
+            planName: getPlanName(member.planId),
+            planId: member.planId,
+            seatId: member.seatId,
+            startDate: member.startDate,
+            expiryDate: member.expiryDate,
+            feeAmount: member.feeAmount || 0,
+            amountPaid: origPaid,
+            balanceAmount: member.balanceAmount !== undefined ? member.balanceAmount : ((member.feeAmount || 0) - origPaid),
+            paymentStatus: member.paymentStatus,
+            paymentMethod: member.paymentMethod || "Cash",
+            payments: fallbackPayments
+        });
+    }
+
+    const newPaymentEntry = {
+        id: "pay_" + Date.now(),
+        date: new Date().toISOString(),
+        amount: collectAmount,
+        method: cleanMethod,
+        note: "Quick Paid"
+    };
+
+    member.payments = member.payments || [];
+    member.payments.push(newPaymentEntry);
+
+    let activeInvoice = invoices.find(inv => inv.timestamp === member.timestamp) || invoices[invoices.length - 1];
+    if (activeInvoice) {
+        activeInvoice.amountPaid = newPaidAmount;
+        activeInvoice.balanceAmount = fee - newPaidAmount;
+        activeInvoice.paymentStatus = member.paymentStatus;
+        activeInvoice.paymentMethod = cleanMethod;
+        activeInvoice.payments = activeInvoice.payments || [];
+        activeInvoice.payments.push(newPaymentEntry);
+    }
+    member.invoices = invoices;
+    
+    patchFirebaseData(member.id);
     showToast(`Collected ₹${collectAmount} via ${cleanMethod} for ${member.name}! Status: ${member.paymentStatus}`, "success");
     refreshUI();
     
@@ -2538,7 +2940,7 @@ function deleteMember(memberId) {
         }
         
         state.members = state.members.filter(m => m.id !== memberId);
-        syncLocalToDatabase();
+        patchFirebaseData(memberId, seat ? [seat.id] : []);
         showToast("Student membership removed.", "error");
         refreshUI();
     }
@@ -2548,134 +2950,160 @@ function approvePendingRequest(requestId) {
     const req = state.pending.find(p => p.id === requestId);
     if (!req) return;
     
-    console.log("Approving request data:", req);
-    
-    openAddMemberModal();
-    
-    // Set demo flags after openAddMemberModal resets them
-    adminModalIsDemo = (req.bookingType === "demo");
-    adminModalDemoDuration = req.demoDuration || 5;
-    
-    // Set title accordingly
-    document.getElementById("modal-member-title").textContent = adminModalIsDemo ? "Approve Free Demo Pass" : "Add New Member";
-    
-    // Pre-fill photo from request
-    if (req.photo) {
-        modalPhotoBase64 = req.photo;
-        const previewImg = document.getElementById("m-photo-preview");
-        const placeholder = document.getElementById("m-photo-placeholder");
-        if (placeholder) placeholder.style.display = "none";
-        if (previewImg) {
-            previewImg.src = modalPhotoBase64;
-            previewImg.style.display = "block";
-        }
-    }
-    
-    document.getElementById("m-name").value = req.name;
-    document.getElementById("m-phone").value = req.phone;
-    document.getElementById("m-gender").value = req.gender || "";
-    document.getElementById("m-email").value = req.email || "";
-    document.getElementById("m-father-name").value = req.fatherName || "";
-    document.getElementById("m-father-phone").value = req.fatherPhone || "";
-    document.getElementById("m-mother-name").value = req.motherName || "";
-    document.getElementById("m-mother-phone").value = req.motherPhone || "";
-    
-    document.getElementById("m-street").value = req.street || req.currentAddress || "";
-    document.getElementById("m-city").value = req.city || "";
-    document.getElementById("m-state").value = req.state || "";
-    document.getElementById("m-zip").value = req.zip || "";
-    
-    document.getElementById("m-permanent-street").value = req.permanentStreet || req.permanentAddress || req.currentAddress || "";
-    document.getElementById("m-permanent-city").value = req.permanentCity || "";
-    document.getElementById("m-permanent-state").value = req.permanentState || "";
-    document.getElementById("m-permanent-zip").value = req.permanentZip || "";
-    
-    // Set same address checkbox check status
-    const isSame = (req.street === req.permanentStreet && 
-                    req.city === req.permanentCity && 
-                    req.state === req.permanentState && 
-                    req.zip === req.permanentZip && 
-                    req.street !== undefined && req.street !== "") ||
-                   (req.permanentAddress === req.currentAddress && req.currentAddress !== undefined && req.currentAddress !== "");
-                   
-    const adminSameAddressCheck = document.getElementById("m-same-address");
-    if (adminSameAddressCheck) {
-        adminSameAddressCheck.checked = isSame;
-        const permSection = document.getElementById("m-permanent-address-section");
-        const permInputs = permSection.querySelectorAll("input");
-        if (isSame) {
-            permInputs.forEach(input => {
-                input.required = false;
-                input.disabled = true;
-            });
-            permSection.style.opacity = "0.5";
-        } else {
-            permInputs.forEach(input => {
-                input.required = true;
-                input.disabled = false;
-            });
-            permSection.style.opacity = "1";
-        }
-    }
-    
-    // Pre-fill new emergency contact & target exam fields
-    document.getElementById("m-emergency-name").value = req.emergencyName || "";
-    document.getElementById("m-emergency-relation").value = req.emergencyRelation || "Mother";
-    document.getElementById("m-emergency-phone").value = req.emergencyPhone || "";
-    document.getElementById("m-target-exam").value = req.targetExam || "UPSC";
-    document.getElementById("m-start-date").value = req.expectedStartDate || new Date().toISOString().split('T')[0];
-    document.getElementById("m-dob").value = req.dob || "";
-    
-    document.getElementById("m-seat-type").value = req.seatType;
-    onModalSeatTypeChange();
-    
-    if (adminModalIsDemo) {
-        document.getElementById("m-plan").value = `demo-${adminModalDemoDuration}`;
-    } else {
-        const matchingPlan = PLANS.find(p => p.type === req.seatType && p.duration === req.duration);
-        if (matchingPlan) {
-            document.getElementById("m-plan").value = matchingPlan.id;
-        }
-    }
-    
-    document.getElementById("m-gov-id").value = req.govId || "";
-    
-    // Trigger plan details updates and locks
-    onModalPlanChange();
-    
-    if (!adminModalIsDemo) {
-        document.getElementById("m-fee-amount").value = req.feeAmount;
-        const amountPaid = req.amountPaid !== undefined ? req.amountPaid : req.feeAmount;
-        const balanceAmount = req.balanceAmount !== undefined ? req.balanceAmount : 0;
-        document.getElementById("m-amount-paid").value = amountPaid;
-        document.getElementById("m-balance-amount").value = balanceAmount;
-        document.getElementById("m-payment").value = req.paymentStatus || "Paid";
-        document.getElementById("m-payment-method").value = req.paymentMethod || "Cash";
-    }
-    
-    // Pre-select the student's chosen seat if still vacant
-    if (req.seatId === "non-reserved") {
-        // Non-reserved skips seat assigning
-    } else {
-        const requestedSeat = state.seats.find(s => s.id === req.seatId);
-        if (requestedSeat && requestedSeat.status === "vacant") {
-            onModalSeatVacancyChange();
-            document.getElementById("m-seat-id").value = requestedSeat.id;
-        } else {
-            onModalSeatVacancyChange();
-            if (requestedSeat && requestedSeat.status !== "vacant") {
-                showToast(`Requested Seat ${requestedSeat.number} is already occupied or blocked! Please assign another seat.`, "error");
+    const proceedWithApproval = () => {
+        console.log("Approving request data:", req);
+        openAddMemberModal();
+        
+        // Set demo flags after openAddMemberModal resets them
+        adminModalIsDemo = (req.bookingType === "demo");
+        adminModalDemoDuration = req.demoDuration || 5;
+        
+        // Set title accordingly
+        document.getElementById("modal-member-title").textContent = adminModalIsDemo ? "Approve Free Demo Pass" : "Add New Member";
+        
+        // Pre-fill photo from request
+        if (req.photo) {
+            modalPhotoBase64 = req.photo;
+            const previewImg = document.getElementById("m-photo-preview");
+            const placeholder = document.getElementById("m-photo-placeholder");
+            if (placeholder) placeholder.style.display = "none";
+            if (previewImg) {
+                previewImg.src = modalPhotoBase64;
+                previewImg.style.display = "block";
             }
         }
-    }
-    
-    calculateExpiryDate();
-    
-    document.getElementById("form-member").onsubmit = (e) => {
-        handleMemberFormSubmit(e);
-        removePendingRequest(requestId);
-        document.getElementById("form-member").onsubmit = handleMemberFormSubmit;
+        
+        document.getElementById("m-name").value = req.name;
+        document.getElementById("m-phone").value = req.phone;
+        document.getElementById("m-gender").value = req.gender || "";
+        document.getElementById("m-email").value = req.email || "";
+        document.getElementById("m-father-name").value = req.fatherName || "";
+        document.getElementById("m-father-phone").value = req.fatherPhone || "";
+        document.getElementById("m-mother-name").value = req.motherName || "";
+        document.getElementById("m-mother-phone").value = req.motherPhone || "";
+        
+        document.getElementById("m-street").value = req.street || req.currentAddress || "";
+        document.getElementById("m-city").value = req.city || "";
+        document.getElementById("m-state").value = req.state || "";
+        document.getElementById("m-zip").value = req.zip || "";
+        
+        document.getElementById("m-permanent-street").value = req.permanentStreet || req.permanentAddress || req.currentAddress || "";
+        document.getElementById("m-permanent-city").value = req.permanentCity || "";
+        document.getElementById("m-permanent-state").value = req.permanentState || "";
+        document.getElementById("m-permanent-zip").value = req.permanentZip || "";
+        
+        // Set same address checkbox check status
+        const isSame = (req.street === req.permanentStreet && 
+                        req.city === req.permanentCity && 
+                        req.state === req.permanentState && 
+                        req.zip === req.permanentZip && 
+                        req.street !== undefined && req.street !== "") ||
+                       (req.permanentAddress === req.currentAddress && req.currentAddress !== undefined && req.currentAddress !== "");
+                       
+        const adminSameAddressCheck = document.getElementById("m-same-address");
+        if (adminSameAddressCheck) {
+            adminSameAddressCheck.checked = isSame;
+            const permSection = document.getElementById("m-permanent-address-section");
+            const permInputs = permSection.querySelectorAll("input");
+            if (isSame) {
+                permInputs.forEach(input => {
+                    input.required = false;
+                    input.disabled = true;
+                });
+                permSection.style.opacity = "0.5";
+            } else {
+                permInputs.forEach(input => {
+                    input.required = true;
+                    input.disabled = false;
+                });
+                permSection.style.opacity = "1";
+            }
+        }
+        
+        // Pre-fill new emergency contact & target exam fields
+        document.getElementById("m-emergency-name").value = req.emergencyName || "";
+        document.getElementById("m-emergency-relation").value = req.emergencyRelation || "Mother";
+        document.getElementById("m-emergency-phone").value = req.emergencyPhone || "";
+        document.getElementById("m-target-exam").value = req.targetExam || "UPSC";
+        document.getElementById("m-start-date").value = req.expectedStartDate || new Date().toISOString().split('T')[0];
+        document.getElementById("m-dob").value = req.dob || "";
+        
+        document.getElementById("m-seat-type").value = req.seatType;
+        onModalSeatTypeChange();
+        
+        if (adminModalIsDemo) {
+            document.getElementById("m-plan").value = `demo-${adminModalDemoDuration}`;
+        } else {
+            const matchingPlan = PLANS.find(p => p.type === req.seatType && p.duration === req.duration);
+            if (matchingPlan) {
+                document.getElementById("m-plan").value = matchingPlan.id;
+            }
+        }
+        
+        document.getElementById("m-gov-id").value = req.govId || "";
+        
+        // Trigger plan details updates and locks
+        onModalPlanChange();
+        
+        if (!adminModalIsDemo) {
+            document.getElementById("m-fee-amount").value = req.feeAmount;
+            const amountPaid = req.amountPaid !== undefined ? req.amountPaid : req.feeAmount;
+            const balanceAmount = req.balanceAmount !== undefined ? req.balanceAmount : 0;
+            document.getElementById("m-amount-paid").value = amountPaid;
+            document.getElementById("m-balance-amount").value = balanceAmount;
+            document.getElementById("m-payment").value = req.paymentStatus || "Paid";
+            document.getElementById("m-payment-method").value = req.paymentMethod || "Cash";
+        }
+        
+        // Pre-select the student's chosen seat if still vacant
+        if (req.seatId === "non-reserved") {
+            // Non-reserved skips seat assigning
+        } else {
+            const requestedSeat = state.seats.find(s => s.id === req.seatId);
+            if (requestedSeat && requestedSeat.status === "vacant") {
+                onModalSeatVacancyChange();
+                document.getElementById("m-seat-id").value = requestedSeat.id;
+            } else {
+                onModalSeatVacancyChange();
+                if (requestedSeat && requestedSeat.status !== "vacant") {
+                    showToast(`Requested Seat ${requestedSeat.number} is already occupied or blocked! Please assign another seat.`, "error");
+                }
+            }
+        }
+        
+        calculateExpiryDate();
+        
+        document.getElementById("form-member").onsubmit = (e) => {
+            handleMemberFormSubmit(e);
+            removePendingRequest(requestId);
+            document.getElementById("form-member").onsubmit = handleMemberFormSubmit;
+        };
     };
+
+    if (req.seatId && req.seatId !== "non-reserved" && database && !isOfflineMode) {
+        const seatIdx = state.seats.findIndex(s => s.id === req.seatId);
+        if (seatIdx !== -1) {
+            database.ref(`study_cafe_system/seats/${seatIdx}`).once("value")
+                .then(snapshot => {
+                    const val = snapshot.val();
+                    if (val && val.status === "occupied") {
+                        showToast(`Seat ${val.number} is already occupied in the database. Please select another seat for this student.`, "error");
+                        req.seatId = ""; // Clear seat ID so the modal opens with vacant choice
+                        proceedWithApproval();
+                    } else {
+                        proceedWithApproval();
+                    }
+                })
+                .catch(err => {
+                    console.warn("Firebase concurrency seat check failed, proceeding:", err);
+                    proceedWithApproval();
+                });
+        } else {
+            proceedWithApproval();
+        }
+    } else {
+        proceedWithApproval();
+    }
 }
 
 function rejectPendingRequest(requestId) {
@@ -2892,7 +3320,7 @@ function forceResetSeat(seatId) {
     seat.status = "vacant";
     seat.assignedMemberId = null;
     
-    syncLocalToDatabase();
+    patchFirebaseData(null, [seat.id]);
     closeModal("modal-seat-actions");
     showToast(`Seat ${seat.number} force vacated.`, "info");
     refreshUI();
@@ -2903,13 +3331,14 @@ function toggleSeatMaintenance() {
     if (!seat) return;
     
     const isCurrentlyBlocked = seat.status === "maintenance";
+    let activeOccupantId = null;
     
     if (isCurrentlyBlocked) {
         seat.status = "vacant";
         seat.assignedMemberId = null;
         showToast(`Seat ${seat.number} is restored back to service.`, "success");
     } else {
-        const activeOccupantId = seat.assignedMemberId;
+        activeOccupantId = seat.assignedMemberId;
         if (activeOccupantId) {
             if (!confirm(`Warning: Seat ${seat.number} has active student booking. Blocking it will vacate occupant. Proceed?`)) {
                 return;
@@ -2922,105 +3351,214 @@ function toggleSeatMaintenance() {
         showToast(`Seat ${seat.number} marked under Maintenance.`, "error");
     }
     
-    syncLocalToDatabase();
+    patchFirebaseData(activeOccupantId, [seat.id]);
     closeModal("modal-seat-actions");
     refreshUI();
 }
 
 // Generate receipt invoice
-function openReceiptModal(memberId) {
-    currentReceiptMemberId = memberId;
-    const member = state.members.find(m => m.id === memberId);
-    if (!member) return;
-    
+// Render receipt details helper
+function renderInvoiceReceiptDetails(member, invoiceObj) {
     const modalBody = document.getElementById("receipt-modal-body");
-    const seat = state.seats.find(s => s.id === member.seatId);
+    if (!modalBody) return;
+
+    const seat = state.seats.find(s => s.id === invoiceObj.seatId);
     let roomDisplay = "";
     let seatDisplay = "";
     
-    if (member.seatId === "non-reserved") {
+    if (invoiceObj.seatId === "non-reserved") {
         roomDisplay = "N/A";
         seatDisplay = "Non-Reserved";
     } else {
-        const seatInfo = getSeatRoomAndNumber(member.seatId);
-        const plan = PLANS.find(p => p.id === member.planId);
-        const isReserved = plan ? plan.type === "reserved" : (seat ? seat.type === "reserved" : false);
+        const seatInfo = getSeatRoomAndNumber(invoiceObj.seatId);
+        const isReserved = seat ? seat.type === "reserved" : false;
         roomDisplay = `Room ${seatInfo.room}`;
         seatDisplay = `Seat ${seatInfo.number} (${isReserved ? 'Reserved' : 'Non-Reserved'})`;
     }
     
-    const startDateFmt = new Date(member.startDate).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
-    const expiryDateFmt = new Date(member.expiryDate).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
+    const startDateFmt = new Date(invoiceObj.startDate).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
+    const expiryDateFmt = new Date(invoiceObj.expiryDate).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
     
-    const receiptNo = `TSC-${member.timestamp.toString().slice(-6)}`;
+    const receiptNo = `TSC-${invoiceObj.timestamp.toString().slice(-6)}`;
     
-            const fee = parseInt(member.feeAmount) || 0;
-            const paid = member.amountPaid !== undefined ? (parseInt(member.amountPaid) || 0) : (member.paymentStatus === "Paid" ? fee : 0);
-            const pending = member.balanceAmount !== undefined ? (parseInt(member.balanceAmount) || 0) : (fee - paid);
+    const fee = parseInt(invoiceObj.feeAmount) || 0;
+    const paid = parseInt(invoiceObj.amountPaid) || 0;
+    const pending = parseInt(invoiceObj.balanceAmount) || 0;
+
+    // Render installments log list if any exist for this invoice
+    let installmentsHTML = "";
+    if (invoiceObj.payments && invoiceObj.payments.length > 0) {
+        installmentsHTML = `
+            <div style="border-top: 1px dashed #cbd5e1; border-bottom: 1px dashed #cbd5e1; padding: 0.5rem 0; margin: 0.5rem 0; font-size: 0.75rem;">
+                <div style="font-weight: bold; margin-bottom: 0.3rem; text-align: center; text-transform: uppercase;">Installment Logs (भुगतान विवरण)</div>
+                <table style="width: 100%; text-align: left; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid #e2e8f0; color: #64748b;">
+                            <th style="padding: 0.2rem 0;">Date</th>
+                            <th style="padding: 0.2rem 0;">Amount</th>
+                            <th style="padding: 0.2rem 0;">Method</th>
+                            <th style="padding: 0.2rem 0;">Note</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        invoiceObj.payments.forEach(p => {
+            const pDate = new Date(p.date).toLocaleDateString('en-IN', {day:'2-digit', month:'2-digit'});
+            installmentsHTML += `
+                <tr style="color: #334155;">
+                    <td style="padding: 0.15rem 0;">${pDate}</td>
+                    <td style="padding: 0.15rem 0;">₹${p.amount}</td>
+                    <td style="padding: 0.15rem 0;">${p.method}</td>
+                    <td style="padding: 0.15rem 0; max-width: 95px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${p.note || ''}</td>
+                </tr>
+            `;
+        });
+        installmentsHTML += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    modalBody.innerHTML = `
+        <div style="font-family: monospace; font-size: 0.85rem; line-height: 1.5; color: #1e293b;">
+            <div style="text-align: center; margin-bottom: 0.8rem; border-bottom: 1px dashed #cbd5e1; padding-bottom:0.5rem;">
+                <h3 style="font-size: 1.3rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing:-0.03em;">${state.settings.libraryName.toUpperCase()}</h3>
+                <p style="font-size: 0.7rem; color: #64748b; margin-top: 0.15rem; font-family: sans-serif;">${state.settings.address} • Mob: ${state.settings.phone}</p>
+            </div>
             
-            modalBody.innerHTML = `
-                <div style="font-family: monospace; font-size: 0.85rem; line-height: 1.5; color: #1e293b;">
-                    <div style="text-align: center; margin-bottom: 0.8rem; border-bottom: 1px dashed #cbd5e1; padding-bottom:0.5rem;">
-                        <h3 style="font-size: 1.3rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing:-0.03em;">${state.settings.libraryName.toUpperCase()}</h3>
-                        <p style="font-size: 0.7rem; color: #64748b; margin-top: 0.15rem; font-family: sans-serif;">${state.settings.address} • Mob: ${state.settings.phone}</p>
-                    </div>
-                    
-                    <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 0.5rem; font-size: 0.8rem;">
-                        <div style="display:flex; justify-content:space-between;"><span><strong>Receipt No:</strong> ${receiptNo}</span><span><strong>Date:</strong> ${new Date(member.timestamp).toLocaleDateString('en-IN')}</span></div>
-                    </div>
-                    
-                    <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
-                        <div><strong>Student:</strong> ${member.name} (${member.gender || 'N/A'})</div>
-                        <div><strong>Date of Birth:</strong> ${member.dob ? new Date(member.dob).toLocaleDateString('en-IN') : 'N/A'}</div>
-                        <div><strong>Aadhaar Number:</strong> ${member.govId || 'N/A'}</div>
-                        <div><strong>Phone:</strong> ${member.phone}</div>
-                        <div><strong>Email:</strong> ${member.email || 'N/A'}</div>
-                        <div><strong>Target Exam:</strong> ${member.targetExam || 'N/A'}</div>
-                        <div><strong>Father's Name:</strong> ${member.fatherName || 'N/A'}</div>
-                        <div><strong>Father's Mobile:</strong> ${member.fatherPhone || 'N/A'}</div>
-                        <div><strong>Mother's Name:</strong> ${member.motherName || 'N/A'}</div>
-                        <div><strong>Mother's Mobile:</strong> ${member.motherPhone || 'N/A'}</div>
-                        <div><strong>Emergency Contact:</strong> ${member.emergencyName || 'N/A'} (${member.emergencyRelation || 'N/A'})</div>
-                        <div><strong>Emergency Phone:</strong> ${member.emergencyPhone || 'N/A'}</div>
-                    </div>
-                    
-                    <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
-                        <div><strong>Room No:</strong> ${roomDisplay}</div>
-                        <div><strong>Seat Number:</strong> ${seatDisplay}</div>
-                        <div><strong>Validity:</strong> ${startDateFmt} to ${expiryDateFmt}</div>
-                    </div>
-                    
-                    <div style="margin-bottom: 0.25rem; display: flex; justify-content: space-between; font-size: 0.8rem; color: #0f172a;">
-                        <span>Total Plan Fee:</span>
-                        <span>₹${fee}</span>
-                    </div>
-                    
-                    <div style="margin-bottom: 0.25rem; display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: bold; color: #0f172a;">
-                        <span>Amount Paid:</span>
-                        <span>₹${paid}</span>
-                    </div>
-                    
-                    <div style="margin-bottom: 0.5rem; display: flex; justify-content: space-between; font-size: 0.8rem; color: #b91c1c; font-weight: 500;">
-                        <span>Remaining Dues:</span>
-                        <span>₹${pending}</span>
-                    </div>
-                    
-                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.25rem;">
-                        <span>Payment Mode:</span>
-                        <span><strong>${member.paymentMethod || 'Cash'}</strong></span>
-                    </div>
-                    
-                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.5rem;">
-                        <span>Payment Status:</span>
-                        <span style="color: ${member.paymentStatus === 'Paid' ? '#10b981' : '#f59e0b'}; font-weight: bold;">${member.paymentStatus}</span>
-                    </div>
+            <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 0.5rem; font-size: 0.8rem;">
+                <div style="display:flex; justify-content:space-between;"><span><strong>Receipt No:</strong> ${receiptNo}</span><span><strong>Date:</strong> ${new Date(invoiceObj.timestamp).toLocaleDateString('en-IN')}</span></div>
+            </div>
             
+            <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                <div><strong>Student:</strong> ${member.name} (${member.gender || 'N/A'})</div>
+                <div><strong>Date of Birth:</strong> ${member.dob ? new Date(member.dob).toLocaleDateString('en-IN') : 'N/A'}</div>
+                <div><strong>Aadhaar Number:</strong> ${member.govId || 'N/A'}</div>
+                <div><strong>Phone:</strong> ${member.phone}</div>
+                <div><strong>Email:</strong> ${member.email || 'N/A'}</div>
+                <div><strong>Target Exam:</strong> ${member.targetExam || 'N/A'}</div>
+                <div><strong>Father's Name:</strong> ${member.fatherName || 'N/A'}</div>
+                <div><strong>Father's Mobile:</strong> ${member.fatherPhone || 'N/A'}</div>
+                <div><strong>Mother's Name:</strong> ${member.motherName || 'N/A'}</div>
+                <div><strong>Mother's Mobile:</strong> ${member.motherPhone || 'N/A'}</div>
+                <div><strong>Emergency Contact:</strong> ${member.emergencyName || 'N/A'} (${member.emergencyRelation || 'N/A'})</div>
+                <div><strong>Emergency Phone:</strong> ${member.emergencyPhone || 'N/A'}</div>
+            </div>
+            
+            <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                <div><strong>Room No:</strong> ${roomDisplay}</div>
+                <div><strong>Seat Number:</strong> ${seatDisplay}</div>
+                <div><strong>Validity:</strong> ${startDateFmt} to ${expiryDateFmt}</div>
+            </div>
+            
+            <div style="margin-bottom: 0.25rem; display: flex; justify-content: space-between; font-size: 0.8rem; color: #0f172a;">
+                <span>Total Plan Fee:</span>
+                <span>₹${fee}</span>
+            </div>
+            
+            <div style="margin-bottom: 0.25rem; display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: bold; color: #0f172a;">
+                <span>Amount Paid:</span>
+                <span>₹${paid}</span>
+            </div>
+            
+            <div style="margin-bottom: 0.5rem; display: flex; justify-content: space-between; font-size: 0.8rem; color: #b91c1c; font-weight: 500;">
+                <span>Remaining Dues:</span>
+                <span>₹${pending}</span>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.25rem;">
+                <span>Payment Mode:</span>
+                <span><strong>${invoiceObj.paymentMethod || 'Cash'}</strong></span>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.5rem;">
+                <span>Payment Status:</span>
+                <span style="color: ${invoiceObj.paymentStatus === 'Paid' ? '#10b981' : '#f59e0b'}; font-weight: bold;">${invoiceObj.paymentStatus}</span>
+            </div>
+
+            ${installmentsHTML}
+    
             <div style="text-align: center; border-top: 1px dashed #cbd5e1; padding-top: 0.5rem; margin-top: 0.5rem; color: #64748b; font-size: 0.72rem; font-family: sans-serif; line-height: 1.3;">
                 Thank you for studying with us!<br>
                 For support, contact us at: ${state.settings.phone}
             </div>
         </div>
     `;
+}
+
+// Load selected invoice from history dropdown
+function loadSelectedInvoiceReceipt(invoiceId) {
+    const member = state.members.find(m => m.id === currentReceiptMemberId);
+    if (!member) return;
+
+    const invoices = member.invoices || [];
+    const invoiceObj = invoices.find(inv => inv.id === invoiceId);
+    if (invoiceObj) {
+        renderInvoiceReceiptDetails(member, invoiceObj);
+    }
+}
+
+function openReceiptModal(memberId) {
+    currentReceiptMemberId = memberId;
+    const member = state.members.find(m => m.id === memberId);
+    if (!member) return;
+    
+    let invoices = member.invoices || [];
+    if (invoices.length === 0) {
+        const origPaid = member.amountPaid !== undefined ? member.amountPaid : (member.paymentStatus === "Paid" ? member.feeAmount : 0);
+        const fallbackPayments = member.payments || [];
+        if (fallbackPayments.length === 0 && origPaid > 0) {
+            fallbackPayments.push({
+                id: "pay_" + (member.timestamp || Date.now()),
+                date: member.startDate ? new Date(member.startDate).toISOString() : new Date().toISOString(),
+                amount: origPaid,
+                method: member.paymentMethod || "Cash",
+                note: "Initial Payment"
+            });
+        }
+        invoices = [{
+            id: "inv_" + (member.timestamp || Date.now()),
+            timestamp: member.timestamp || Date.now(),
+            planName: getPlanName(member.planId),
+            planId: member.planId,
+            seatId: member.seatId,
+            startDate: member.startDate,
+            expiryDate: member.expiryDate,
+            feeAmount: member.feeAmount || 0,
+            amountPaid: origPaid,
+            balanceAmount: member.balanceAmount !== undefined ? member.balanceAmount : ((member.feeAmount || 0) - origPaid),
+            paymentStatus: member.paymentStatus,
+            paymentMethod: member.paymentMethod || "Cash",
+            payments: fallbackPayments
+        }];
+        member.invoices = invoices;
+    }
+    
+    // Populate select dropdown
+    const selectorSelect = document.getElementById("receipt-invoice-selector");
+    const selectorContainer = document.getElementById("receipt-invoice-selector-container");
+    if (selectorSelect && selectorContainer) {
+        if (invoices.length > 1) {
+            selectorContainer.style.display = "flex";
+            selectorSelect.innerHTML = "";
+            invoices.forEach(inv => {
+                const opt = document.createElement("option");
+                opt.value = inv.id;
+                const dateStr = new Date(inv.timestamp).toLocaleDateString('en-IN');
+                opt.textContent = `${inv.planName} - ${dateStr} (${inv.paymentStatus})`;
+                if (inv.timestamp === member.timestamp) {
+                    opt.selected = true;
+                }
+                selectorSelect.appendChild(opt);
+            });
+        } else {
+            selectorContainer.style.display = "none";
+        }
+    }
+
+    const activeInvoice = invoices.find(inv => inv.timestamp === member.timestamp) || invoices[invoices.length - 1];
+    renderInvoiceReceiptDetails(member, activeInvoice);
     
     openModal("modal-receipt");
 }
@@ -3098,28 +3636,52 @@ function shareReceiptWhatsApp() {
     const member = state.members.find(m => m.id === currentReceiptMemberId);
     if (!member) return;
     
-    const seat = state.seats.find(s => s.id === member.seatId);
+    let invoiceObj = null;
+    const selectorSelect = document.getElementById("receipt-invoice-selector");
+    if (selectorSelect && selectorSelect.value && member.invoices) {
+        invoiceObj = member.invoices.find(inv => inv.id === selectorSelect.value);
+    }
+    
+    // Fallback if no selected invoice
+    if (!invoiceObj) {
+        const fee = parseInt(member.feeAmount) || 0;
+        const paid = member.amountPaid !== undefined ? (parseInt(member.amountPaid) || 0) : (member.paymentStatus === "Paid" ? fee : 0);
+        const pending = member.balanceAmount !== undefined ? (parseInt(member.balanceAmount) || 0) : (fee - paid);
+        invoiceObj = {
+            timestamp: member.timestamp,
+            startDate: member.startDate,
+            expiryDate: member.expiryDate,
+            seatId: member.seatId,
+            planName: getPlanName(member.planId),
+            feeAmount: fee,
+            amountPaid: paid,
+            balanceAmount: pending,
+            paymentMethod: member.paymentMethod || 'Cash',
+            paymentStatus: member.paymentStatus
+        };
+    }
+
+    const seat = state.seats.find(s => s.id === invoiceObj.seatId);
     let roomDisplay = "";
     let seatDisplay = "";
     
-    if (member.seatId === "non-reserved") {
+    if (invoiceObj.seatId === "non-reserved") {
         roomDisplay = "N/A";
         seatDisplay = "Non-Reserved";
     } else {
-        const seatInfo = getSeatRoomAndNumber(member.seatId);
-        const plan = PLANS.find(p => p.id === member.planId);
-        const isReserved = plan ? plan.type === "reserved" : (seat ? seat.type === "reserved" : false);
+        const seatInfo = getSeatRoomAndNumber(invoiceObj.seatId);
+        const isReserved = seat ? seat.type === "reserved" : false;
         roomDisplay = `Room ${seatInfo.room}`;
         seatDisplay = `Seat ${seatInfo.number} (${isReserved ? 'Reserved' : 'Non-Reserved'})`;
     }
     
-    const startDateFmt = new Date(member.startDate).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
-    const expiryDateFmt = new Date(member.expiryDate).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
-    const receiptNo = `TSC-${member.timestamp.toString().slice(-6)}`;
+    const startDateFmt = new Date(invoiceObj.startDate).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
+    const expiryDateFmt = new Date(invoiceObj.expiryDate).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
+    const receiptNo = `TSC-${invoiceObj.timestamp.toString().slice(-6)}`;
     
-    const fee = parseInt(member.feeAmount) || 0;
-    const paid = member.amountPaid !== undefined ? (parseInt(member.amountPaid) || 0) : (member.paymentStatus === "Paid" ? fee : 0);
-    const pending = member.balanceAmount !== undefined ? (parseInt(member.balanceAmount) || 0) : (fee - paid);
+    const fee = parseInt(invoiceObj.feeAmount) || 0;
+    const paid = parseInt(invoiceObj.amountPaid) || 0;
+    const pending = parseInt(invoiceObj.balanceAmount) || 0;
     
     // Construct WhatsApp message template
     const message = `*${state.settings.libraryName.toUpperCase()}* ☕
@@ -3127,7 +3689,7 @@ function shareReceiptWhatsApp() {
 *MEMBERSHIP RECEIPT*
 ------------------------------
 *Receipt No:* ${receiptNo}
-*Date:* ${new Date(member.timestamp).toLocaleDateString('en-IN')}
+*Date:* ${new Date(invoiceObj.timestamp).toLocaleDateString('en-IN')}
 
 *Student Details:*
 • Name: ${member.name} (${member.gender || 'N/A'})
@@ -3151,8 +3713,8 @@ function shareReceiptWhatsApp() {
 • Total Plan Fee: ₹${fee}
 • Amount Paid: ₹${paid}
 • Remaining Dues: ₹${pending}
-• Payment Method: ${member.paymentMethod || 'Cash'}
-• Status: *${member.paymentStatus}*
+• Payment Method: ${invoiceObj.paymentMethod || 'Cash'}
+• Status: *${invoiceObj.paymentStatus}*
 ------------------------------
 Thank you for choosing ${state.settings.libraryName}!
 Address: ${state.settings.address}
@@ -4321,12 +4883,14 @@ function submitConvertDemoForm(event) {
     const plan = CONVERT_PLANS[planId];
     if (!plan) return;
     
+    const affectedSeatIds = [];
     // If transitioning from reserved to non-reserved plan, vacate their seat
     if (plan.type === "non-reserved" && member.seatId && member.seatId !== "non-reserved") {
         const oldSeat = state.seats.find(s => s.id === member.seatId);
         if (oldSeat) {
             oldSeat.status = "vacant";
             oldSeat.assignedMemberId = null;
+            affectedSeatIds.push(oldSeat.id);
         }
         member.seatId = "non-reserved";
     }
@@ -4334,6 +4898,40 @@ function submitConvertDemoForm(event) {
     if (plan.type === "reserved" && member.seatId === "non-reserved") {
         showToast("Cannot assign a Reserved Plan to a student without an assigned seat. Please assign a seat via normal Info edit first.", "error");
         return;
+    }
+    
+    // Manage Invoice History and Installments for conversion
+    let invoices = member.invoices || [];
+    if (invoices.length === 0) {
+        // Fallback for prior demo pass
+        const fallbackPayments = member.payments || [];
+        invoices.push({
+            id: "inv_" + (member.timestamp || Date.now()),
+            timestamp: member.timestamp || Date.now(),
+            planName: "Free Demo Pass",
+            planId: member.planId || "demo-5",
+            seatId: member.seatId,
+            startDate: member.startDate || startDateVal,
+            expiryDate: member.expiryDate || startDateVal,
+            feeAmount: 0,
+            amountPaid: 0,
+            balanceAmount: 0,
+            paymentStatus: "Paid",
+            paymentMethod: "Free Demo",
+            payments: fallbackPayments
+        });
+    }
+
+    const invoiceId = "inv_" + Date.now();
+    const initPayments = [];
+    if (amountPaid > 0) {
+        initPayments.push({
+            id: "pay_" + Date.now(),
+            date: new Date().toISOString(),
+            amount: amountPaid,
+            method: paymentMethod,
+            note: "Demo Converted"
+        });
     }
     
     // Update member properties to active membership status
@@ -4360,7 +4958,26 @@ function submitConvertDemoForm(event) {
     // Update timestamp for sorting
     member.timestamp = Date.now();
     
-    syncLocalToDatabase();
+    const newInvoice = {
+        id: invoiceId,
+        timestamp: member.timestamp,
+        planName: getPlanName(planId),
+        planId: planId,
+        seatId: member.seatId,
+        startDate: startDateVal,
+        expiryDate: member.expiryDate,
+        feeAmount: plan.price,
+        amountPaid: amountPaid,
+        balanceAmount: balanceAmount,
+        paymentStatus: member.paymentStatus,
+        paymentMethod: paymentMethod,
+        payments: initPayments
+    };
+    invoices.push(newInvoice);
+    member.invoices = invoices;
+    member.payments = [...initPayments];
+    
+    patchFirebaseData(memberId, affectedSeatIds);
     closeModal("modal-convert-demo");
     showToast(`Converted ${member.name} to permanent membership successfully!`, "success");
     

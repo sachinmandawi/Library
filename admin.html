@@ -325,7 +325,7 @@
                         <div class="directory-controls">
                             <div class="search-box">
                                 <i class="fa-solid fa-search"></i>
-                                <input type="text" id="member-search" placeholder="Search by name, seat, or mobile..." oninput="renderMemberTable()">
+                                <input type="text" id="member-search" placeholder="Search by name, seat, or mobile..." oninput="debouncedRenderMemberTable()">
                             </div>
                             <div class="filter-group" style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
                                 <!-- Validity Status -->
@@ -1086,6 +1086,38 @@
                             <option value="Online">Online (UPI/Card)</option>
                         </select>
                     </div>
+
+                    <!-- Payment Installments Section -->
+                    <div id="m-installments-section" style="display: none; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 1rem; margin-top: 1rem; margin-bottom: 1.5rem;">
+                        <h4 style="font-size: 0.85rem; color: #fff; margin-bottom: 0.75rem; font-family: 'Outfit';">Payment Installments Log</h4>
+                        
+                        <!-- List of installments -->
+                        <div id="m-installments-list" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; max-height: 150px; overflow-y: auto; background: rgba(0,0,0,0.15); padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                            <!-- Rendered dynamically -->
+                        </div>
+                        
+                        <!-- Add new installment input fields -->
+                        <div style="display: grid; grid-template-columns: 1.2fr 1fr 1.2fr 45px; gap: 0.5rem; align-items: end;">
+                            <div>
+                                <label class="form-label" style="font-size: 0.7rem; margin-bottom: 0.2rem; color: var(--text-muted);">Amount (₹)</label>
+                                <input type="number" id="new-inst-amount" class="form-control" style="font-size: 0.8rem; height: 32px;" placeholder="Amount">
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size: 0.7rem; margin-bottom: 0.2rem; color: var(--text-muted);">Method</label>
+                                <select id="new-inst-method" class="form-control" style="font-size: 0.8rem; height: 32px; padding: 0 0.5rem;">
+                                    <option value="Cash">Cash</option>
+                                    <option value="Online">Online</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size: 0.7rem; margin-bottom: 0.2rem; color: var(--text-muted);">Note</label>
+                                <input type="text" id="new-inst-note" class="form-control" style="font-size: 0.8rem; height: 32px;" placeholder="e.g. 2nd Installment">
+                            </div>
+                            <button type="button" class="btn btn-primary" onclick="addInstallmentFromForm()" style="height: 32px; width: 45px; display: flex; align-items: center; justify-content: center; padding: 0; margin: 0; background: var(--accent-blue); border-color: var(--accent-blue);">
+                                <i class="fa-solid fa-plus" style="font-size: 0.85rem;"></i>
+                            </button>
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -1190,6 +1222,13 @@
             <div class="modal-header">
                 <h3>Membership Receipt</h3>
                 <span class="modal-close" onclick="closeModal('modal-receipt')">&times;</span>
+            </div>
+            <!-- Invoice History Selector (Hidden by default, shown if student has history) -->
+            <div id="receipt-invoice-selector-container" style="display: none; padding: 0.75rem 1.5rem; background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.25rem;">
+                <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0.25rem; color: var(--text-muted);">Invoice History / Select Invoice</label>
+                <select id="receipt-invoice-selector" class="form-control" style="font-size: 0.82rem; height: 34px; padding: 0 0.5rem; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;" onchange="loadSelectedInvoiceReceipt(this.value)">
+                    <!-- Options populated dynamically -->
+                </select>
             </div>
             <div class="modal-body" id="receipt-modal-body" style="background: #ffffff; color: #1e293b; padding: 1.5rem; border-radius: 8px;">
                 <!-- Styled Receipt Content (Renders dynamically) -->

@@ -35,6 +35,13 @@
                     <i class="fa-solid fa-right-to-bracket"></i> Login
                 </button>
             </form>
+            <div id="auth-reset-container" style="margin-top: 1.5rem; text-align: center; display: none;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">Trouble connecting to private DB?</span>
+                <br>
+                <a href="#" onclick="resetFirebaseConfigFromLogin(event)" style="font-size: 0.78rem; color: var(--accent-emerald); text-decoration: none; font-weight: 600; display: inline-block; margin-top: 0.25rem;">
+                    <i class="fa-solid fa-rotate-left"></i> Restore Sandbox Database
+                </a>
+            </div>
         </div>
     </div>
 

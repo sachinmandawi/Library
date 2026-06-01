@@ -221,6 +221,13 @@ function getFirebaseConfig() {
 function initApp() {
     const config = getFirebaseConfig();
     
+    // Toggle login card reset link container if custom config is stored
+    const customConfigStored = localStorage.getItem("custom_firebase_config") !== null;
+    const authResetEl = document.getElementById("auth-reset-container");
+    if (authResetEl) {
+        authResetEl.style.display = customConfigStored ? "block" : "none";
+    }
+    
     // Set UI displays for inputs
     document.getElementById("fb-api-key").value = config.apiKey || "";
     document.getElementById("fb-auth-domain").value = config.authDomain || "";
@@ -438,7 +445,7 @@ function setupFirebaseListeners() {
     
     const dbRef = database.ref("study_cafe_system");
     
-    // Initialize database node if empty
+    // Initialize database node if empty, or perform seat migration
     dbRef.once("value", snapshot => {
         if (!snapshot.exists()) {
             dbRef.set({
@@ -446,6 +453,28 @@ function setupFirebaseListeners() {
                 seats: state.seats,
                 members: state.members
             });
+        } else {
+            const val = snapshot.val();
+            const seatsVal = val.seats;
+            const membersVal = val.members ? Object.values(val.members) : [];
+            
+            if (!Array.isArray(seatsVal) || seatsVal.length !== 369) {
+                console.warn(`Database seats length mismatch (${seatsVal ? seatsVal.length : 0} != 369). Running auto-migration...`);
+                const defaultSeats = generateDefaultSeats();
+                
+                // Map existing member bookings onto the correct seats
+                membersVal.forEach(member => {
+                    if (member.seatId && member.seatId !== "non-reserved") {
+                        const seat = defaultSeats.find(s => s.id === member.seatId);
+                        if (seat) {
+                            seat.status = "occupied";
+                            seat.assignedMemberId = member.id;
+                        }
+                    }
+                });
+                
+                dbRef.child("seats").set(defaultSeats);
+            }
         }
     });
     
@@ -3557,33 +3586,55 @@ function handleAdminLogin(event) {
         submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Authorizing...';
     }
     
-    firebase.auth().signInWithEmailAndPassword(email, password)
-        .then(() => {
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Login';
-            }
-            document.getElementById("auth-form").reset();
-        })
-        .catch(err => {
-            console.error("Login failed:", err);
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Login';
-            }
-            if (errorMsg) {
-                let displayErr = "Authorization failed. Please check your credentials.";
-                if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
-                    displayErr = "Invalid email or password.";
-                } else if (err.code === "auth/invalid-email") {
-                    displayErr = "Invalid email address format.";
-                } else if (err.code === "auth/network-request-failed") {
-                    displayErr = "Network error. Please check your internet connection.";
+    try {
+        firebase.auth().signInWithEmailAndPassword(email, password)
+            .then(() => {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Login';
                 }
-                errorMsg.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${displayErr}`;
-                errorMsg.style.display = "flex";
-            }
-        });
+                document.getElementById("auth-form").reset();
+            })
+            .catch(err => {
+                console.error("Login failed:", err);
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Login';
+                }
+                if (errorMsg) {
+                    let displayErr = "Authorization failed. Please check your credentials.";
+                    if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
+                        displayErr = "Invalid email or password.";
+                    } else if (err.code === "auth/invalid-email") {
+                        displayErr = "Invalid email address format.";
+                    } else if (err.code === "auth/network-request-failed") {
+                        displayErr = "Network error. Please check your internet connection.";
+                    } else if (err.message) {
+                        displayErr = err.message;
+                    }
+                    errorMsg.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${displayErr}`;
+                    errorMsg.style.display = "flex";
+                }
+            });
+    } catch (err) {
+        console.error("Authentication synchronous error:", err);
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Login';
+        }
+        if (errorMsg) {
+            errorMsg.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Initialization Error: ${err.message || err}`;
+            errorMsg.style.display = "flex";
+        }
+    }
+}
+
+function resetFirebaseConfigFromLogin(event) {
+    if (event) event.preventDefault();
+    if (confirm("Are you sure you want to restore the Default Sandbox Database? This will reload the page and connect to the sandbox database.")) {
+        localStorage.removeItem("custom_firebase_config");
+        window.location.reload();
+    }
 }
 
 function handleAdminLogout() {

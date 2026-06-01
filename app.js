@@ -370,11 +370,7 @@ function initApp() {
     // Set Default Tab
     switchTab("dashboard");
     
-    // Auto-update QR code on manual URL input changes (e.g. pasted short URL)
-    const qrInput = document.getElementById("qr-target-url");
-    if (qrInput) {
-        qrInput.addEventListener("input", updateRegistrationQRFromInput);
-    }
+
     
     refreshUI();
     updateRegistrationQR();
@@ -3148,28 +3144,19 @@ For support, contact us at: ${state.settings.phone}`;
 
 // Helper to get registration URL with custom config
 function getRegistrationLink(type) {
-    const inputEl = document.getElementById("qr-target-url");
-    let baseUrl = "";
-    if (inputEl && inputEl.value) {
-        baseUrl = inputEl.value.split('?')[0].split('#')[0];
+    let hostUrl = window.location.href;
+    if (hostUrl.includes("admin.html")) {
+        hostUrl = hostUrl.replace("admin.html", "register.html");
+    } else if (hostUrl.includes("index.html")) {
+        hostUrl = hostUrl.replace("index.html", "register.html");
+    } else if (hostUrl.endsWith("/")) {
+        hostUrl = hostUrl + "register.html";
+    } else {
+        const idx = hostUrl.lastIndexOf("/");
+        hostUrl = hostUrl.substring(0, idx + 1) + "register.html";
     }
     
-    if (!baseUrl) {
-        let hostUrl = window.location.href;
-        if (hostUrl.includes("admin.html")) {
-            hostUrl = hostUrl.replace("admin.html", "register.html");
-        } else if (hostUrl.includes("index.html")) {
-            hostUrl = hostUrl.replace("index.html", "register.html");
-        } else if (hostUrl.endsWith("/")) {
-            hostUrl = hostUrl + "register.html";
-        } else {
-            const idx = hostUrl.lastIndexOf("/");
-            hostUrl = hostUrl.substring(0, idx + 1) + "register.html";
-        }
-        baseUrl = hostUrl;
-    }
-    
-    let qrUrl = baseUrl + `?type=${type}`;
+    let qrUrl = hostUrl + `?type=${type}`;
     
     const config = getFirebaseConfig();
     const isCustom = localStorage.getItem("custom_firebase_config") !== null;
@@ -3225,7 +3212,10 @@ function updateRegistrationQR() {
         qrUrl += `?config=${configStr}`;
     }
     
-    document.getElementById("qr-target-url").value = qrUrl;
+    const qrInputEl = document.getElementById("qr-target-url");
+    if (qrInputEl) {
+        qrInputEl.value = qrUrl;
+    }
     
     const qrHolder = document.getElementById("qrcode-display");
     if (qrHolder) {
@@ -3282,46 +3272,7 @@ function generateDashboardQRCodes() {
     }
 }
 
-// Re-generate QR manually
-function updateRegistrationQRFromInput() {
-    const btn = document.getElementById("btn-regenerate-qr");
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating QR Link...';
-    }
-    
-    showToast("Regenerating registration QR codes...", "info");
-    
-    setTimeout(() => {
-        const inputUrl = document.getElementById("qr-target-url").value;
-        const qrHolder = document.getElementById("qrcode-display");
-        if (qrHolder) {
-            qrHolder.innerHTML = "";
-            try {
-                qrCodeGeneratorInstance = new QRCode(qrHolder, {
-                    text: inputUrl || "https://sachinmandawi.github.io/Library/register.html",
-                    width: 180,
-                    height: 180,
-                    colorDark : "#0a0e17",
-                    colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.M
-                });
-            } catch(err) {
-                console.error("QR Code manual generation failing:", err);
-            }
-        }
-        
-        // Also update dashboard dual QR codes in real-time
-        generateDashboardQRCodes();
-        
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Regenerate QR Link';
-        }
-        
-        showToast("QR Codes regenerated successfully!", "success");
-    }, 750);
-}
+
 
 // Print QR code frame
 function printQRCode(type) {

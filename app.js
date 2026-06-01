@@ -1829,7 +1829,27 @@ function openEditMemberModal(memberId) {
     const member = state.members.find(m => m.id === memberId);
     if (!member) return;
     
-    document.getElementById("modal-member-title").textContent = "Edit Member Info";
+    adminModalIsDemo = (member.planId && member.planId.startsWith("demo")) || member.status === "demo" || member.status === "demo-expired";
+    adminModalDemoDuration = member.demoDuration || (member.planId && member.planId.startsWith("demo-") ? parseInt(member.planId.replace("demo-", "")) : 5) || 5;
+    
+    // Toggle readonly/disabled states for fee & payment fields depending on demo status
+    if (adminModalIsDemo) {
+        document.getElementById("m-fee-amount").readOnly = true;
+        document.getElementById("m-amount-paid").readOnly = true;
+        document.getElementById("m-payment").disabled = true;
+        document.getElementById("m-payment-method").disabled = true;
+        
+        document.getElementById("modal-member-title").textContent = member.status === "demo-expired" ? "Edit Expired Demo Info" : "Edit Free Demo Info";
+    } else {
+        document.getElementById("m-fee-amount").readOnly = false;
+        // m-amount-paid is readOnly because it calculates from installments
+        document.getElementById("m-amount-paid").readOnly = true;
+        document.getElementById("m-payment").disabled = false;
+        document.getElementById("m-payment-method").disabled = false;
+        
+        document.getElementById("modal-member-title").textContent = "Edit Member Info";
+    }
+    
     document.getElementById("edit-member-id").value = member.id;
     document.getElementById("form-member").onsubmit = handleMemberFormSubmit;
     
@@ -2313,7 +2333,7 @@ async function handleMemberFormSubmit(event) {
         paymentStatus: paymentStatus,
         paymentMethod: paymentMethod,
         photo: modalPhotoBase64,
-        status: adminModalIsDemo ? "demo" : (originalMember ? (originalMember.status || "active") : "active"),
+        status: adminModalIsDemo ? (originalMember && originalMember.status === "demo-expired" ? "demo-expired" : "demo") : (originalMember ? (originalMember.status || "active") : "active"),
         demoDuration: adminModalIsDemo ? duration : 0,
         demoStartDate: adminModalIsDemo ? startDate : null,
         demoEndDate: adminModalIsDemo ? expiryDate : null,
@@ -2384,7 +2404,7 @@ async function handleMemberFormSubmit(event) {
             });
         }
 
-        const isDemoConversion = (originalMember.status === "demo" && memberObj.status === "active");
+        const isDemoConversion = ((originalMember.status === "demo" || originalMember.status === "demo-expired") && memberObj.status === "active");
         const isRenewal = (originalMember.startDate !== startDate || originalMember.expiryDate !== expiryDate || originalMember.planId !== planId);
 
         if (isRenewal || isDemoConversion) {
@@ -4773,12 +4793,15 @@ function checkDemoExpirations() {
     try {
         let changed = false;
         const todayZero = new Date().setHours(0,0,0,0);
+        const affectedMemberIds = [];
+        const affectedSeatIds = [];
         
         (state.members || []).forEach(member => {
             if (member.status === "demo") {
                 const expiry = new Date(member.expiryDate);
                 if (expiry.getTime() < todayZero) {
                     member.status = "demo-expired";
+                    affectedMemberIds.push(member.id);
                     
                     // Vacate seat
                     if (member.seatId && member.seatId !== "non-reserved") {
@@ -4786,6 +4809,7 @@ function checkDemoExpirations() {
                         if (seat) {
                             seat.status = "vacant";
                             seat.assignedMemberId = null;
+                            affectedSeatIds.push(seat.id);
                             showToast(`Demo expired for ${member.name}. Seat ${seat.number} is now vacated.`, "info");
                         }
                     } else {
@@ -4797,8 +4821,17 @@ function checkDemoExpirations() {
         });
         
         if (changed) {
-            syncLocalToDatabase();
-            if (isOfflineMode || !database) {
+            if (!isOfflineMode && database) {
+                // Precise patches
+                affectedMemberIds.forEach(mId => {
+                    patchFirebaseData(mId, []);
+                });
+                if (affectedSeatIds.length > 0) {
+                    patchFirebaseData(null, affectedSeatIds);
+                }
+                refreshUI();
+            } else {
+                saveStateToLocalStorage();
                 refreshUI();
             }
         }

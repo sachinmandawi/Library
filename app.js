@@ -1615,29 +1615,35 @@ function renderMemberTable() {
                     ${member.paymentStatus}
                 </span>
             </td>
-            <td>
-                <div class="actions-cell">
-                    <button class="btn-icon-only btn-secondary" onclick="openReceiptModal('${member.id}')" title="Receipt Invoice">
-                        <i class="fa-solid fa-file-invoice" style="color: var(--accent-emerald);"></i>
+            <td style="position: relative; text-align: center;">
+                <div class="dropdown-actions-container">
+                    <button class="btn-actions-toggle" onclick="toggleActionDropdown('${member.id}', event)" title="Actions">
+                        <i class="fa-solid fa-ellipsis-vertical"></i>
                     </button>
-                    <button class="btn-icon-only btn-secondary" onclick="sendExpiryReminder('${member.id}')" title="Send WhatsApp Reminder">
-                        <i class="fa-brands fa-whatsapp" style="color: #25D366;"></i>
-                    </button>
-                    <button class="btn-icon-only btn-secondary" onclick="openEditMemberModal('${member.id}')" title="Edit Member">
-                        <i class="fa-solid fa-pen" style="color: var(--accent-blue);"></i>
-                    </button>
-                    ${isDemoMember ? `
-                    <button class="btn-icon-only btn-secondary" onclick="openConvertDemoModal('${member.id}')" title="Convert to Permanent">
-                        <i class="fa-solid fa-user-check" style="color: var(--accent-amber);"></i>
-                    </button>
-                    ` : `
-                    <button class="btn-icon-only btn-secondary" onclick="renewMembershipPrompt('${member.id}')" title="Renew Membership">
-                        <i class="fa-solid fa-arrows-rotate" style="color: var(--accent-emerald);"></i>
-                    </button>
-                    `}
-                    <button class="btn-icon-only btn-secondary" onclick="deleteMember('${member.id}')" title="Delete Record">
-                        <i class="fa-solid fa-trash" style="color: var(--accent-rose);"></i>
-                    </button>
+                    <div id="dropdown_menu_${member.id}" class="dropdown-actions-menu">
+                        <a href="javascript:void(0)" onclick="openReceiptModal('${member.id}'); closeAllActionDropdowns();">
+                            <i class="fa-solid fa-file-invoice" style="color: var(--accent-emerald);"></i> Receipt Invoice
+                        </a>
+                        <a href="javascript:void(0)" onclick="sendExpiryReminder('${member.id}'); closeAllActionDropdowns();">
+                            <i class="fa-brands fa-whatsapp" style="color: #25D366;"></i> WhatsApp Reminder
+                        </a>
+                        <a href="javascript:void(0)" onclick="openEditMemberModal('${member.id}'); closeAllActionDropdowns();">
+                            <i class="fa-solid fa-pen" style="color: var(--accent-blue);"></i> Edit Student
+                        </a>
+                        ${isDemoMember ? `
+                        <a href="javascript:void(0)" onclick="openConvertDemoModal('${member.id}'); closeAllActionDropdowns();">
+                            <i class="fa-solid fa-user-check" style="color: var(--accent-amber);"></i> Convert Plan
+                        </a>
+                        ` : `
+                        <a href="javascript:void(0)" onclick="renewMembershipPrompt('${member.id}'); closeAllActionDropdowns();">
+                            <i class="fa-solid fa-arrows-rotate" style="color: var(--accent-emerald);"></i> Renew Plan
+                        </a>
+                        `}
+                        <div class="dropdown-divider"></div>
+                        <a href="javascript:void(0)" onclick="deleteMember('${member.id}'); closeAllActionDropdowns();" class="delete-action">
+                            <i class="fa-solid fa-trash" style="color: var(--accent-rose);"></i> Delete Student
+                        </a>
+                    </div>
                 </div>
             </td>
         `;
@@ -5090,4 +5096,37 @@ function toggleSidebar() {
         localStorage.setItem("sidebar_collapsed", isCollapsed ? "true" : "false");
     } catch(e) {}
 }
+
+// ==========================================
+// ACTION DROPDOWN CONTROLLER
+// ==========================================
+let openDropdownId = null;
+
+function toggleActionDropdown(memberId, event) {
+    event.stopPropagation();
+    const dropdownMenu = document.getElementById(`dropdown_menu_${memberId}`);
+    if (!dropdownMenu) return;
+    
+    const isCurrentlyOpen = dropdownMenu.classList.contains("show");
+    closeAllActionDropdowns();
+    
+    if (!isCurrentlyOpen) {
+        dropdownMenu.classList.add("show");
+        openDropdownId = memberId;
+    }
+}
+
+function closeAllActionDropdowns() {
+    const dropdowns = document.querySelectorAll(".dropdown-actions-menu");
+    dropdowns.forEach(menu => {
+        menu.classList.remove("show");
+    });
+    openDropdownId = null;
+}
+
+// Add global listener to close menus on outside clicks
+window.addEventListener("click", () => {
+    closeAllActionDropdowns();
+});
+
 

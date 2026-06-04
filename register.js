@@ -24,6 +24,18 @@ const PLANS_PRICING = {
     }
 };
 
+// Security helper to escape HTML characters and prevent XSS
+function escapeHTML(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;")
+        .replace(/\//g, "&#x2F;");
+}
+
 let database = null;
 let isDemo = false;
 let broadcastChannel = null;
@@ -814,13 +826,14 @@ function showSuccessScreen(studentName, isOffline = false) {
     const nextStepText = document.getElementById("success-next-step-text");
     if (nextStepText) {
         if (isDemo) {
-            nextStepText.innerHTML = 'Please head over to the reception desk. Inform the Admin of your name: <strong id="success-student-name-2" style="color: var(--accent-emerald);">Student</strong> to activate your free trial demo seat.';
+            nextStepText.innerHTML = `Please head over to the reception desk. Inform the Admin of your name: <strong id="success-student-name-2" style="color: var(--accent-emerald);">${escapeHTML(studentName)}</strong> to activate your free trial demo seat.`;
         } else {
-            nextStepText.innerHTML = 'Please head over to the reception desk. Inform the Admin of your name: <strong id="success-student-name-2" style="color: var(--accent-emerald);">Student</strong> to complete payment and activate your selected seat.';
+            nextStepText.innerHTML = `Please head over to the reception desk. Inform the Admin of your name: <strong id="success-student-name-2" style="color: var(--accent-emerald);">${escapeHTML(studentName)}</strong> to complete payment and activate your selected seat.`;
         }
     }
     
-    document.getElementById("success-student-name-2").textContent = studentName;
+    const successName2 = document.getElementById("success-student-name-2");
+    if (successName2) successName2.textContent = studentName;
     
     const warningEl = document.getElementById("success-offline-warning");
     if (warningEl) {

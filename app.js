@@ -20,6 +20,18 @@ const PLANS = [
     { id: 'premium-halfyearly', name: 'Reserved Half-Yearly', price: 5000, type: 'reserved', duration: 6 }
 ];
 
+// Security helper to escape HTML characters and prevent XSS
+function escapeHTML(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;")
+        .replace(/\//g, "&#x2F;");
+}
+
 // Helper to get room, seat number and display text from a seatId
 function getSeatRoomAndNumber(seatId) {
     if (!seatId || seatId === "non-reserved") {
@@ -96,8 +108,8 @@ function renderModalInstallments() {
         div.style.cssText = "display: flex; align-items: center; justify-content: space-between; padding: 0.35rem 0.5rem; background: rgba(255,255,255,0.03); border-radius: 4px; border: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem; color: #fff; margin-bottom: 0.25rem;";
         div.innerHTML = `
             <div style="flex: 1; display: flex; flex-direction: column; gap: 0.1rem;">
-                <div style="font-weight: 500;">₹${inst.amount} - ${inst.method}</div>
-                <div style="font-size: 0.7rem; color: var(--text-muted);">${inst.note || 'No note'} | ${dateStr}</div>
+                <div style="font-weight: 500;">₹${inst.amount} - ${escapeHTML(inst.method)}</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted);">${escapeHTML(inst.note || 'No note')} | ${dateStr}</div>
             </div>
             <button type="button" onclick="removeInstallmentFromForm(${index})" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0 0.25rem;">
                 <i class="fa-solid fa-trash-can" style="font-size: 0.8rem;"></i>
@@ -1064,19 +1076,20 @@ function renderDashboardAlerts() {
             displayDaysText = `${member.daysLeft} Days Left`;
         }
         
-        const alertAvatarLetter = member.name.charAt(0).toUpperCase();
-        const alertAvatarStyle = member.photo ? `background-image: url('${member.photo}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : '';
-        const alertAvatarContent = member.photo ? '' : alertAvatarLetter;
-        const clickableClass = member.photo ? 'clickable-avatar' : '';
-        const onclickAttr = member.photo ? `onclick="openLightbox('${member.photo}')"` : '';
+        const alertAvatarLetter = member.name ? member.name.charAt(0).toUpperCase() : '?';
+        const safeAlertPhoto = member.photo && (member.photo.startsWith("data:image/") || member.photo.startsWith("http")) ? member.photo : "";
+        const alertAvatarStyle = safeAlertPhoto ? `background-image: url('${safeAlertPhoto}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : '';
+        const alertAvatarContent = safeAlertPhoto ? '' : alertAvatarLetter;
+        const clickableClass = safeAlertPhoto ? 'clickable-avatar' : '';
+        const onclickAttr = safeAlertPhoto ? `onclick="openLightbox('${safeAlertPhoto}')"` : '';
         
         const seatInfoText = getSeatDisplayName(member.seatId);
         
         item.innerHTML = `
             <div class="alert-avatar ${clickableClass}" ${onclickAttr} style="${alertAvatarStyle}">${alertAvatarContent}</div>
             <div class="alert-details">
-                <div class="alert-name">${member.name}</div>
-                <div class="alert-info">${seatInfoText} • ${member.phone}</div>
+                <div class="alert-name">${escapeHTML(member.name)}</div>
+                <div class="alert-info">${escapeHTML(seatInfoText)} • ${escapeHTML(member.phone)}</div>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
                 <div class="alert-expiry-days ${isExpired ? 'expired' : ''}">${displayDaysText}</div>
@@ -1140,19 +1153,20 @@ function renderBirthdayAlerts() {
             const item = document.createElement("div");
             item.className = "alert-item birthday";
             
-            const avatarLetter = member.name.charAt(0).toUpperCase();
-            const avatarStyle = member.photo ? `background-image: url('${member.photo}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : '';
-            const avatarContent = member.photo ? '' : avatarLetter;
-            const clickableClass = member.photo ? 'clickable-avatar' : '';
-            const onclickAttr = member.photo ? `onclick="openLightbox('${member.photo}')"` : '';
+            const avatarLetter = member.name ? member.name.charAt(0).toUpperCase() : '?';
+            const safePhoto = member.photo && (member.photo.startsWith("data:image/") || member.photo.startsWith("http")) ? member.photo : "";
+            const avatarStyle = safePhoto ? `background-image: url('${safePhoto}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : '';
+            const avatarContent = safePhoto ? '' : avatarLetter;
+            const clickableClass = safePhoto ? 'clickable-avatar' : '';
+            const onclickAttr = safePhoto ? `onclick="openLightbox('${safePhoto}')"` : '';
             
             const seatInfoText = getSeatDisplayName(member.seatId);
             
             item.innerHTML = `
                 <div class="alert-avatar ${clickableClass}" ${onclickAttr} style="${avatarStyle}">${avatarContent}</div>
                 <div class="alert-details">
-                    <div class="alert-name" style="font-weight: 600; color: #fff;">${member.name} 🎂</div>
-                    <div class="alert-info">${seatInfoText} • ${member.phone}</div>
+                    <div class="alert-name" style="font-weight: 600; color: #fff;">${escapeHTML(member.name)} 🎂</div>
+                    <div class="alert-info">${escapeHTML(seatInfoText)} • ${escapeHTML(member.phone)}</div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <button class="btn-whatsapp-remind" onclick="sendBirthdayWish('${member.id}')" title="Send WhatsApp Wish" style="background: rgba(236, 72, 153, 0.15); color: #ec4899; border: 1px solid rgba(236, 72, 153, 0.3); border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s; font-weight: 500;" onmouseover="this.style.background='rgba(236, 72, 153, 0.25)'" onmouseout="this.style.background='rgba(236, 72, 153, 0.15)'">
@@ -1206,11 +1220,12 @@ function renderBirthdayAlerts() {
             const item = document.createElement("div");
             item.className = "alert-item";
             
-            const avatarLetter = member.name.charAt(0).toUpperCase();
-            const avatarStyle = member.photo ? `background-image: url('${member.photo}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : '';
-            const avatarContent = member.photo ? '' : avatarLetter;
-            const clickableClass = member.photo ? 'clickable-avatar' : '';
-            const onclickAttr = member.photo ? `onclick="openLightbox('${member.photo}')"` : '';
+            const avatarLetter = member.name ? member.name.charAt(0).toUpperCase() : '?';
+            const safePhoto = member.photo && (member.photo.startsWith("data:image/") || member.photo.startsWith("http")) ? member.photo : "";
+            const avatarStyle = safePhoto ? `background-image: url('${safePhoto}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : '';
+            const avatarContent = safePhoto ? '' : avatarLetter;
+            const clickableClass = safePhoto ? 'clickable-avatar' : '';
+            const onclickAttr = safePhoto ? `onclick="openLightbox('${safePhoto}')"` : '';
             
             const seatInfoText = getSeatDisplayName(member.seatId);
             
@@ -1224,12 +1239,12 @@ function renderBirthdayAlerts() {
             item.innerHTML = `
                 <div class="alert-avatar ${clickableClass}" ${onclickAttr} style="${avatarStyle}">${avatarContent}</div>
                 <div class="alert-details">
-                    <div class="alert-name" style="font-weight: 600; color: #fff;">${member.name}</div>
-                    <div class="alert-info">${seatInfoText} • ${member.phone}</div>
+                    <div class="alert-name" style="font-weight: 600; color: #fff;">${escapeHTML(member.name)}</div>
+                    <div class="alert-info">${escapeHTML(seatInfoText)} • ${escapeHTML(member.phone)}</div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <div class="alert-expiry-days" style="color: var(--accent-blue); background: rgba(59, 130, 246, 0.08); border-left-color: var(--accent-blue); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
-                        ${bdayString} (${daysText})
+                        ${escapeHTML(bdayString)} (${daysText})
                     </div>
                 </div>
             `;
@@ -1532,11 +1547,13 @@ function renderMemberTable() {
             expiryStatusText = `Expired (${daysExpired}d ago)`;
         }
         
-        const avatarLetter = member.name.charAt(0).toUpperCase();
-        const avatarStyle = member.photo ? `background-image: url('${member.photo}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : '';
-        const avatarContent = member.photo ? '' : avatarLetter;
-        const clickableClass = member.photo ? 'clickable-avatar' : '';
-        const onclickAttr = member.photo ? `onclick="openLightbox('${member.photo}')"` : '';
+        const avatarLetter = member.name ? member.name.charAt(0).toUpperCase() : '?';
+        // Prevent payload execution inside style URLs (only permit safe characters/base64 strings or clean URIs)
+        const safePhoto = member.photo && (member.photo.startsWith("data:image/") || member.photo.startsWith("http")) ? member.photo : "";
+        const avatarStyle = safePhoto ? `background-image: url('${safePhoto}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : '';
+        const avatarContent = safePhoto ? '' : avatarLetter;
+        const clickableClass = safePhoto ? 'clickable-avatar' : '';
+        const onclickAttr = safePhoto ? `onclick="openLightbox('${safePhoto}')"` : '';
         
         let seatDisplayHTML = "";
         const isDemoMember = member.status === "demo" || member.status === "demo-expired";
@@ -1576,8 +1593,8 @@ function renderMemberTable() {
                 <div class="member-profile">
                     <div class="member-avatar ${clickableClass}" ${onclickAttr} style="${avatarStyle}">${avatarContent}</div>
                     <div>
-                        <div class="member-name">${member.name}</div>
-                        <div class="member-phone">${member.phone}</div>
+                        <div class="member-name">${escapeHTML(member.name)}</div>
+                        <div class="member-phone">${escapeHTML(member.phone)}</div>
                     </div>
                 </div>
             </td>
@@ -1587,7 +1604,7 @@ function renderMemberTable() {
             <td>
                 <div>₹${member.feeAmount}</div>
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 1px;">
-                    ${planLabel} (${member.paymentMethod || 'Cash'})
+                    ${escapeHTML(planLabel)} (${escapeHTML(member.paymentMethod || 'Cash')})
                 </div>
             </td>
             <td>
@@ -1675,11 +1692,12 @@ function renderPendingRequests() {
             seatDetailsHTML = `<div style="font-size: 0.75rem; color: #fff; margin-top: 5px;">Requested: <strong>Room ${seatInfo.room} - Seat ${seatInfo.number}</strong></div>`;
         }
         
-        const reqAvatarLetter = req.name.charAt(0).toUpperCase();
-        const reqAvatarStyle = req.photo ? `background-image: url('${req.photo}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : 'color: var(--accent-amber);';
-        const reqAvatarContent = req.photo ? '' : reqAvatarLetter;
-        const clickableClass = req.photo ? 'clickable-avatar' : '';
-        const onclickAttr = req.photo ? `onclick="openLightbox('${req.photo}')"` : '';
+        const reqAvatarLetter = req.name ? req.name.charAt(0).toUpperCase() : '?';
+        const safeReqPhoto = req.photo && (req.photo.startsWith("data:image/") || req.photo.startsWith("http")) ? req.photo : "";
+        const reqAvatarStyle = safeReqPhoto ? `background-image: url('${safeReqPhoto}'); background-size: cover; background-position: center; color: transparent; border: 1px solid var(--border-color);` : 'color: var(--accent-amber);';
+        const reqAvatarContent = safeReqPhoto ? '' : reqAvatarLetter;
+        const clickableClass = safeReqPhoto ? 'clickable-avatar' : '';
+        const onclickAttr = safeReqPhoto ? `onclick="openLightbox('${safeReqPhoto}')"` : '';
         
         const isDemoReq = req.bookingType === "demo";
         tr.innerHTML = `
@@ -1687,18 +1705,18 @@ function renderPendingRequests() {
                 <div class="member-profile">
                     <div class="member-avatar ${clickableClass}" ${onclickAttr} style="${reqAvatarStyle}">${reqAvatarContent}</div>
                     <div>
-                        <div class="member-name">${req.name} <span style="font-size:0.75rem; font-weight:normal; color:var(--text-muted);">(${req.gender || 'N/A'})</span></div>
-                        <div class="member-phone">${req.phone}</div>
+                        <div class="member-name">${escapeHTML(req.name)} <span style="font-size:0.75rem; font-weight:normal; color:var(--text-muted);">(${escapeHTML(req.gender || 'N/A')})</span></div>
+                        <div class="member-phone">${escapeHTML(req.phone)}</div>
                     </div>
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-top:5px;">
-                    Father: <strong>${req.fatherName || 'N/A'}</strong> (${req.fatherPhone || 'N/A'})
+                    Father: <strong>${escapeHTML(req.fatherName || 'N/A')}</strong> (${escapeHTML(req.fatherPhone || 'N/A')})
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-top:2px;">
-                    Mother: <strong>${req.motherName || 'N/A'}</strong> (${req.motherPhone || 'N/A'})
+                    Mother: <strong>${escapeHTML(req.motherName || 'N/A')}</strong> (${escapeHTML(req.motherPhone || 'N/A')})
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-top:2px;">
-                    Email: <strong>${req.email || 'N/A'}</strong>
+                    Email: <strong>${escapeHTML(req.email || 'N/A')}</strong>
                 </div>
                 <div style="font-size: 0.7rem; color: var(--text-muted); margin-top:2px;">Submitted today at ${dateSubmitted}</div>
             </td>
@@ -1707,13 +1725,13 @@ function renderPendingRequests() {
                     ${isDemoReq ? 'Demo Session' : (req.seatType === 'reserved' ? 'Reserved' : 'Non-Reserved')}
                 </span>
                 ${seatDetailsHTML}
-                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 3px;">Pay via: <strong>${isDemoReq ? 'Free Trial' : (req.paymentMethod || 'Cash')}</strong></div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 3px;">Pay via: <strong>${isDemoReq ? 'Free Trial' : escapeHTML(req.paymentMethod || 'Cash')}</strong></div>
             </td>
             <td><strong style="color: #fff;">${isDemoReq ? `${req.demoDuration || 5} Day(s)` : `${req.duration} Month(s)`}</strong></td>
             <td>
-                <span style="font-size: 0.8rem; color: var(--text-muted); font-family: monospace;">Aadhaar: ${req.govId || 'N/A'}</span>
-                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="Current: ${req.currentAddress}">
-                    Addr: ${req.currentAddress || 'N/A'}
+                <span style="font-size: 0.8rem; color: var(--text-muted); font-family: monospace;">Aadhaar: ${escapeHTML(req.govId || 'N/A')}</span>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="Current: ${escapeHTML(req.currentAddress)}">
+                    Addr: ${escapeHTML(req.currentAddress || 'N/A')}
                 </div>
             </td>
             <td>
@@ -3429,8 +3447,8 @@ function renderInvoiceReceiptDetails(member, invoiceObj) {
                 <tr style="color: #334155;">
                     <td style="padding: 0.15rem 0;">${pDate}</td>
                     <td style="padding: 0.15rem 0;">₹${p.amount}</td>
-                    <td style="padding: 0.15rem 0;">${p.method}</td>
-                    <td style="padding: 0.15rem 0; max-width: 95px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${p.note || ''}</td>
+                    <td style="padding: 0.15rem 0;">${escapeHTML(p.method)}</td>
+                    <td style="padding: 0.15rem 0; max-width: 95px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHTML(p.note || '')}</td>
                 </tr>
             `;
         });
@@ -3444,32 +3462,32 @@ function renderInvoiceReceiptDetails(member, invoiceObj) {
     modalBody.innerHTML = `
         <div style="font-family: monospace; font-size: 0.85rem; line-height: 1.5; color: #1e293b;">
             <div style="text-align: center; margin-bottom: 0.8rem; border-bottom: 1px dashed #cbd5e1; padding-bottom:0.5rem;">
-                <h3 style="font-size: 1.3rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing:-0.03em;">${state.settings.libraryName.toUpperCase()}</h3>
-                <p style="font-size: 0.7rem; color: #64748b; margin-top: 0.15rem; font-family: sans-serif;">${state.settings.address} • Mob: ${state.settings.phone}</p>
+                <h3 style="font-size: 1.3rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing:-0.03em;">${escapeHTML(state.settings.libraryName).toUpperCase()}</h3>
+                <p style="font-size: 0.7rem; color: #64748b; margin-top: 0.15rem; font-family: sans-serif;">${escapeHTML(state.settings.address)} • Mob: ${escapeHTML(state.settings.phone)}</p>
             </div>
             
             <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 0.5rem; font-size: 0.8rem;">
-                <div style="display:flex; justify-content:space-between;"><span><strong>Receipt No:</strong> ${receiptNo}</span><span><strong>Date:</strong> ${new Date(invoiceObj.timestamp).toLocaleDateString('en-IN')}</span></div>
+                <div style="display:flex; justify-content:space-between;"><span><strong>Receipt No:</strong> ${escapeHTML(receiptNo)}</span><span><strong>Date:</strong> ${new Date(invoiceObj.timestamp).toLocaleDateString('en-IN')}</span></div>
             </div>
             
             <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
-                <div><strong>Student:</strong> ${member.name} (${member.gender || 'N/A'})</div>
+                <div><strong>Student:</strong> ${escapeHTML(member.name)} (${escapeHTML(member.gender || 'N/A')})</div>
                 <div><strong>Date of Birth:</strong> ${member.dob ? new Date(member.dob).toLocaleDateString('en-IN') : 'N/A'}</div>
-                <div><strong>Aadhaar Number:</strong> ${member.govId || 'N/A'}</div>
-                <div><strong>Phone:</strong> ${member.phone}</div>
-                <div><strong>Email:</strong> ${member.email || 'N/A'}</div>
-                <div><strong>Target Exam:</strong> ${member.targetExam || 'N/A'}</div>
-                <div><strong>Father's Name:</strong> ${member.fatherName || 'N/A'}</div>
-                <div><strong>Father's Mobile:</strong> ${member.fatherPhone || 'N/A'}</div>
-                <div><strong>Mother's Name:</strong> ${member.motherName || 'N/A'}</div>
-                <div><strong>Mother's Mobile:</strong> ${member.motherPhone || 'N/A'}</div>
-                <div><strong>Emergency Contact:</strong> ${member.emergencyName || 'N/A'} (${member.emergencyRelation || 'N/A'})</div>
-                <div><strong>Emergency Phone:</strong> ${member.emergencyPhone || 'N/A'}</div>
+                <div><strong>Aadhaar Number:</strong> ${escapeHTML(member.govId || 'N/A')}</div>
+                <div><strong>Phone:</strong> ${escapeHTML(member.phone)}</div>
+                <div><strong>Email:</strong> ${escapeHTML(member.email || 'N/A')}</div>
+                <div><strong>Target Exam:</strong> ${escapeHTML(member.targetExam || 'N/A')}</div>
+                <div><strong>Father's Name:</strong> ${escapeHTML(member.fatherName || 'N/A')}</div>
+                <div><strong>Father's Mobile:</strong> ${escapeHTML(member.fatherPhone || 'N/A')}</div>
+                <div><strong>Mother's Name:</strong> ${escapeHTML(member.motherName || 'N/A')}</div>
+                <div><strong>Mother's Mobile:</strong> ${escapeHTML(member.motherPhone || 'N/A')}</div>
+                <div><strong>Emergency Contact:</strong> ${escapeHTML(member.emergencyName || 'N/A')} (${escapeHTML(member.emergencyRelation || 'N/A')})</div>
+                <div><strong>Emergency Phone:</strong> ${escapeHTML(member.emergencyPhone || 'N/A')}</div>
             </div>
             
             <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
-                <div><strong>Room No:</strong> ${roomDisplay}</div>
-                <div><strong>Seat Number:</strong> ${seatDisplay}</div>
+                <div><strong>Room No:</strong> ${escapeHTML(roomDisplay)}</div>
+                <div><strong>Seat Number:</strong> ${escapeHTML(seatDisplay)}</div>
                 <div><strong>Validity:</strong> ${startDateFmt} to ${expiryDateFmt}</div>
             </div>
             
@@ -3490,19 +3508,19 @@ function renderInvoiceReceiptDetails(member, invoiceObj) {
             
             <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.25rem;">
                 <span>Payment Mode:</span>
-                <span><strong>${invoiceObj.paymentMethod || 'Cash'}</strong></span>
+                <span><strong>${escapeHTML(invoiceObj.paymentMethod || 'Cash')}</strong></span>
             </div>
             
             <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.5rem;">
                 <span>Payment Status:</span>
-                <span style="color: ${invoiceObj.paymentStatus === 'Paid' ? '#10b981' : '#f59e0b'}; font-weight: bold;">${invoiceObj.paymentStatus}</span>
+                <span style="color: ${invoiceObj.paymentStatus === 'Paid' ? '#10b981' : '#f59e0b'}; font-weight: bold;">${escapeHTML(invoiceObj.paymentStatus)}</span>
             </div>
 
             ${installmentsHTML}
     
             <div style="text-align: center; border-top: 1px dashed #cbd5e1; padding-top: 0.5rem; margin-top: 0.5rem; color: #64748b; font-size: 0.72rem; font-family: sans-serif; line-height: 1.3;">
                 Thank you for studying with us!<br>
-                For support, contact us at: ${state.settings.phone}
+                For support, contact us at: ${escapeHTML(state.settings.phone)}
             </div>
         </div>
     `;
@@ -4628,20 +4646,20 @@ function renderComplaintsList() {
 
         const studentInfoHtml = `
             <div style="font-weight: 600; color: #fff; display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
-                <span>${c.studentName}</span>
+                <span>${escapeHTML(c.studentName)}</span>
                 ${verificationBadge}
             </div>
             <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem;">
-                <i class="fa-solid fa-phone" style="font-size:0.75rem;"></i> ${c.phone}
+                <i class="fa-solid fa-phone" style="font-size:0.75rem;"></i> ${escapeHTML(c.phone)}
             </div>
             <div style="font-size: 0.8rem; color: var(--accent-blue); font-weight: 500; margin-top: 0.15rem;">
-                Room ${c.room} • Seat ${c.seatNumber || "Flexible"}
+                Room ${escapeHTML(c.room)} • Seat ${escapeHTML(c.seatNumber || "Flexible")}
             </div>
         `;
         
         // Ticket Info
         const ticketInfoHtml = `
-            <strong style="color: var(--accent-rose); font-family: var(--font-display);">${c.ticketId}</strong>
+            <strong style="color: var(--accent-rose); font-family: var(--font-display);">${escapeHTML(c.ticketId)}</strong>
             <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">${formattedDate}</div>
         `;
         
@@ -4657,7 +4675,7 @@ function renderComplaintsList() {
         const categoryHtml = `
             <span style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; font-weight: 600; color: #ffffff;">
                 <i class="fa-solid ${categoryIcon}" style="color: var(--accent-blue); font-size: 0.9rem;"></i>
-                ${c.category}
+                ${escapeHTML(c.category)}
             </span>
         `;
         
@@ -4670,7 +4688,7 @@ function renderComplaintsList() {
                     <option value="resolved" ${c.status === 'resolved' ? 'selected' : ''}>🟢 Mark Resolved</option>
                 </select>
                 <div style="display: flex; gap: 0.3rem;">
-                    <a href="https://wa.me/91${c.phone}?text=${encodeURIComponent(getComplaintWhatsAppMessage(c))}" target="_blank" class="btn btn-secondary" style="padding: 0.35rem; flex: 1; height: 32px; font-size: 0.75rem; justify-content: center; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.2); color: #a7f3d0; margin-bottom: 0;" title="Send WhatsApp Update">
+                    <a href="https://wa.me/91${escapeHTML(c.phone)}?text=${encodeURIComponent(getComplaintWhatsAppMessage(c))}" target="_blank" class="btn btn-secondary" style="padding: 0.35rem; flex: 1; height: 32px; font-size: 0.75rem; justify-content: center; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.2); color: #a7f3d0; margin-bottom: 0;" title="Send WhatsApp Update">
                         <i class="fa-brands fa-whatsapp"></i> Update
                     </a>
                     <button onclick="deleteComplaint('${c.id}')" class="btn btn-secondary" style="padding: 0.35rem; flex: 0.4; height: 32px; font-size: 0.75rem; justify-content: center; background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.2); color: #fca5a5; margin-bottom: 0;" title="Delete Ticket">
@@ -4682,9 +4700,9 @@ function renderComplaintsList() {
         
         // Description + Admin notes input
         const descriptionHtml = `
-            <div style="color: #cbd5e1; font-size: 0.88rem; line-height: 1.4; white-space: pre-wrap;">${c.description}</div>
+            <div style="color: #cbd5e1; font-size: 0.88rem; line-height: 1.4; white-space: pre-wrap;">${escapeHTML(c.description)}</div>
             <div style="margin-top: 0.75rem; display: flex; gap: 0.4rem; align-items: center;">
-                <input type="text" id="notes-${c.id}" class="form-control" style="height: 30px; font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(255,255,255,0.02); border-color: var(--border-color);" placeholder="Add internal staff notes..." value="${c.adminNotes || ''}">
+                <input type="text" id="notes-${c.id}" class="form-control" style="height: 30px; font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(255,255,255,0.02); border-color: var(--border-color);" placeholder="Add internal staff notes..." value="${escapeHTML(c.adminNotes || '')}">
                 <button onclick="saveComplaintNotes('${c.id}')" class="btn btn-secondary" style="height: 30px; padding: 0 0.6rem; font-size: 0.75rem; margin-bottom: 0;">Save</button>
             </div>
         `;

@@ -1,0 +1,57 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "study_cafe_system": {
+      "settings": {
+        // Anyone can view the library name, address, and phone for landing pages
+        ".read": true,
+        // Only authenticated admins can write/update settings
+        ".write": "auth != null"
+      },
+      "seats": {
+        // Anyone can view seat status/vacancies to book a seat
+        ".read": true,
+        // Only authenticated admins can update seat allocations or types
+        ".write": "auth != null"
+      },
+      "complaints": {
+        // Only authenticated admins can read complaints list
+        ".read": "auth != null",
+        // Allow public to submit tickets but restrict updates/deletes to admins
+        "$complaint_id": {
+          ".read": "auth != null",
+          ".write": "auth != null || (!data.exists() && newData.exists() && newData.child('status').val() === 'pending' && newData.child('phone').exists() && newData.child('studentName').exists())"
+        },
+        ".write": "auth != null"
+      },
+      "registered_phones": {
+        // Only authenticated admins can read the entire registration index
+        ".read": "auth != null",
+        // Allow landing page to check if a specific phone is verified without credentials
+        "$phone": {
+          ".read": "true",
+          ".write": "auth != null"
+        },
+        ".write": "auth != null"
+      },
+      "members": {
+        // Only authenticated admins can read/write the student directory
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "pending_bookings": {
+      // Only authenticated admins can read and search pending booking list
+      ".read": "auth != null",
+      // Allow public to submit new booking requests
+      "$booking_id": {
+        ".read": "auth != null",
+        // Allow write if it's a new submission, or if authenticated admin
+        ".write": "auth != null || (!data.exists() && newData.exists() && (newData.child('bookingType').val() === 'demo' || newData.child('paymentStatus').exists()))"
+      },
+      // Restrict root writes/deletes to authenticated admins
+      ".write": "auth != null"
+    }
+  }
+}

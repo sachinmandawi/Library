@@ -23,6 +23,18 @@ const PLANS_PRICING = {
     }
 };
 
+// Security helper to escape HTML characters and prevent XSS
+function escapeHTML(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;")
+        .replace(/\//g, "&#x2F;");
+}
+
 let database = null;
 let activeLandingRoom = 1;
 let allSeatsData = [];

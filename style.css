@@ -1730,6 +1730,18 @@ h1, h2, h3, h4, h5, h6 {
     gap: 0.5rem;
 }
 
+.auth-error-msg.info {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.25);
+    color: #3b82f6;
+}
+
+.auth-error-msg.success {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.25);
+    color: #10b981;
+}
+
 .auth-card .form-group {
     text-align: left;
 }

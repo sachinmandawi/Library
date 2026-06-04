@@ -4180,7 +4180,10 @@ function handleAdminLogin(event) {
     const errorMsg = document.getElementById("auth-error-msg");
     const submitBtn = document.querySelector("#auth-form button[type='submit']");
     
-    if (errorMsg) errorMsg.style.display = "none";
+    if (errorMsg) {
+        errorMsg.style.display = "none";
+        errorMsg.className = "auth-error-msg";
+    }
     
     if (submitBtn) {
         submitBtn.disabled = true;
@@ -4235,6 +4238,46 @@ function resetFirebaseConfigFromLogin(event) {
     if (confirm("Are you sure you want to restore the Default Sandbox Database? This will reload the page and connect to the sandbox database.")) {
         localStorage.removeItem("custom_firebase_config");
         window.location.reload();
+    }
+}
+
+// Send password reset email
+function handleForgotPassword(event) {
+    if (event) event.preventDefault();
+    const email = document.getElementById("auth-email").value.trim();
+    const errorMsg = document.getElementById("auth-error-msg");
+    
+    if (!email) {
+        if (errorMsg) {
+            errorMsg.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Please enter your Admin Email first.`;
+            errorMsg.className = "auth-error-msg info";
+            errorMsg.style.display = "flex";
+        }
+        return;
+    }
+    
+    if (confirm(`Send password reset email to ${email}?`)) {
+        if (window.firebase && window.firebase.auth) {
+            firebase.auth().sendPasswordResetEmail(email)
+                .then(() => {
+                    showToast("Password reset email sent! Please check your inbox.", "success");
+                    if (errorMsg) {
+                        errorMsg.innerHTML = `<i class="fa-solid fa-circle-info"></i> Reset link sent to ${email}.`;
+                        errorMsg.className = "auth-error-msg success";
+                        errorMsg.style.display = "flex";
+                    }
+                })
+                .catch(err => {
+                    console.error("Password reset failed:", err);
+                    if (errorMsg) {
+                        errorMsg.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Reset Error: ${err.message}`;
+                        errorMsg.className = "auth-error-msg";
+                        errorMsg.style.display = "flex";
+                    }
+                });
+        } else {
+            showToast("Firebase Auth not initialized.", "error");
+        }
     }
 }
 

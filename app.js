@@ -2010,8 +2010,7 @@ function openEditMemberModal(memberId) {
     document.getElementById("m-start-date").value = member.startDate;
     document.getElementById("m-expiry-date").value = member.expiryDate;
     document.getElementById("m-fee-amount").value = member.feeAmount;
-    const amountPaid = member.amountPaid !== undefined ? member.amountPaid : (member.paymentStatus === "Paid" ? member.feeAmount : 0);
-    const balanceAmount = member.balanceAmount !== undefined ? member.balanceAmount : (member.feeAmount - amountPaid);
+    const { paid: amountPaid, pending: balanceAmount } = getMemberPaymentDetails(member);
     document.getElementById("m-amount-paid").value = amountPaid;
     document.getElementById("m-balance-amount").value = balanceAmount;
     document.getElementById("m-payment").value = member.paymentStatus;
@@ -2451,7 +2450,7 @@ async function handleMemberFormSubmit(event) {
         let invoices = originalMember.invoices || [];
         if (invoices.length === 0) {
             // Build fallback for backward compatibility
-            const origPaid = originalMember.amountPaid !== undefined ? originalMember.amountPaid : (originalMember.paymentStatus === "Paid" ? (originalMember.feeAmount || 0) : 0);
+            const { paid: origPaid } = getMemberPaymentDetails(originalMember);
             const fallbackPayments = originalMember.payments || [];
             if (fallbackPayments.length === 0 && origPaid > 0) {
                 fallbackPayments.push({
@@ -2605,11 +2604,23 @@ function togglePaymentStatus(memberId) {
     
     member.paymentStatus = member.paymentStatus === "Paid" ? "Pending" : "Paid";
     
-    // Also update the active invoice payment status
+    // Keep amountPaid and balanceAmount synchronized with status
+    const fee = parseInt(member.feeAmount) || 0;
+    if (member.paymentStatus === "Paid") {
+        member.amountPaid = fee;
+        member.balanceAmount = 0;
+    } else {
+        member.amountPaid = 0;
+        member.balanceAmount = fee;
+    }
+    
+    // Also update the active invoice payment status and amounts
     if (member.invoices && member.invoices.length > 0) {
         let activeInvoice = member.invoices.find(inv => inv.timestamp === member.timestamp) || member.invoices[member.invoices.length - 1];
         if (activeInvoice) {
             activeInvoice.paymentStatus = member.paymentStatus;
+            activeInvoice.amountPaid = member.amountPaid;
+            activeInvoice.balanceAmount = member.balanceAmount;
         }
     }
     
@@ -2704,15 +2715,28 @@ function sendBirthdayWish(memberId) {
     window.open(whatsappUrl, "_blank");
 }
 
+// Calculate accurate member payment details based on current payment status and custom amounts
+function getMemberPaymentDetails(member) {
+    const fee = parseInt(member.feeAmount) || 0;
+    if (member.paymentStatus === "Paid") {
+        return { paid: fee, pending: 0 };
+    } else if (member.paymentStatus === "Pending") {
+        return { paid: 0, pending: fee };
+    } else {
+        const paid = member.amountPaid !== undefined ? (parseInt(member.amountPaid) || 0) : 0;
+        const pending = member.balanceAmount !== undefined ? (parseInt(member.balanceAmount) || 0) : (fee - paid);
+        return { paid: paid, pending: pending };
+    }
+}
+
 // Update Fees Tab pending badge count
 function updateFeesBadge() {
     const badge = document.getElementById("fees-badge-count");
     if (!badge) return;
     
     const pendingCount = state.members.filter(m => {
-        const fee = parseInt(m.feeAmount) || 0;
-        const paid = m.amountPaid !== undefined ? (parseInt(m.amountPaid) || 0) : (m.paymentStatus === "Paid" ? fee : 0);
-        return (fee - paid) > 0;
+        const { pending } = getMemberPaymentDetails(m);
+        return pending > 0;
     }).length;
     
     if (pendingCount > 0) {
@@ -2742,10 +2766,7 @@ function renderFeesTab() {
     let pendingStudentsCount = 0;
     
     state.members.forEach(m => {
-        const fee = parseInt(m.feeAmount) || 0;
-        const paid = m.amountPaid !== undefined ? (parseInt(m.amountPaid) || 0) : (m.paymentStatus === "Paid" ? fee : 0);
-        const pending = m.balanceAmount !== undefined ? (parseInt(m.balanceAmount) || 0) : (fee - paid);
-        
+        const { paid, pending } = getMemberPaymentDetails(m);
         totalCollected += paid;
         totalPending += pending;
         
@@ -2758,11 +2779,9 @@ function renderFeesTab() {
     if (kpiPending) kpiPending.textContent = `₹${totalPending.toLocaleString('en-IN')}`;
     if (kpiCount) kpiCount.textContent = `${pendingStudentsCount} Student${pendingStudentsCount === 1 ? '' : 's'}`;
     
-    // 2. Filter Pending Payments (balanceAmount > 0)
+    // 2. Filter Pending Payments (dues > 0)
     const pendingStudents = state.members.filter(m => {
-        const fee = parseInt(m.feeAmount) || 0;
-        const paid = m.amountPaid !== undefined ? (parseInt(m.amountPaid) || 0) : (m.paymentStatus === "Paid" ? fee : 0);
-        const pending = m.balanceAmount !== undefined ? (parseInt(m.balanceAmount) || 0) : (fee - paid);
+        const { pending } = getMemberPaymentDetails(m);
         return pending > 0;
     }).sort((a, b) => b.timestamp - a.timestamp);
         
@@ -2799,10 +2818,8 @@ function renderFeesTab() {
             const onclickAttr = member.photo ? `onclick="openLightbox('${member.photo}')"` : '';
             
             const seatText = getSeatDisplayName(member.seatId);
-            
             const fee = parseInt(member.feeAmount) || 0;
-            const paid = member.amountPaid !== undefined ? (parseInt(member.amountPaid) || 0) : (member.paymentStatus === "Paid" ? fee : 0);
-            const pending = member.balanceAmount !== undefined ? (parseInt(member.balanceAmount) || 0) : (fee - paid);
+            const { paid, pending } = getMemberPaymentDetails(member);
             
             tr.innerHTML = `
                 <td>
@@ -2876,9 +2893,7 @@ function renderFeesTab() {
                 minute: '2-digit'
             });
             
-            const fee = parseInt(member.feeAmount) || 0;
-            const paid = member.amountPaid !== undefined ? (parseInt(member.amountPaid) || 0) : (member.paymentStatus === "Paid" ? fee : 0);
-            const pending = member.balanceAmount !== undefined ? (parseInt(member.balanceAmount) || 0) : (fee - paid);
+            const { paid, pending } = getMemberPaymentDetails(member);
             
             item.innerHTML = `
                 <div class="alert-avatar" style="color: ${isPaid ? 'var(--accent-emerald)' : (isPartial ? 'var(--accent-blue)' : 'var(--accent-amber)')}; background: ${isPaid ? 'rgba(16, 185, 129, 0.08)' : (isPartial ? 'rgba(59, 130, 246, 0.08)' : 'rgba(245, 158, 11, 0.08)')}; font-size: 1rem;">
@@ -2913,9 +2928,7 @@ function sendFeeReminder(memberId) {
     const libName = state.settings.libraryName || "Red Room";
     const planName = PLANS.find(p => p.id === member.planId)?.name || "Library Membership";
     
-    const fee = parseInt(member.feeAmount) || 0;
-    const paid = member.amountPaid !== undefined ? (parseInt(member.amountPaid) || 0) : (member.paymentStatus === "Paid" ? fee : 0);
-    const pending = member.balanceAmount !== undefined ? (parseInt(member.balanceAmount) || 0) : (fee - paid);
+    const { paid, pending } = getMemberPaymentDetails(member);
     
     const message = `Hello ${member.name},\n\nThis is a friendly fee status update from *${libName}*.\n\n💵 *Pending Amount:* ₹${pending}\n📦 *Plan Duration:* ${planName}\n\nKindly clear the pending dues at the desk at your earliest convenience to update your database record. If you have already paid, please share the receipt screenshot.\n\nThank you,\n*${libName}*`;
     
@@ -2937,8 +2950,7 @@ function markFeeAsPaidQuick(memberId) {
     if (!member) return;
     
     const fee = parseInt(member.feeAmount) || 0;
-    const paidSoFar = member.amountPaid !== undefined ? (parseInt(member.amountPaid) || 0) : (member.paymentStatus === "Paid" ? fee : 0);
-    const currentDues = member.balanceAmount !== undefined ? (parseInt(member.balanceAmount) || 0) : (fee - paidSoFar);
+    const { paid: paidSoFar, pending: currentDues } = getMemberPaymentDetails(member);
     
     const amountStr = prompt(`Collect payment for ${member.name}.\nDues Remaining: ₹${currentDues}\nEnter amount to collect:`, currentDues);
     if (amountStr === null) return; // Cancelled
@@ -3607,7 +3619,7 @@ function openReceiptModal(memberId) {
     
     let invoices = member.invoices || [];
     if (invoices.length === 0) {
-        const origPaid = member.amountPaid !== undefined ? member.amountPaid : (member.paymentStatus === "Paid" ? member.feeAmount : 0);
+        const { paid: origPaid } = getMemberPaymentDetails(member);
         const fallbackPayments = member.payments || [];
         if (fallbackPayments.length === 0 && origPaid > 0) {
             fallbackPayments.push({
@@ -3746,8 +3758,7 @@ function shareReceiptWhatsApp() {
     // Fallback if no selected invoice
     if (!invoiceObj) {
         const fee = parseInt(member.feeAmount) || 0;
-        const paid = member.amountPaid !== undefined ? (parseInt(member.amountPaid) || 0) : (member.paymentStatus === "Paid" ? fee : 0);
-        const pending = member.balanceAmount !== undefined ? (parseInt(member.balanceAmount) || 0) : (fee - paid);
+        const { paid, pending } = getMemberPaymentDetails(member);
         invoiceObj = {
             timestamp: member.timestamp,
             startDate: member.startDate,
@@ -4437,8 +4448,7 @@ function renderFeesCharts() {
     let onlineTotal = 0;
     
     state.members.forEach(m => {
-        const fee = parseInt(m.feeAmount) || 0;
-        const paid = m.amountPaid !== undefined ? (parseInt(m.amountPaid) || 0) : (m.paymentStatus === "Paid" ? fee : 0);
+        const { paid } = getMemberPaymentDetails(m);
         
         // Group by Month (Year-Month format for chronological sorting)
         const date = new Date(m.timestamp || Date.now());
@@ -4620,8 +4630,7 @@ function exportFeesReport() {
     
     filteredMembers.forEach(m => {
         const fee = parseInt(m.feeAmount) || 0;
-        const paid = m.amountPaid !== undefined ? (parseInt(m.amountPaid) || 0) : (m.paymentStatus === "Paid" ? fee : 0);
-        const pending = m.balanceAmount !== undefined ? (parseInt(m.balanceAmount) || 0) : (fee - paid);
+        const { paid, pending } = getMemberPaymentDetails(m);
         
         const seatText = getSeatDisplayName(m.seatId);
         

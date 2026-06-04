@@ -1737,14 +1737,20 @@ function renderPendingRequests() {
                     Addr: ${escapeHTML(req.currentAddress || 'N/A')}
                 </div>
             </td>
-            <td>
-                <div class="actions-cell">
-                    <button class="btn btn-primary" onclick="approvePendingRequest('${req.id}')" style="padding: 0.4rem 0.8rem; font-size:0.8rem;">
-                        <i class="fa-solid fa-check"></i> Assign Seat & Approve
+            <td style="position: relative; text-align: center;">
+                <div class="dropdown-actions-container">
+                    <button class="btn-actions-toggle" onclick="toggleActionDropdown('${req.id}', event)" title="Actions">
+                        <i class="fa-solid fa-ellipsis-vertical"></i>
                     </button>
-                    <button class="btn btn-secondary" onclick="rejectPendingRequest('${req.id}')" style="padding: 0.4rem 0.8rem; font-size:0.8rem;">
-                        <i class="fa-solid fa-times" style="color: var(--accent-rose);"></i> Reject
-                    </button>
+                    <div id="dropdown_menu_${req.id}" class="dropdown-actions-menu">
+                        <a href="javascript:void(0)" onclick="approvePendingRequest('${req.id}'); closeAllActionDropdowns();">
+                            <i class="fa-solid fa-user-check" style="color: var(--accent-emerald);"></i> Assign & Approve
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="javascript:void(0)" onclick="rejectPendingRequest('${req.id}'); closeAllActionDropdowns();" class="delete-action">
+                            <i class="fa-solid fa-user-xmark" style="color: var(--accent-rose);"></i> Reject Request
+                        </a>
+                    </div>
                 </div>
             </td>
         `;
@@ -2773,14 +2779,19 @@ function renderFeesTab() {
                         ${PLANS.find(p => p.id === member.planId)?.name || 'Custom Plan'}
                     </div>
                 </td>
-                <td>
-                    <div class="actions-cell" style="justify-content: center; gap: 8px;">
-                        <button class="btn-icon-only btn-secondary" onclick="sendFeeReminder('${member.id}')" title="Send WhatsApp Fee Reminder" style="background: rgba(37, 211, 102, 0.1); color: #25D366; border-color: rgba(37, 211, 102, 0.2);">
-                            <i class="fa-brands fa-whatsapp"></i>
+                <td style="position: relative; text-align: center;">
+                    <div class="dropdown-actions-container">
+                        <button class="btn-actions-toggle" onclick="toggleActionDropdown('${member.id}', event)" title="Actions">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
                         </button>
-                        <button class="btn-icon-only btn-secondary" onclick="markFeeAsPaidQuick('${member.id}')" title="Mark as Paid" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-emerald); border-color: rgba(16, 185, 129, 0.2);">
-                            <i class="fa-solid fa-check"></i>
-                        </button>
+                        <div id="dropdown_menu_${member.id}" class="dropdown-actions-menu">
+                            <a href="javascript:void(0)" onclick="sendFeeReminder('${member.id}'); closeAllActionDropdowns();">
+                                <i class="fa-brands fa-whatsapp" style="color: #25D366;"></i> WhatsApp Reminder
+                            </a>
+                            <a href="javascript:void(0)" onclick="markFeeAsPaidQuick('${member.id}'); closeAllActionDropdowns();">
+                                <i class="fa-solid fa-circle-check" style="color: var(--accent-emerald);"></i> Mark as Paid
+                            </a>
+                        </div>
                     </div>
                 </td>
             `;
@@ -4727,19 +4738,27 @@ function renderComplaintsList() {
         
         // Actions Html
         const actionsHtml = `
-            <div style="display: flex; flex-direction: column; gap: 0.5rem; max-width: 180px;">
-                <select onchange="changeComplaintStatus('${c.id}', this.value)" class="select-input" style="width: 100%; padding: 0.3rem; font-size: 0.8rem; height: 32px;">
-                    <option value="pending" ${c.status === 'pending' ? 'selected' : ''}>🔴 Mark Pending</option>
-                    <option value="in-progress" ${c.status === 'in-progress' ? 'selected' : ''}>🟡 Mark In-Progress</option>
-                    <option value="resolved" ${c.status === 'resolved' ? 'selected' : ''}>🟢 Mark Resolved</option>
-                </select>
-                <div style="display: flex; gap: 0.3rem;">
-                    <a href="https://wa.me/91${escapeHTML(c.phone)}?text=${encodeURIComponent(getComplaintWhatsAppMessage(c))}" target="_blank" class="btn btn-secondary" style="padding: 0.35rem; flex: 1; height: 32px; font-size: 0.75rem; justify-content: center; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.2); color: #a7f3d0; margin-bottom: 0;" title="Send WhatsApp Update">
-                        <i class="fa-brands fa-whatsapp"></i> Update
+            <div class="dropdown-actions-container">
+                <button class="btn-actions-toggle" onclick="toggleActionDropdown('${c.id}', event)" title="Actions">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div id="dropdown_menu_${c.id}" class="dropdown-actions-menu">
+                    <a href="javascript:void(0)" onclick="changeComplaintStatus('${c.id}', 'resolved'); closeAllActionDropdowns();">
+                        <i class="fa-solid fa-circle-check" style="color: var(--accent-emerald);"></i> Resolve Ticket
                     </a>
-                    <button onclick="deleteComplaint('${c.id}')" class="btn btn-secondary" style="padding: 0.35rem; flex: 0.4; height: 32px; font-size: 0.75rem; justify-content: center; background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.2); color: #fca5a5; margin-bottom: 0;" title="Delete Ticket">
-                        <i class="fa-solid fa-trash-can"></i>
-                    </button>
+                    <a href="javascript:void(0)" onclick="changeComplaintStatus('${c.id}', 'in-progress'); closeAllActionDropdowns();">
+                        <i class="fa-solid fa-spinner" style="color: var(--accent-amber);"></i> Mark In-Progress
+                    </a>
+                    <a href="javascript:void(0)" onclick="changeComplaintStatus('${c.id}', 'pending'); closeAllActionDropdowns();">
+                        <i class="fa-solid fa-clock" style="color: var(--accent-rose);"></i> Mark Pending
+                    </a>
+                    <a href="https://wa.me/91${escapeHTML(cleanComplaintPhone)}?text=${encodeURIComponent(getComplaintWhatsAppMessage(c))}" target="_blank" onclick="closeAllActionDropdowns();">
+                        <i class="fa-brands fa-whatsapp" style="color: #25D366;"></i> WhatsApp Update
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a href="javascript:void(0)" onclick="deleteComplaint('${c.id}'); closeAllActionDropdowns();" class="delete-action">
+                        <i class="fa-solid fa-trash-can" style="color: var(--accent-rose);"></i> Delete Ticket
+                    </a>
                 </div>
             </div>
         `;

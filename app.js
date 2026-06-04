@@ -576,15 +576,55 @@ function setupFirebaseListeners() {
     // Initialize database node if empty, or perform seat migration
     dbRef.once("value", snapshot => {
         if (!snapshot.exists()) {
+            const membersObj = {};
+            (state.members || []).forEach(m => {
+                if (m && m.id) {
+                    membersObj[m.id] = m;
+                }
+            });
             dbRef.set({
                 settings: state.settings,
                 seats: state.seats,
-                members: state.members
+                members: membersObj
             });
         } else {
             const val = snapshot.val();
             const seatsVal = val.seats;
-            const membersVal = val.members ? Object.values(val.members) : [];
+            
+            // Migrate members database structure from array/duplicate format to clean object format
+            let finalMembers = val.members;
+            if (val.members) {
+                let needsMigration = Array.isArray(val.members);
+                const rawMembers = Object.entries(val.members);
+                
+                const seenIds = new Set();
+                const uniqueMembers = {};
+                let hasDuplicates = false;
+                
+                rawMembers.forEach(([key, member]) => {
+                    if (member && member.id) {
+                        if (seenIds.has(member.id)) {
+                            hasDuplicates = true;
+                            uniqueMembers[member.id] = member;
+                        } else {
+                            seenIds.add(member.id);
+                            uniqueMembers[member.id] = member;
+                        }
+                        
+                        if (!isNaN(key) && key !== member.id) {
+                            needsMigration = true;
+                        }
+                    }
+                });
+                
+                if (needsMigration || hasDuplicates) {
+                    console.log("Migrating and deduplicating members to dictionary format in Firebase...");
+                    dbRef.child("members").set(uniqueMembers);
+                    finalMembers = uniqueMembers;
+                }
+            }
+            
+            const membersVal = finalMembers ? Object.values(finalMembers) : [];
             
             if (!Array.isArray(seatsVal) || seatsVal.length !== 369) {
                 console.warn(`Database seats length mismatch (${seatsVal ? seatsVal.length : 0} != 369). Running auto-migration...`);
@@ -830,7 +870,15 @@ function syncLocalToDatabase() {
     // Write individual nodes separately to avoid wiping out complaints/feedback nodes
     database.ref("study_cafe_system/settings").set(state.settings);
     database.ref("study_cafe_system/seats").set(state.seats);
-    database.ref("study_cafe_system/members").set(state.members);
+    
+    // Write members as a key-value object to match single member patch/delete operations
+    const membersObj = {};
+    (state.members || []).forEach(m => {
+        if (m && m.id) {
+            membersObj[m.id] = m;
+        }
+    });
+    database.ref("study_cafe_system/members").set(membersObj);
     database.ref("study_cafe_system/registered_phones").set(regPhones);
 }
 

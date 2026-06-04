@@ -5080,3 +5080,14 @@ function submitConvertDemoForm(event) {
         openReceiptModal(memberId);
     }, 450);
 }
+
+// ==========================================
+// SIDEBAR COLLAPSE / TOGGLE CONTROLLER
+// ==========================================
+function toggleSidebar() {
+    const isCollapsed = document.body.classList.toggle("sidebar-collapsed");
+    try {
+        localStorage.setItem("sidebar_collapsed", isCollapsed ? "true" : "false");
+    } catch(e) {}
+}
+

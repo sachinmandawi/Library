@@ -5168,9 +5168,14 @@ function toggleSidebar() {
 // ACTION DROPDOWN CONTROLLER
 // ==========================================
 let openDropdownId = null;
+let lastDropdownOpenTime = 0;
 
 function toggleActionDropdown(memberId, event) {
-    event.stopPropagation();
+    if (!event) event = window.event;
+    if (event && typeof event.stopPropagation === "function") {
+        event.stopPropagation();
+    }
+    
     const dropdownMenu = document.getElementById(`dropdown_menu_${memberId}`);
     if (!dropdownMenu) return;
     
@@ -5178,7 +5183,14 @@ function toggleActionDropdown(memberId, event) {
     closeAllActionDropdowns();
     
     if (!isCurrentlyOpen) {
-        const button = event.currentTarget || event.target.closest('.btn-actions-toggle');
+        let button = null;
+        if (event) {
+            button = event.currentTarget || (event.target && typeof event.target.closest === "function" ? event.target.closest('.btn-actions-toggle') : null);
+        }
+        if (!button) {
+            button = document.querySelector(`button[onclick*="${memberId}"]`);
+        }
+        
         if (button) {
             const rect = button.getBoundingClientRect();
             
@@ -5198,6 +5210,7 @@ function toggleActionDropdown(memberId, event) {
         
         dropdownMenu.classList.add("show");
         openDropdownId = memberId;
+        lastDropdownOpenTime = Date.now();
     }
 }
 
@@ -5220,9 +5233,12 @@ window.addEventListener("click", () => {
     closeAllActionDropdowns();
 });
 
-// Close open dropdowns when any element is scrolled to avoid floating menus
+// Close open dropdowns when any element is scrolled to avoid floating menus,
+// with a 150ms delay check to avoid immediate closure due to click-triggered page scroll events.
 window.addEventListener("scroll", () => {
-    closeAllActionDropdowns();
+    if (Date.now() - lastDropdownOpenTime > 150) {
+        closeAllActionDropdowns();
+    }
 }, true);
 
 

@@ -72,7 +72,7 @@ function loadCustomSettings() {
         if (localData) {
             const state = JSON.parse(localData);
             if (state.settings) {
-                const libName = state.settings.libraryName || "The Study Cafe";
+                const libName = state.settings.libraryName || "Red Room";
                 const libPhone = state.settings.phone || "9876543210";
                 const libAddress = state.settings.address || "Maitri Nagar Road, near Risali Sector, Bhilai, Chhattisgarh - 490006";
                 

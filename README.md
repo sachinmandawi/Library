@@ -1,5 +1,5 @@
 <div align="center">
-  # 📚 The Study Cafe — Portal Control Center
+  # 📚 Red Room — Portal Control Center
 
   [![Firebase](https://img.shields.io/badge/Database-Firebase_RTDB-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
   [![GitHub Pages](https://img.shields.io/badge/Deployment-GitHub_Pages-222222?style=for-the-badge&logo=githubpages&logoColor=white)](https://sachinmandawi.github.io/Library/)
@@ -102,5 +102,5 @@ Then visit:
 ---
 
 <div align="center">
-  <sub>Developed with ❤️ for <strong>The Study Cafe</strong>.</sub>
+  <sub>Developed with ❤️ for <strong>Red Room</strong>.</sub>
 </div>

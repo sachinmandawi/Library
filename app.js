@@ -1,4 +1,4 @@
-// The Study Cafe - Admin Panel Logic (Shift-free, 4 Rooms, 369 Seats Version with Receipt & WhatsApp)
+// Red Room - Admin Panel Logic (Shift-free, 4 Rooms, 369 Seats Version with Receipt & WhatsApp)
 
 const DEFAULT_FIREBASE_CONFIG = {
     apiKey: "AIzaSyDW0-_Xzvwvkm9wpZ9j2ihDQmIAalrn7lM",
@@ -191,7 +191,7 @@ let state = {
     pending: [],
     complaints: [],
     settings: {
-        libraryName: "The Study Cafe",
+        libraryName: "Red Room",
         address: "1st Floor, Fancy Gift House, Near Madhurisha Hotel, Maitri Nagar, Risali, Bhilai - 490006",
         phone: "9876543210"
     }
@@ -2587,7 +2587,7 @@ function sendExpiryReminder(memberId) {
     
     const seatText = getSeatDisplayName(member.seatId);
     
-    const libName = state.settings.libraryName || "The Study Cafe";
+    const libName = state.settings.libraryName || "Red Room";
     const formattedExpiryDate = new Date(member.expiryDate).toLocaleDateString('en-IN', {
         day: 'numeric',
         month: 'short',
@@ -2627,7 +2627,7 @@ function sendBirthdayWish(memberId) {
     const member = state.members.find(m => m.id === memberId);
     if (!member) return;
     
-    const libName = state.settings.libraryName || "The Study Cafe";
+    const libName = state.settings.libraryName || "Red Room";
     const targetExamText = member.targetExam ? ` for *${member.targetExam}*` : "";
     
     const message = `Hello ${member.name},\n\nWishing you a very Happy Birthday! 🎂✨\n\nMay this special day bring you joy, happiness, and closer to your dream of cracking your exams${targetExamText}! Keep studying hard and achieving your goals.\n\nHave a fantastic day ahead! 🎉\n\nWarm regards,\n*${libName}* 📚☕`;
@@ -2845,7 +2845,7 @@ function sendFeeReminder(memberId) {
     const member = state.members.find(m => m.id === memberId);
     if (!member) return;
     
-    const libName = state.settings.libraryName || "The Study Cafe";
+    const libName = state.settings.libraryName || "Red Room";
     const planName = PLANS.find(p => p.id === member.planId)?.name || "Library Membership";
     
     const fee = parseInt(member.feeAmount) || 0;
@@ -3637,7 +3637,7 @@ function printReceipt() {
     printWindow.document.write(`
         <html>
         <head>
-            <title>Membership Receipt - The Study Cafe</title>
+            <title>Membership Receipt - Red Room</title>
             <style>
                 body {
                     padding: 2rem;
@@ -3882,7 +3882,7 @@ function printQRCode(type) {
     printWindow.document.write(`
         <html>
         <head>
-            <title>Print QR Poster - The Study Cafe</title>
+            <title>Print QR Poster - Red Room</title>
             <style>
                 body {
                     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;

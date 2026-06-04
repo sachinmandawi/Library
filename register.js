@@ -864,7 +864,7 @@ window.addEventListener("DOMContentLoaded", () => {
         if (demoDurationRow) demoDurationRow.style.display = "block";
         
         const titleText = document.getElementById("form-title-text");
-        if (titleText) titleText.textContent = "The Study Cafe - Demo Pass";
+        if (titleText) titleText.textContent = "Red Room - Demo Pass";
         
         const durationSelect = document.getElementById("s-duration");
         if (durationSelect && durationSelect.parentElement) {

@@ -5178,6 +5178,24 @@ function toggleActionDropdown(memberId, event) {
     closeAllActionDropdowns();
     
     if (!isCurrentlyOpen) {
+        const button = event.currentTarget || event.target.closest('.btn-actions-toggle');
+        if (button) {
+            const rect = button.getBoundingClientRect();
+            
+            // Apply viewport fixed position to prevent clipping by overflow-y: auto on parent table containers
+            dropdownMenu.style.position = 'fixed';
+            dropdownMenu.style.top = `${rect.bottom + 5}px`;
+            
+            // 190px is the dropdown menu width. Shift left if it goes off-screen to the left, otherwise align to button right.
+            let leftPos = rect.right - 190;
+            if (leftPos < 10) {
+                leftPos = Math.max(10, rect.left);
+            }
+            dropdownMenu.style.left = `${leftPos}px`;
+            dropdownMenu.style.right = 'auto';
+            dropdownMenu.style.zIndex = '9999';
+        }
+        
         dropdownMenu.classList.add("show");
         openDropdownId = memberId;
     }
@@ -5187,6 +5205,12 @@ function closeAllActionDropdowns() {
     const dropdowns = document.querySelectorAll(".dropdown-actions-menu");
     dropdowns.forEach(menu => {
         menu.classList.remove("show");
+        // Clear all inline placement styles when closing
+        menu.style.position = "";
+        menu.style.top = "";
+        menu.style.left = "";
+        menu.style.right = "";
+        menu.style.zIndex = "";
     });
     openDropdownId = null;
 }
@@ -5195,5 +5219,10 @@ function closeAllActionDropdowns() {
 window.addEventListener("click", () => {
     closeAllActionDropdowns();
 });
+
+// Close open dropdowns when any element is scrolled to avoid floating menus
+window.addEventListener("scroll", () => {
+    closeAllActionDropdowns();
+}, true);
 
 

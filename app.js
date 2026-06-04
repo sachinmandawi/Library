@@ -5194,10 +5194,16 @@ function toggleActionDropdown(memberId, event) {
     if (!isCurrentlyOpen) {
         let button = null;
         if (event) {
-            button = event.currentTarget || (event.target && typeof event.target.closest === "function" ? event.target.closest('.btn-actions-toggle') : null);
+            const targetBtn = event.currentTarget || (event.target && typeof event.target.closest === "function" ? event.target.closest('.btn-actions-toggle') : null);
+            if (targetBtn && typeof targetBtn.getBoundingClientRect === "function") {
+                button = targetBtn;
+            }
         }
         if (!button) {
-            button = document.querySelector(`button[onclick*="${memberId}"]`);
+            const queryBtn = document.querySelector(`button[onclick*="${memberId}"]`);
+            if (queryBtn && typeof queryBtn.getBoundingClientRect === "function") {
+                button = queryBtn;
+            }
         }
         
         if (button) {
@@ -5238,7 +5244,12 @@ function closeAllActionDropdowns() {
 }
 
 // Add global listener to close menus on outside clicks
-window.addEventListener("click", () => {
+window.addEventListener("click", (e) => {
+    if (e.target && typeof e.target.closest === "function") {
+        if (e.target.closest('.btn-actions-toggle') || e.target.closest('.dropdown-actions-menu')) {
+            return;
+        }
+    }
     closeAllActionDropdowns();
 });
 

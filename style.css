@@ -1961,19 +1961,27 @@ h1, h2, h3, h4, h5, h6 {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    transition: all 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     text-decoration: none;
 }
 
 .dropdown-actions-menu a:hover {
     background: rgba(255, 255, 255, 0.05);
     color: #ffffff;
+    padding-left: 1.4rem; /* Smooth text indent shift */
 }
 
 .dropdown-actions-menu a i {
     font-size: 0.9rem;
     width: 16px;
     text-align: center;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: grayscale(0.4) opacity(0.7); /* Clean and subtle by default */
+}
+
+.dropdown-actions-menu a:hover i {
+    filter: grayscale(0) opacity(1); /* Color pop on hover */
+    transform: translateX(3px) scale(1.15); /* Icon slide and expand */
 }
 
 .dropdown-actions-menu .dropdown-divider {
@@ -1989,6 +1997,18 @@ h1, h2, h3, h4, h5, h6 {
 .dropdown-actions-menu a.delete-action:hover {
     background: rgba(244, 63, 94, 0.1);
     color: #f43f5e;
+}
+
+/* Wiggle animation for delete icon on hover */
+@keyframes trashShake {
+    0%, 100% { transform: rotate(0deg) scale(1.15) translateX(3px); }
+    25% { transform: rotate(-12deg) scale(1.15) translateX(3px); }
+    75% { transform: rotate(12deg) scale(1.15) translateX(3px); }
+}
+
+.dropdown-actions-menu a.delete-action:hover i {
+    animation: trashShake 0.3s ease infinite;
+    filter: drop-shadow(0 0 5px rgba(244, 63, 94, 0.6));
 }
 
 @keyframes dropdownFadeIn {

@@ -420,6 +420,7 @@ function initApp() {
                 
                 if (user) {
                     // Logged in
+                    sessionStorage.setItem("admin_authenticated", "true");
                     if (authOverlay) authOverlay.style.display = "none";
                     if (appContainer) appContainer.style.display = "flex";
                     
@@ -432,6 +433,7 @@ function initApp() {
                     checkOfflinePendingBookings();
                 } else {
                     // Logged out
+                    sessionStorage.removeItem("admin_authenticated");
                     if (authOverlay) authOverlay.style.display = "flex";
                     if (appContainer) appContainer.style.display = "none";
                     
@@ -440,6 +442,17 @@ function initApp() {
                         database.ref("study_cafe_system").off();
                         database.ref("pending_bookings").off();
                     }
+                    
+                    // Clear sensitive data cache to prevent local leaks
+                    localStorage.removeItem("study_cafe_state");
+                    localStorage.removeItem("offline_pending_bookings");
+                    state = {
+                        members: [],
+                        seats: generateDefaultSeats(),
+                        pending: [],
+                        complaints: [],
+                        settings: {}
+                    };
                 }
             });
         } catch (err) {
@@ -554,17 +567,30 @@ function initApp() {
 function enableOfflineMode() {
     isOfflineMode = true;
     
-    // Hide auth screen and show container when running in offline fallback
     const authOverlay = document.getElementById("auth-overlay");
     const appContainer = document.getElementById("app-container");
-    if (authOverlay) authOverlay.style.display = "none";
-    if (appContainer) appContainer.style.display = "flex";
+    const errorMsg = document.getElementById("auth-error-msg");
     
-    const statusDot = document.getElementById("db-status-dot");
-    const statusText = document.getElementById("db-status-text");
-    if (statusDot) statusDot.className = "status-dot";
-    if (statusText) statusText.textContent = "Offline Mode";
-    showToast("Running in Local Offline Mode. Changes will save in this browser.", "info");
+    const isAuthenticated = sessionStorage.getItem("admin_authenticated") === "true";
+    if (isAuthenticated) {
+        if (authOverlay) authOverlay.style.display = "none";
+        if (appContainer) appContainer.style.display = "flex";
+        
+        const statusDot = document.getElementById("db-status-dot");
+        const statusText = document.getElementById("db-status-text");
+        if (statusDot) statusDot.className = "status-dot";
+        if (statusText) statusText.textContent = "Offline Mode";
+        showToast("Running in Local Offline Mode. Changes will save in this browser.", "info");
+    } else {
+        if (authOverlay) authOverlay.style.display = "flex";
+        if (appContainer) appContainer.style.display = "none";
+        if (errorMsg) {
+            errorMsg.textContent = "Offline Mode: Authentication required. Please connect to the internet and log in.";
+            errorMsg.className = "auth-error-msg info";
+            errorMsg.style.display = "flex";
+        }
+        showToast("Database connection failed. Please log in online.", "error");
+    }
 }
 
 // Realtime sync listeners
@@ -930,6 +956,12 @@ function patchFirebaseData(changedMemberId = null, changedSeatIds = []) {
 
 // Check for local offline pending submissions
 function checkOfflinePendingBookings() {
+    // Only proceed if offline, or if online and authenticated
+    const isUserLoggedIn = window.firebase && firebase.auth && firebase.auth().currentUser;
+    if (!isOfflineMode && !isUserLoggedIn) {
+        return; // Retain bookings in localStorage until authenticated
+    }
+    
     try {
         const localPending = JSON.parse(localStorage.getItem("offline_pending_bookings") || "[]");
         if (localPending.length > 0) {
@@ -4359,6 +4391,18 @@ function handleForgotPassword(event) {
 
 function handleAdminLogout() {
     if (confirm("Are you sure you want to log out from the Red Room Control Center?")) {
+        // Clear sensitive cache immediately before signing out
+        localStorage.removeItem("study_cafe_state");
+        localStorage.removeItem("offline_pending_bookings");
+        sessionStorage.removeItem("admin_authenticated");
+        state = {
+            members: [],
+            seats: generateDefaultSeats(),
+            pending: [],
+            complaints: [],
+            settings: {}
+        };
+        
         firebase.auth().signOut()
             .then(() => {
                 showToast("Logged out successfully.", "info");

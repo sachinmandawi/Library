@@ -3961,7 +3961,7 @@ function backupData() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `study_cafe_backup_${new Date().toISOString().split('T')[0]}.json`);
+    downloadAnchor.setAttribute("download", `red_room_backup_${new Date().toISOString().split('T')[0]}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -4282,7 +4282,7 @@ function handleForgotPassword(event) {
 }
 
 function handleAdminLogout() {
-    if (confirm("Are you sure you want to log out from the Cafe Control Center?")) {
+    if (confirm("Are you sure you want to log out from the Red Room Control Center?")) {
         firebase.auth().signOut()
             .then(() => {
                 showToast("Logged out successfully.", "info");
@@ -4590,7 +4590,7 @@ function exportFeesReport() {
     }
     
     const url = URL.createObjectURL(blob);
-    const filename = `StudyCafe_FeesReport_${preset}_${new Date().toISOString().split('T')[0]}.csv`;
+    const filename = `RedRoom_FeesReport_${preset}_${new Date().toISOString().split('T')[0]}.csv`;
     
     link.setAttribute("href", url);
     link.setAttribute("download", filename);

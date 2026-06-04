@@ -648,7 +648,6 @@ function setupFirebaseListeners() {
                 const phone10 = cleanPhone.slice(-10);
                 if (phone10.length === 10) {
                     regPhones[phone10] = {
-                        studentName: m.name,
                         status: m.status || "active"
                     };
                 }
@@ -816,7 +815,6 @@ function syncLocalToDatabase() {
             const phone10 = cleanPhone.slice(-10);
             if (phone10.length === 10) {
                 regPhones[phone10] = {
-                    studentName: m.name,
                     status: m.status || "active"
                 };
             }
@@ -846,7 +844,6 @@ function patchFirebaseData(changedMemberId = null, changedSeatIds = []) {
             const phone10 = cleanPhone.slice(-10);
             if (phone10.length === 10) {
                 regPhones[phone10] = {
-                    studentName: m.name,
                     status: m.status || "active"
                 };
             }
@@ -3933,18 +3930,18 @@ function printQRCode(type) {
         <body>
             <div class="poster-card">
                 <div style="font-size: 3rem;">☕</div>
-                <h1>${state.settings.libraryName}</h1>
-                <h3>${title}</h3>
+                <h1>${escapeHTML(state.settings.libraryName)}</h1>
+                <h3>${escapeHTML(title)}</h3>
                 
                 <img class="qr-img" src="${qrDataUrl}" alt="Registration QR">
                 
                 <p class="p-instruction">
                     <strong>Scan to Book / Register</strong><br>
-                    ${sub}
+                    ${escapeHTML(sub)}
                 </p>
                 
                 <div class="footer">
-                    ${state.settings.address}
+                    ${escapeHTML(state.settings.address)}
                 </div>
             </div>
             <script>

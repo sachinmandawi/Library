@@ -5242,12 +5242,4 @@ window.addEventListener("click", () => {
     closeAllActionDropdowns();
 });
 
-// Close open dropdowns when any element is scrolled to avoid floating menus,
-// with a 150ms delay check to avoid immediate closure due to click-triggered page scroll events.
-window.addEventListener("scroll", () => {
-    if (Date.now() - lastDropdownOpenTime > 150) {
-        closeAllActionDropdowns();
-    }
-}, true);
-
 

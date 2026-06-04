@@ -5209,7 +5209,16 @@ function toggleActionDropdown(memberId, event) {
         if (button) {
             const rect = button.getBoundingClientRect();
             
-            // Apply viewport fixed position to prevent clipping by overflow-y: auto on parent table containers
+            // Save original parent and next sibling to restore it on close (prevents duplicate ID collisions on re-render)
+            if (!dropdownMenu._originalParent) {
+                dropdownMenu._originalParent = dropdownMenu.parentElement;
+                dropdownMenu._originalSibling = dropdownMenu.nextSibling;
+            }
+            
+            // Append to body to escape glass-panel containing blocks (backdrop-filter) and table-responsive overflow boundaries
+            document.body.appendChild(dropdownMenu);
+            
+            // Apply viewport fixed position to align with viewport-relative getBoundingClientRect
             dropdownMenu.style.position = 'fixed';
             dropdownMenu.style.top = `${rect.bottom + 5}px`;
             
@@ -5220,7 +5229,7 @@ function toggleActionDropdown(memberId, event) {
             }
             dropdownMenu.style.left = `${leftPos}px`;
             dropdownMenu.style.right = 'auto';
-            dropdownMenu.style.zIndex = '9999';
+            dropdownMenu.style.zIndex = '99999';
         }
         
         dropdownMenu.classList.add("show");
@@ -5239,6 +5248,18 @@ function closeAllActionDropdowns() {
         menu.style.left = "";
         menu.style.right = "";
         menu.style.zIndex = "";
+        
+        // Restore menu to its original place in DOM if it was moved to body
+        if (menu._originalParent) {
+            if (document.body.contains(menu._originalParent)) {
+                menu._originalParent.insertBefore(menu, menu._originalSibling);
+            } else {
+                // If original parent was deleted (e.g. table re-rendered), clean up the menu element completely
+                menu.remove();
+            }
+            menu._originalParent = null;
+            menu._originalSibling = null;
+        }
     });
     openDropdownId = null;
 }

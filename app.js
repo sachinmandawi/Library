@@ -4516,20 +4516,34 @@ function renderFeesCharts() {
     
     const revenueData = sortedMonths.map(m => monthlyRevenue[m]);
     
-    // 1. Monthly Revenue Bar Chart
+    // 1. Monthly Revenue Area/Line Chart with gradient
     const ctxRevenue = canvasRevenue.getContext('2d');
+    
+    // Create subtle vertical gradient for area fill
+    const revenueGradient = ctxRevenue.createLinearGradient(0, 0, 0, 200);
+    revenueGradient.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+    revenueGradient.addColorStop(1, 'rgba(16, 185, 129, 0.00)');
+    
     window.revenueTrendChart = new Chart(ctxRevenue, {
-        type: 'bar',
+        type: 'line',
         data: {
             labels: sortedMonths.length > 0 ? sortedMonths : ["No Data"],
             datasets: [{
                 label: 'Monthly Revenue (₹)',
                 data: revenueData.length > 0 ? revenueData : [0],
-                backgroundColor: 'rgba(16, 185, 129, 0.45)',
+                backgroundColor: revenueGradient,
                 borderColor: 'var(--accent-emerald)',
-                borderWidth: 1.5,
-                borderRadius: 4,
-                barPercentage: 0.6
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: 'var(--accent-emerald)',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 1.5,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointHoverBackgroundColor: 'var(--accent-emerald)',
+                pointHoverBorderColor: '#ffffff',
+                pointHoverBorderWidth: 2
             }]
         },
         options: {
@@ -4538,21 +4552,26 @@ function renderFeesCharts() {
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    backgroundColor: 'rgba(30, 41, 59, 0.9)',
-                    titleColor: '#fff',
-                    bodyColor: '#fff',
-                    borderColor: 'rgba(255,255,255,0.1)',
-                    borderWidth: 1
+                    backgroundColor: 'rgba(19, 26, 38, 0.9)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    borderColor: 'rgba(255, 255, 255, 0.08)',
+                    borderWidth: 1,
+                    titleFont: { family: "'Outfit', sans-serif", size: 11, weight: 'bold' },
+                    bodyFont: { family: "'Inter', sans-serif", size: 10 },
+                    padding: 8,
+                    cornerRadius: 6,
+                    displayColors: false
                 }
             },
             scales: {
                 y: {
                     grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                    ticks: { color: 'rgba(255, 255, 255, 0.5)', font: { size: 9 } }
+                    ticks: { color: 'rgba(255, 255, 255, 0.5)', font: { size: 9, family: "'Inter', sans-serif" } }
                 },
                 x: {
                     grid: { display: false },
-                    ticks: { color: 'rgba(255, 255, 255, 0.5)', font: { size: 9 } }
+                    ticks: { color: 'rgba(255, 255, 255, 0.5)', font: { size: 9, family: "'Inter', sans-serif" } }
                 }
             }
         }
@@ -4560,6 +4579,16 @@ function renderFeesCharts() {
     
     // 2. Payment Method split doughnut chart
     const ctxSplit = canvasSplit.getContext('2d');
+    
+    // Create gradients for doughnut slices
+    const amberGradient = ctxSplit.createLinearGradient(0, 0, 0, 140);
+    amberGradient.addColorStop(0, 'rgba(245, 158, 11, 0.6)');
+    amberGradient.addColorStop(1, 'rgba(245, 158, 11, 0.1)');
+    
+    const blueGradient = ctxSplit.createLinearGradient(0, 0, 0, 140);
+    blueGradient.addColorStop(0, 'rgba(59, 130, 246, 0.6)');
+    blueGradient.addColorStop(1, 'rgba(59, 130, 246, 0.1)');
+    
     window.paymentSplitChart = new Chart(ctxSplit, {
         type: 'doughnut',
         data: {
@@ -4567,14 +4596,15 @@ function renderFeesCharts() {
             datasets: [{
                 data: [cashTotal, onlineTotal],
                 backgroundColor: [
-                    'rgba(245, 158, 11, 0.5)', // Amber
-                    'rgba(59, 130, 246, 0.5)'  // Blue
+                    amberGradient,
+                    blueGradient
                 ],
                 borderColor: [
                     'var(--accent-amber)',
                     'var(--accent-blue)'
                 ],
-                borderWidth: 1.5
+                borderWidth: 1.5,
+                hoverOffset: 4
             }]
         },
         options: {
@@ -4583,7 +4613,16 @@ function renderFeesCharts() {
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                    backgroundColor: 'rgba(19, 26, 38, 0.9)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    borderColor: 'rgba(255, 255, 255, 0.08)',
+                    borderWidth: 1,
+                    titleFont: { family: "'Outfit', sans-serif", size: 11, weight: 'bold' },
+                    bodyFont: { family: "'Inter', sans-serif", size: 10 },
+                    padding: 8,
+                    cornerRadius: 6,
+                    displayColors: false,
                     callbacks: {
                         label: function(context) {
                             const val = context.raw || 0;
@@ -4594,7 +4633,7 @@ function renderFeesCharts() {
                     }
                 }
             },
-            cutout: '65%'
+            cutout: '72%'
         }
     });
 }

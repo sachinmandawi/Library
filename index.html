@@ -1483,6 +1483,373 @@
             box-shadow: none !important;
             backdrop-filter: none !important;
         }
+
+        /* ============================================ */
+        /* HERO FLOATING PARTICLES                      */
+        /* ============================================ */
+        .hero-particles {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .hero-particles .particle {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.15;
+            animation: floatParticle linear infinite;
+        }
+        .hero-particles .particle.square { border-radius: 3px; }
+        .hero-particles .particle.diamond { border-radius: 3px; transform: rotate(45deg); }
+        @keyframes floatParticle {
+            0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.18; }
+            90% { opacity: 0.18; }
+            100% { transform: translateY(-800px) translateX(80px) rotate(360deg); opacity: 0; }
+        }
+        .hero > .container { position: relative; z-index: 1; }
+
+        /* ============================================ */
+        /* ANIMATED STATS COUNTER SECTION               */
+        /* ============================================ */
+        .stats-section {
+            padding: 5rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+        .stats-section::before {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.04) 0%, transparent 70%);
+            z-index: 0;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            max-width: 950px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        .stat-card {
+            text-align: center;
+            padding: 2.5rem 1.5rem;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .stat-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(16, 185, 129, 0.25);
+            box-shadow: 0 20px 40px rgba(16, 185, 129, 0.06);
+        }
+        .stat-icon {
+            width: 60px; height: 60px;
+            border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 1.2rem auto;
+            font-size: 1.5rem;
+            transition: all 0.4s ease;
+        }
+        .stat-card:hover .stat-icon {
+            transform: scale(1.1) rotate(-5deg);
+        }
+        .stat-icon.emerald { background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); color: var(--accent-emerald); }
+        .stat-icon.blue { background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+        .stat-icon.amber { background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .stat-icon.rose { background: rgba(244, 63, 94, 0.08); border: 1px solid rgba(244, 63, 94, 0.2); color: var(--accent-rose); }
+        .stat-number {
+            font-family: var(--font-display);
+            font-size: 2.8rem;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -0.03em;
+            line-height: 1;
+            margin-bottom: 0.4rem;
+        }
+        .stat-number .stat-suffix {
+            font-size: 1.6rem;
+            color: var(--accent-emerald);
+            margin-left: 2px;
+        }
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+            .stat-number { font-size: 2.2rem; }
+        }
+
+        /* ============================================ */
+        /* TESTIMONIALS CAROUSEL                        */
+        /* ============================================ */
+        .testimonials-section {
+            padding: 6rem 0;
+            background: rgba(7, 11, 19, 0.4);
+            overflow: hidden;
+        }
+        .testimonials-wrapper {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .testimonials-track {
+            display: flex;
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .testimonial-slide {
+            min-width: 100%;
+            padding: 0 1rem;
+            box-sizing: border-box;
+        }
+        .testimonial-card {
+            background: rgba(13, 22, 39, 0.5);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 2.5rem;
+            text-align: center;
+            position: relative;
+        }
+        .testimonial-card::before {
+            content: '\201C';
+            font-size: 5rem;
+            font-family: Georgia, serif;
+            color: rgba(16, 185, 129, 0.12);
+            position: absolute;
+            top: 10px; left: 25px;
+            line-height: 1;
+        }
+        .testimonial-avatar {
+            width: 64px; height: 64px;
+            border-radius: 50%;
+            margin: 0 auto 1rem auto;
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: #fff;
+        }
+        .testimonial-text {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            line-height: 1.7;
+            font-style: italic;
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+        .testimonial-name {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #fff;
+        }
+        .testimonial-exam {
+            color: var(--accent-emerald);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 0.2rem;
+        }
+        .testimonial-stars {
+            color: #f59e0b;
+            font-size: 0.9rem;
+            margin-top: 0.6rem;
+            letter-spacing: 2px;
+        }
+        .testimonial-nav {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        .testimonial-arrow {
+            width: 42px; height: 42px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        .testimonial-arrow:hover {
+            background: var(--accent-emerald);
+            border-color: var(--accent-emerald);
+            color: #fff;
+            box-shadow: var(--glow-green);
+        }
+        .testimonial-dots {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .testimonial-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .testimonial-dot.active {
+            background: var(--accent-emerald);
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+            transform: scale(1.2);
+        }
+
+        /* ============================================ */
+        /* TOPPERS / SUCCESS STORIES WALL               */
+        /* ============================================ */
+        .toppers-section {
+            padding: 6rem 0;
+        }
+        .toppers-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .topper-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 2rem;
+            border-left: 3px solid var(--accent-emerald);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .topper-card::after {
+            content: '';
+            position: absolute;
+            top: 0; right: 0;
+            width: 80px; height: 80px;
+            background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.06), transparent 70%);
+            pointer-events: none;
+        }
+        .topper-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(16, 185, 129, 0.2);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+        .topper-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .topper-avatar {
+            width: 48px; height: 48px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        .topper-meta h4 {
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .topper-meta .topper-exam {
+            font-size: 0.8rem;
+            color: var(--accent-emerald);
+            font-weight: 600;
+        }
+        .topper-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            padding: 0.25rem 0.7rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+        }
+        .topper-quote {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            font-style: italic;
+        }
+        @media (max-width: 900px) {
+            .toppers-grid { grid-template-columns: 1fr; max-width: 450px; }
+        }
+
+        /* ============================================ */
+        /* STICKY MOBILE CTA BAR                        */
+        /* ============================================ */
+        .mobile-cta-bar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            z-index: 9999;
+            background: rgba(7, 11, 19, 0.92);
+            backdrop-filter: blur(16px);
+            border-top: 1px solid rgba(16, 185, 129, 0.15);
+            padding: 0.75rem 1.25rem;
+            display: none;
+            align-items: center;
+            gap: 0.75rem;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .mobile-cta-bar.visible {
+            transform: translateY(0);
+        }
+        .mobile-cta-book {
+            flex: 1;
+            padding: 0.8rem;
+            border-radius: 50px;
+            border: none;
+            background: linear-gradient(135deg, var(--accent-emerald), var(--accent-blue));
+            color: #fff;
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            box-shadow: var(--glow-green);
+            text-decoration: none;
+            text-align: center;
+            display: block;
+        }
+        .mobile-cta-call {
+            width: 46px; height: 46px;
+            border-radius: 50%;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            color: var(--accent-blue);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.15rem;
+            text-decoration: none;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+        .mobile-cta-call:hover {
+            background: var(--accent-blue);
+            color: #fff;
+        }
+        @media (max-width: 768px) {
+            .mobile-cta-bar { display: flex; }
+            footer { padding-bottom: 5rem; }
+        }
     </style>
 </head>
 <body>
@@ -1509,6 +1876,24 @@
     <!-- HERO SECTION -->
     <section class="hero">
         <div class="hero-glow-dot"></div>
+        <!-- Floating Particles -->
+        <div class="hero-particles">
+            <span class="particle" style="width:6px;height:6px;background:var(--accent-emerald);left:8%;bottom:-10%;animation-duration:12s;animation-delay:0s;"></span>
+            <span class="particle square" style="width:8px;height:8px;background:var(--accent-blue);left:15%;bottom:-10%;animation-duration:16s;animation-delay:2s;"></span>
+            <span class="particle" style="width:5px;height:5px;background:var(--accent-emerald);left:25%;bottom:-10%;animation-duration:14s;animation-delay:4s;"></span>
+            <span class="particle diamond" style="width:7px;height:7px;background:var(--accent-rose);left:35%;bottom:-10%;animation-duration:18s;animation-delay:1s;"></span>
+            <span class="particle" style="width:4px;height:4px;background:var(--accent-blue);left:45%;bottom:-10%;animation-duration:13s;animation-delay:3s;"></span>
+            <span class="particle square" style="width:6px;height:6px;background:var(--accent-emerald);left:55%;bottom:-10%;animation-duration:15s;animation-delay:5s;"></span>
+            <span class="particle" style="width:5px;height:5px;background:var(--accent-blue);left:65%;bottom:-10%;animation-duration:17s;animation-delay:0.5s;"></span>
+            <span class="particle diamond" style="width:8px;height:8px;background:var(--accent-emerald);left:72%;bottom:-10%;animation-duration:11s;animation-delay:2.5s;"></span>
+            <span class="particle" style="width:4px;height:4px;background:var(--accent-rose);left:80%;bottom:-10%;animation-duration:19s;animation-delay:1.5s;"></span>
+            <span class="particle square" style="width:5px;height:5px;background:var(--accent-blue);left:88%;bottom:-10%;animation-duration:14s;animation-delay:4.5s;"></span>
+            <span class="particle" style="width:6px;height:6px;background:var(--accent-emerald);left:92%;bottom:-10%;animation-duration:16s;animation-delay:3.5s;"></span>
+            <span class="particle diamond" style="width:5px;height:5px;background:var(--accent-blue);left:20%;bottom:-10%;animation-duration:20s;animation-delay:6s;"></span>
+            <span class="particle" style="width:7px;height:7px;background:var(--accent-emerald);left:50%;bottom:-10%;animation-duration:12s;animation-delay:7s;"></span>
+            <span class="particle square" style="width:4px;height:4px;background:var(--accent-rose);left:40%;bottom:-10%;animation-duration:15s;animation-delay:8s;"></span>
+            <span class="particle" style="width:6px;height:6px;background:var(--accent-blue);left:60%;bottom:-10%;animation-duration:18s;animation-delay:6.5s;"></span>
+        </div>
         <div class="container">
             <div class="hero-tag">
                 <i class="fa-solid fa-circle" style="color: var(--accent-emerald);"></i>
@@ -1587,6 +1972,34 @@
         </div>
     </section>
 
+    <!-- ANIMATED STATS COUNTER SECTION -->
+    <section id="stats" class="stats-section">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon emerald"><i class="fa-solid fa-user-graduate"></i></div>
+                    <div class="stat-number"><span class="stat-count" data-target="500">0</span><span class="stat-suffix">+</span></div>
+                    <div class="stat-label">Students Enrolled</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon blue"><i class="fa-solid fa-door-open"></i></div>
+                    <div class="stat-number"><span class="stat-count" data-target="4">0</span></div>
+                    <div class="stat-label">Study Halls</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon amber"><i class="fa-solid fa-calendar-check"></i></div>
+                    <div class="stat-number"><span class="stat-count" data-target="365">0</span></div>
+                    <div class="stat-label">Days Open / Year</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon rose"><i class="fa-solid fa-heart"></i></div>
+                    <div class="stat-number"><span class="stat-count" data-target="99">0</span><span class="stat-suffix">%</span></div>
+                    <div class="stat-label">Satisfaction Rate</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- FEATURES & AMENITIES SECTION -->
     <section id="features" class="amenities-section">
         <div class="container">
@@ -1637,6 +2050,165 @@
                     <div class="amenity-icon"><i class="fa-solid fa-book-open"></i></div>
                     <h3>Discussion Room</h3>
                     <p>Separate soundproofed zone for mutual doubts solving, newspapers reading, and interactive group studies.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- STUDENT TESTIMONIALS CAROUSEL -->
+    <section id="testimonials" class="testimonials-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>What Students Say</h2>
+                <p>Hear from the students who achieved their dreams while studying at Red Room.</p>
+                <div class="divider-glow"></div>
+            </div>
+
+            <div class="testimonials-wrapper">
+                <div class="testimonials-track" id="testimonials-track">
+                    <!-- Slide 1 -->
+                    <div class="testimonial-slide">
+                        <div class="testimonial-card">
+                            <div class="testimonial-avatar" style="background: linear-gradient(135deg, #10b981, #3b82f6);">RK</div>
+                            <p class="testimonial-text">"Red Room ka environment bilkul perfect hai. Yahan aakar mera focus level 10x badh gaya. AC, Wi-Fi, silence — sab kuch top-notch hai. Best decision of my preparation journey."</p>
+                            <div class="testimonial-name">Rahul Kumar</div>
+                            <div class="testimonial-exam">SSC CGL 2025 Aspirant</div>
+                            <div class="testimonial-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+                        </div>
+                    </div>
+                    <!-- Slide 2 -->
+                    <div class="testimonial-slide">
+                        <div class="testimonial-card">
+                            <div class="testimonial-avatar" style="background: linear-gradient(135deg, #f43f5e, #f59e0b);">PS</div>
+                            <p class="testimonial-text">"Ghar pe padhna impossible tha. Red Room join karne ke baad daily 10 hours padhai hone lagi. Reserved seat mila aur ab apni jagah fix hai. Highly recommended for serious students!"</p>
+                            <div class="testimonial-name">Priya Sharma</div>
+                            <div class="testimonial-exam">VYAPAM Preparation</div>
+                            <div class="testimonial-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+                        </div>
+                    </div>
+                    <!-- Slide 3 -->
+                    <div class="testimonial-slide">
+                        <div class="testimonial-card">
+                            <div class="testimonial-avatar" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6);">AV</div>
+                            <p class="testimonial-text">"Maine bahut libraries try ki but Red Room jaisi koi nahi. Yahan ka seat map system amazing hai — real-time pata chalta hai seat available hai ya nahi. Superb management!"</p>
+                            <div class="testimonial-name">Amit Verma</div>
+                            <div class="testimonial-exam">GATE 2026 Aspirant</div>
+                            <div class="testimonial-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-regular fa-star"></i></div>
+                        </div>
+                    </div>
+                    <!-- Slide 4 -->
+                    <div class="testimonial-slide">
+                        <div class="testimonial-card">
+                            <div class="testimonial-avatar" style="background: linear-gradient(135deg, #10b981, #14b8a6);">NP</div>
+                            <p class="testimonial-text">"Pricing bahut affordable hai aur facilities premium hai. Discussion room alag hai toh main hall me disturbance nahi hota. Locker bhi milta hai. Paisa vasool jagah hai!"</p>
+                            <div class="testimonial-name">Neha Patel</div>
+                            <div class="testimonial-exam">Banking PO Preparation</div>
+                            <div class="testimonial-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+                        </div>
+                    </div>
+                    <!-- Slide 5 -->
+                    <div class="testimonial-slide">
+                        <div class="testimonial-card">
+                            <div class="testimonial-avatar" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">SK</div>
+                            <p class="testimonial-text">"3 months ka plan liya tha, ab 6 months wala renew kar diya. Yahan aake consistency build hui. RO water free hai, charging point har desk pe hai. Kya chahiye aur!"</p>
+                            <div class="testimonial-name">Suresh Khandelwal</div>
+                            <div class="testimonial-exam">UPSC Aspirant</div>
+                            <div class="testimonial-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <div class="testimonial-nav">
+                    <button class="testimonial-arrow" id="testimonial-prev" onclick="changeTestimonialSlide(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                    <div class="testimonial-dots" id="testimonial-dots"></div>
+                    <button class="testimonial-arrow" id="testimonial-next" onclick="changeTestimonialSlide(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TOPPERS / SUCCESS STORIES WALL -->
+    <section id="toppers" class="toppers-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Our Success Stories</h2>
+                <p>Students who studied at Red Room and cracked their dream competitive exams.</p>
+                <div class="divider-glow"></div>
+            </div>
+
+            <div class="toppers-grid">
+                <!-- Topper 1 -->
+                <div class="topper-card">
+                    <div class="topper-header">
+                        <div class="topper-avatar" style="background: linear-gradient(135deg, #10b981, #3b82f6);">VT</div>
+                        <div class="topper-meta">
+                            <h4>Vikram Tiwari</h4>
+                            <span class="topper-exam">SSC CGL 2025 — Selected</span>
+                        </div>
+                    </div>
+                    <div class="topper-badge"><i class="fa-solid fa-trophy"></i> Rank Under 500</div>
+                    <p class="topper-quote">"8 months Red Room me padhai ki. Yahan ka discipline aur environment ne mujhe crack kara diya. Thank you Red Room team!"</p>
+                </div>
+                <!-- Topper 2 -->
+                <div class="topper-card">
+                    <div class="topper-header">
+                        <div class="topper-avatar" style="background: linear-gradient(135deg, #f43f5e, #f59e0b);">AD</div>
+                        <div class="topper-meta">
+                            <h4>Anita Dewangan</h4>
+                            <span class="topper-exam">VYAPAM — Sub Inspector</span>
+                        </div>
+                    </div>
+                    <div class="topper-badge"><i class="fa-solid fa-medal"></i> Final Selection</div>
+                    <p class="topper-quote">"Ghar pe focus nahi hota tha. Red Room aakar roz 8-10 ghante padhai ki. Result aa gaya. Highly recommended for CG aspirants!"</p>
+                </div>
+                <!-- Topper 3 -->
+                <div class="topper-card">
+                    <div class="topper-header">
+                        <div class="topper-avatar" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6);">RS</div>
+                        <div class="topper-meta">
+                            <h4>Rohit Sahu</h4>
+                            <span class="topper-exam">Railway NTPC — Selected</span>
+                        </div>
+                    </div>
+                    <div class="topper-badge"><i class="fa-solid fa-trophy"></i> Zone Topper</div>
+                    <p class="topper-quote">"Red Room ki Wi-Fi speed aur silent environment ne online test series practice bohot easy bana di. Dream job mil gayi!"</p>
+                </div>
+                <!-- Topper 4 -->
+                <div class="topper-card">
+                    <div class="topper-header">
+                        <div class="topper-avatar" style="background: linear-gradient(135deg, #14b8a6, #10b981);">MP</div>
+                        <div class="topper-meta">
+                            <h4>Meena Prajapati</h4>
+                            <span class="topper-exam">CGPSC Pre — Qualified</span>
+                        </div>
+                    </div>
+                    <div class="topper-badge"><i class="fa-solid fa-medal"></i> Prelims Cleared</div>
+                    <p class="topper-quote">"2 saal se try kar rahi thi. Red Room join kiya aur pehli baar prelims clear hua. Ab mains ki tayyari yahi karungi!"</p>
+                </div>
+                <!-- Topper 5 -->
+                <div class="topper-card">
+                    <div class="topper-header">
+                        <div class="topper-avatar" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">DK</div>
+                        <div class="topper-meta">
+                            <h4>Deepak Kewat</h4>
+                            <span class="topper-exam">Bank Clerk — IBPS</span>
+                        </div>
+                    </div>
+                    <div class="topper-badge"><i class="fa-solid fa-trophy"></i> Final Merit List</div>
+                    <p class="topper-quote">"Red Room ka 3-month plan liya tha. Daily revision + mock tests yahi karta tha. Bank me selection ho gaya!"</p>
+                </div>
+                <!-- Topper 6 -->
+                <div class="topper-card">
+                    <div class="topper-header">
+                        <div class="topper-avatar" style="background: linear-gradient(135deg, #8b5cf6, #ec4899);">SK</div>
+                        <div class="topper-meta">
+                            <h4>Sarita Kanwar</h4>
+                            <span class="topper-exam">NEET 2025 — 580+ Score</span>
+                        </div>
+                    </div>
+                    <div class="topper-badge"><i class="fa-solid fa-medal"></i> Medical Seat Secured</div>
+                    <p class="topper-quote">"Biology aur Chemistry ke liye shanti chahiye thi. Red Room me perfect silence milta hai. 580+ score aaya NEET me!"</p>
                 </div>
             </div>
         </div>
@@ -2000,10 +2572,20 @@
     </div>
 
     <!-- Firebase Compat SDK and App Config -->
+    <!-- STICKY MOBILE CTA BAR -->
+    <div class="mobile-cta-bar" id="mobile-cta-bar">
+        <a href="#" onclick="openBookingChoiceModal(event)" class="mobile-cta-book">
+            <i class="fa-solid fa-chair"></i> Book Desk Now
+        </a>
+        <a href="tel:+919876543210" id="mobile-cta-call-btn" class="mobile-cta-call">
+            <i class="fa-solid fa-phone"></i>
+        </a>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     
     <!-- Landing Page Availability Logic -->
-    <script src="landing.js?v=22"></script>
+    <script src="landing.js?v=23"></script>
 </body>
 </html>

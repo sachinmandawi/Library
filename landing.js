@@ -823,4 +823,167 @@ window.addEventListener("DOMContentLoaded", () => {
     initPricingToggle();
     initFAQAccordion();
     initSeatsListener();
+    initStatsCounter();
+    initTestimonialsCarousel();
+    initMobileCTABar();
 });
+
+// ============================================
+// ANIMATED STATS COUNTER (IntersectionObserver)
+// ============================================
+function initStatsCounter() {
+    const statCounts = document.querySelectorAll('.stat-count');
+    if (!statCounts.length) return;
+
+    let hasAnimated = false;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && !hasAnimated) {
+                hasAnimated = true;
+                statCounts.forEach(counter => {
+                    const target = parseInt(counter.getAttribute('data-target'), 10);
+                    animateCounter(counter, target);
+                });
+            }
+        });
+    }, { threshold: 0.3 });
+
+    const statsSection = document.getElementById('stats');
+    if (statsSection) observer.observe(statsSection);
+}
+
+function animateCounter(el, target) {
+    const duration = 2000;
+    const startTime = performance.now();
+    const startVal = 0;
+
+    function easeOutQuart(t) {
+        return 1 - Math.pow(1 - t, 4);
+    }
+
+    function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easedProgress = easeOutQuart(progress);
+        const currentVal = Math.round(startVal + (target - startVal) * easedProgress);
+        el.textContent = currentVal;
+
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        } else {
+            el.textContent = target;
+        }
+    }
+
+    requestAnimationFrame(update);
+}
+
+// ============================================
+// TESTIMONIALS CAROUSEL
+// ============================================
+let testimonialCurrentSlide = 0;
+let testimonialAutoSlideTimer = null;
+let testimonialTotalSlides = 0;
+
+function initTestimonialsCarousel() {
+    const track = document.getElementById('testimonials-track');
+    const dotsContainer = document.getElementById('testimonial-dots');
+    if (!track || !dotsContainer) return;
+
+    const slides = track.querySelectorAll('.testimonial-slide');
+    testimonialTotalSlides = slides.length;
+    if (testimonialTotalSlides === 0) return;
+
+    // Create dot indicators
+    dotsContainer.innerHTML = '';
+    for (let i = 0; i < testimonialTotalSlides; i++) {
+        const dot = document.createElement('button');
+        dot.className = 'testimonial-dot' + (i === 0 ? ' active' : '');
+        dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+        dot.addEventListener('click', () => goToTestimonialSlide(i));
+        dotsContainer.appendChild(dot);
+    }
+
+    // Start auto-slide
+    startTestimonialAutoSlide();
+
+    // Pause on hover
+    const wrapper = document.querySelector('.testimonials-wrapper');
+    if (wrapper) {
+        wrapper.addEventListener('mouseenter', stopTestimonialAutoSlide);
+        wrapper.addEventListener('mouseleave', startTestimonialAutoSlide);
+    }
+}
+
+function goToTestimonialSlide(index) {
+    const track = document.getElementById('testimonials-track');
+    if (!track) return;
+
+    testimonialCurrentSlide = index;
+    if (testimonialCurrentSlide < 0) testimonialCurrentSlide = testimonialTotalSlides - 1;
+    if (testimonialCurrentSlide >= testimonialTotalSlides) testimonialCurrentSlide = 0;
+
+    track.style.transform = 'translateX(-' + (testimonialCurrentSlide * 100) + '%)';
+
+    // Update dots
+    const dots = document.querySelectorAll('.testimonial-dot');
+    dots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === testimonialCurrentSlide);
+    });
+}
+
+function changeTestimonialSlide(direction) {
+    goToTestimonialSlide(testimonialCurrentSlide + direction);
+    // Reset auto-slide timer
+    stopTestimonialAutoSlide();
+    startTestimonialAutoSlide();
+}
+
+function startTestimonialAutoSlide() {
+    stopTestimonialAutoSlide();
+    testimonialAutoSlideTimer = setInterval(() => {
+        goToTestimonialSlide(testimonialCurrentSlide + 1);
+    }, 5000);
+}
+
+function stopTestimonialAutoSlide() {
+    if (testimonialAutoSlideTimer) {
+        clearInterval(testimonialAutoSlideTimer);
+        testimonialAutoSlideTimer = null;
+    }
+}
+
+// ============================================
+// STICKY MOBILE CTA BAR
+// ============================================
+function initMobileCTABar() {
+    const ctaBar = document.getElementById('mobile-cta-bar');
+    if (!ctaBar) return;
+
+    // Update call button with dynamic phone number if available
+    const phoneEl = document.getElementById('live-lib-phone');
+    const callBtn = document.getElementById('mobile-cta-call-btn');
+    if (phoneEl && callBtn) {
+        const phone = phoneEl.textContent.replace(/\s+/g, '');
+        if (phone) callBtn.href = 'tel:' + phone;
+    }
+
+    let lastScrollY = 0;
+    let ticking = false;
+
+    window.addEventListener('scroll', () => {
+        lastScrollY = window.scrollY;
+        if (!ticking) {
+            requestAnimationFrame(() => {
+                if (lastScrollY > 400) {
+                    ctaBar.classList.add('visible');
+                } else {
+                    ctaBar.classList.remove('visible');
+                }
+                ticking = false;
+            });
+            ticking = true;
+        }
+    });
+}

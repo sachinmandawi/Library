@@ -421,6 +421,7 @@ function initApp() {
                 if (user) {
                     // Logged in
                     sessionStorage.setItem("admin_authenticated", "true");
+                    startInactivityMonitoring();
                     if (authOverlay) authOverlay.style.display = "none";
                     if (appContainer) appContainer.style.display = "flex";
                     
@@ -434,6 +435,7 @@ function initApp() {
                 } else {
                     // Logged out
                     sessionStorage.removeItem("admin_authenticated");
+                    stopInactivityMonitoring();
                     if (authOverlay) authOverlay.style.display = "flex";
                     if (appContainer) appContainer.style.display = "none";
                     
@@ -1812,7 +1814,7 @@ function renderPendingRequests() {
             </td>
             <td><strong style="color: #fff;">${isDemoReq ? `${req.demoDuration || 5} Day(s)` : `${req.duration} Month(s)`}</strong></td>
             <td>
-                <span style="font-size: 0.8rem; color: var(--text-muted); font-family: monospace;">Aadhaar: ${escapeHTML(req.govId || 'N/A')}</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted); font-family: monospace;">Aadhaar: ${escapeHTML(decryptData(req.govId) || 'N/A')}</span>
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="Current: ${escapeHTML(req.currentAddress)}">
                     Addr: ${escapeHTML(req.currentAddress || 'N/A')}
                 </div>
@@ -2038,7 +2040,7 @@ function openEditMemberModal(memberId) {
     
     document.getElementById("m-plan").value = member.planId;
     document.getElementById("m-dob").value = member.dob || "";
-    document.getElementById("m-gov-id").value = member.govId || "";
+    document.getElementById("m-gov-id").value = decryptData(member.govId) || "";
     document.getElementById("m-start-date").value = member.startDate;
     document.getElementById("m-expiry-date").value = member.expiryDate;
     document.getElementById("m-fee-amount").value = member.feeAmount;
@@ -2430,7 +2432,7 @@ async function handleMemberFormSubmit(event) {
         seatId: seatId,
         planId: planId,
         duration: duration,
-        govId: govId,
+        govId: encryptData(govId),
         startDate: startDate,
         expiryDate: expiryDate,
         feeAmount: feeAmount,
@@ -3185,7 +3187,7 @@ function approvePendingRequest(requestId) {
             }
         }
         
-        document.getElementById("m-gov-id").value = req.govId || "";
+        document.getElementById("m-gov-id").value = decryptData(req.govId) || "";
         
         // Trigger plan details updates and locks
         onModalPlanChange();
@@ -3386,7 +3388,7 @@ function openSeatActionsModal(seatId) {
                             </div>
                             <div>
                                 <span style="font-size: 0.7rem; color: var(--text-muted); display:block;">Aadhaar Number</span>
-                                <strong style="color: #fff; font-size:0.85rem; font-family: monospace;">${member.govId || 'N/A'}</strong>
+                                <strong style="color: #fff; font-size:0.85rem; font-family: monospace;">${decryptData(member.govId) || 'N/A'}</strong>
                             </div>
                         </div>
 
@@ -3579,7 +3581,7 @@ function renderInvoiceReceiptDetails(member, invoiceObj) {
             <div style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
                 <div><strong>Student:</strong> ${escapeHTML(member.name)} (${escapeHTML(member.gender || 'N/A')})</div>
                 <div><strong>Date of Birth:</strong> ${member.dob ? new Date(member.dob).toLocaleDateString('en-IN') : 'N/A'}</div>
-                <div><strong>Aadhaar Number:</strong> ${escapeHTML(member.govId || 'N/A')}</div>
+                <div><strong>Aadhaar Number:</strong> ${escapeHTML(decryptData(member.govId) || 'N/A')}</div>
                 <div><strong>Phone:</strong> ${escapeHTML(member.phone)}</div>
                 <div><strong>Email:</strong> ${escapeHTML(member.email || 'N/A')}</div>
                 <div><strong>Target Exam:</strong> ${escapeHTML(member.targetExam || 'N/A')}</div>
@@ -3838,7 +3840,7 @@ function shareReceiptWhatsApp() {
 *Student Details:*
 • Name: ${member.name} (${member.gender || 'N/A'})
 • Date of Birth: ${member.dob ? new Date(member.dob).toLocaleDateString('en-IN') : 'N/A'}
-• Aadhaar Number: ${member.govId || 'N/A'}
+• Aadhaar Number: ${decryptData(member.govId) || 'N/A'}
 • Phone: ${member.phone}
 • Email: ${member.email || 'N/A'}
 • Target Exam/Course: ${member.targetExam || 'N/A'}
@@ -4386,6 +4388,90 @@ function handleForgotPassword(event) {
         } else {
             showToast("Firebase Auth not initialized.", "error");
         }
+    }
+}
+
+// Inactivity timer
+let inactivityTimer;
+const INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds
+
+function resetInactivityTimer() {
+    if (!sessionStorage.getItem("admin_authenticated")) return;
+    clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(() => {
+        logoutDueToInactivity();
+    }, INACTIVITY_TIMEOUT);
+}
+
+function startInactivityMonitoring() {
+    resetInactivityTimer();
+    window.addEventListener("mousemove", resetInactivityTimer);
+    window.addEventListener("keypress", resetInactivityTimer);
+    window.addEventListener("click", resetInactivityTimer);
+    window.addEventListener("scroll", resetInactivityTimer);
+}
+
+function stopInactivityMonitoring() {
+    clearTimeout(inactivityTimer);
+    window.removeEventListener("mousemove", resetInactivityTimer);
+    window.removeEventListener("keypress", resetInactivityTimer);
+    window.removeEventListener("click", resetInactivityTimer);
+    window.removeEventListener("scroll", resetInactivityTimer);
+}
+
+function logoutDueToInactivity() {
+    localStorage.removeItem("red_room_state");
+    localStorage.removeItem("offline_pending_bookings");
+    sessionStorage.removeItem("admin_authenticated");
+    state = {
+        members: [],
+        seats: generateDefaultSeats(),
+        pending: [],
+        complaints: [],
+        settings: {}
+    };
+    
+    if (window.firebase && firebase.auth) {
+        firebase.auth().signOut()
+            .then(() => {
+                showToast("Logged out due to inactivity.", "info");
+            })
+            .catch(err => {
+                console.error("Inactivity logout failed:", err);
+            });
+    } else {
+        const authOverlay = document.getElementById("auth-overlay");
+        const appContainer = document.getElementById("app-container");
+        if (authOverlay) authOverlay.style.display = "flex";
+        if (appContainer) appContainer.style.display = "none";
+    }
+}
+
+// Security Cryptography Helpers using CryptoJS
+const CRYPTO_KEY = "RedRoomSecuritySecretKey2026";
+
+function encryptData(text) {
+    if (!text) return "";
+    try {
+        return CryptoJS.AES.encrypt(text.toString(), CRYPTO_KEY).toString();
+    } catch (e) {
+        console.error("Encryption failed:", e);
+        return text;
+    }
+}
+
+function decryptData(cipherText) {
+    if (!cipherText) return "";
+    // If it doesn't look like an encrypted AES string (doesn't start with U2FsdGVkX19), return it as is
+    if (typeof cipherText !== "string" || !cipherText.startsWith("U2FsdGVkX19")) {
+        return cipherText;
+    }
+    try {
+        const bytes = CryptoJS.AES.decrypt(cipherText, CRYPTO_KEY);
+        return bytes.toString(CryptoJS.enc.Utf8);
+    } catch (e) {
+        console.error("Decryption failed:", e);
+        return cipherText;
     }
 }
 

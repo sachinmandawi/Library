@@ -21,7 +21,16 @@
         // Allow public to submit tickets but restrict updates/deletes to admins
         "$complaint_id": {
           ".read": "auth != null",
-          ".write": "auth != null || (!data.exists() && newData.exists() && newData.child('status').val() === 'pending' && newData.child('phone').exists() && newData.child('studentName').exists())"
+          ".write": "auth != null || (!data.exists() && newData.exists() && newData.child('status').val() === 'pending' && newData.child('phone').exists() && newData.child('studentName').exists())",
+          "studentName": {
+            ".validate": "newData.isString() && newData.val().length() < 60 && !newData.val().contains('<') && !newData.val().contains('>')"
+          },
+          "description": {
+            ".validate": "newData.isString() && newData.val().length() < 1000 && !newData.val().contains('<') && !newData.val().contains('>')"
+          },
+          "phone": {
+            ".validate": "newData.isString() && newData.val().matches(/^[0-9]{10}$/)"
+          }
         },
         ".write": "auth != null"
       },
@@ -38,6 +47,14 @@
       "members": {
         // Only authenticated admins can read/write the student directory
         ".read": "auth != null",
+        "$member_id": {
+          "name": {
+            ".validate": "newData.isString() && newData.val().length() < 60 && !newData.val().contains('<') && !newData.val().contains('>')"
+          },
+          "phone": {
+            ".validate": "newData.isString() && newData.val().matches(/^[0-9]{10}$/)"
+          }
+        },
         ".write": "auth != null"
       }
     },
@@ -48,7 +65,16 @@
       "$booking_id": {
         ".read": "auth != null",
         // Allow write if it's a new submission, or if authenticated admin
-        ".write": "auth != null || (!data.exists() && newData.exists() && (newData.child('bookingType').val() === 'demo' || newData.child('paymentStatus').exists()))"
+        ".write": "auth != null || (!data.exists() && newData.exists() && (newData.child('bookingType').val() === 'demo' || newData.child('paymentStatus').exists()))",
+        "name": {
+          ".validate": "newData.isString() && newData.val().length() < 60 && !newData.val().contains('<') && !newData.val().contains('>')"
+        },
+        "phone": {
+          ".validate": "newData.isString() && newData.val().matches(/^[0-9]{10}$/)"
+        },
+        "email": {
+          ".validate": "newData.isString() && newData.val().length() < 100 && newData.val().contains('@')"
+        }
       },
       // Restrict root writes/deletes to authenticated admins
       ".write": "auth != null"

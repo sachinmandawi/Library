@@ -629,7 +629,7 @@ function submitStudentForm(event) {
         dob: dob,
         gender: gender,
         email: email,
-        govId: govId,
+        govId: encryptData(govId),
         
         fatherName: fatherName,
         fatherPhone: fatherPhone,
@@ -1021,5 +1021,33 @@ function initPartialPaymentListeners() {
             
             balanceAmountEl.value = price - paid;
         });
+    }
+}
+
+// Security Cryptography Helpers using CryptoJS
+const CRYPTO_KEY = "RedRoomSecuritySecretKey2026";
+
+function encryptData(text) {
+    if (!text) return "";
+    try {
+        return CryptoJS.AES.encrypt(text.toString(), CRYPTO_KEY).toString();
+    } catch (e) {
+        console.error("Encryption failed:", e);
+        return text;
+    }
+}
+
+function decryptData(cipherText) {
+    if (!cipherText) return "";
+    // If it doesn't look like an encrypted AES string (doesn't start with U2FsdGVkX19), return it as is
+    if (typeof cipherText !== "string" || !cipherText.startsWith("U2FsdGVkX19")) {
+        return cipherText;
+    }
+    try {
+        const bytes = CryptoJS.AES.decrypt(cipherText, CRYPTO_KEY);
+        return bytes.toString(CryptoJS.enc.Utf8);
+    } catch (e) {
+        console.error("Decryption failed:", e);
+        return cipherText;
     }
 }

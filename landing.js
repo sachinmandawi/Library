@@ -68,7 +68,7 @@ function getFirebaseConfig() {
 // Load custom settings (Library Name, Phone, Address) from localStorage
 function loadCustomSettings() {
     try {
-        const localData = localStorage.getItem("study_cafe_state");
+        const localData = localStorage.getItem("red_room_state");
         if (localData) {
             const state = JSON.parse(localData);
             if (state.settings) {
@@ -464,7 +464,7 @@ function initSeatsListener() {
             database = app.database();
             
             // Listen to real-time seat assignments
-            database.ref("study_cafe_system/seats").on("value", (snapshot) => {
+            database.ref("red_room_system/seats").on("value", (snapshot) => {
                 const seats = snapshot.val();
                 if (seats) {
                     let vacant = 0;
@@ -510,7 +510,7 @@ function initSeatsListener() {
 // Fallback to local storage seats state or mock counters
 function loadOfflineFallback() {
     try {
-        const localData = localStorage.getItem("study_cafe_state");
+        const localData = localStorage.getItem("red_room_state");
         if (localData) {
             const state = JSON.parse(localData);
             if (state.seats && state.seats.length > 0) {
@@ -736,7 +736,7 @@ window.handleComplaintSubmit = function(e) {
         };
         
         if (database) {
-            database.ref("study_cafe_system/complaints").push(complaintData)
+            database.ref("red_room_system/complaints").push(complaintData)
                 .then(() => {
                     showComplaintSuccess(ticketId);
                 })
@@ -753,10 +753,10 @@ window.handleComplaintSubmit = function(e) {
         } else {
             // Local fallback
             try {
-                const localState = JSON.parse(localStorage.getItem("study_cafe_state") || "{}");
+                const localState = JSON.parse(localStorage.getItem("red_room_state") || "{}");
                 if (!localState.complaints) localState.complaints = [];
                 localState.complaints.push(complaintData);
-                localStorage.setItem("study_cafe_state", JSON.stringify(localState));
+                localStorage.setItem("red_room_state", JSON.stringify(localState));
             } catch(e){}
             
             showComplaintSuccess(ticketId);
@@ -769,7 +769,7 @@ window.handleComplaintSubmit = function(e) {
 
     if (database) {
         // Verify from Firebase (Direct child look up for privacy - doesn't download entire phone list)
-        database.ref("study_cafe_system/registered_phones").child(cleanPhone).once("value")
+        database.ref("red_room_system/registered_phones").child(cleanPhone).once("value")
             .then(snapshot => {
                 if (snapshot.exists()) {
                     performSubmission();
@@ -789,7 +789,7 @@ window.handleComplaintSubmit = function(e) {
         // Verify from local storage fallback
         let isRegistered = false;
         try {
-            const localState = JSON.parse(localStorage.getItem("study_cafe_state") || "{}");
+            const localState = JSON.parse(localStorage.getItem("red_room_state") || "{}");
             if (localState.registered_phones && localState.registered_phones[cleanPhone]) {
                 isRegistered = true;
             }

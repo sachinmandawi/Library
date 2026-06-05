@@ -44,7 +44,7 @@ let compressedPhotoBase64 = null; // Store compressed student photo in memory
 
 // Load initial seat state from shared localStorage if available
 try {
-    const sharedState = JSON.parse(localStorage.getItem("study_cafe_state"));
+    const sharedState = JSON.parse(localStorage.getItem("red_room_state"));
     if (sharedState && sharedState.seats && sharedState.seats.length > 0) {
         allSeats = sharedState.seats;
     }
@@ -52,7 +52,7 @@ try {
 
 // Initialize Broadcast Channel
 if (window.BroadcastChannel) {
-    broadcastChannel = new BroadcastChannel('study_cafe_db');
+    broadcastChannel = new BroadcastChannel('red_room_db');
     broadcastChannel.onmessage = (event) => {
         if (event.data && event.data.type === "SEATS_UPDATED") {
             allSeats = event.data.seats;
@@ -63,7 +63,7 @@ if (window.BroadcastChannel) {
 
 // Listen to storage events for cross-tab updates
 window.addEventListener("storage", (event) => {
-    if (event.key === "study_cafe_state") {
+    if (event.key === "red_room_state") {
         try {
             const sharedState = JSON.parse(event.newValue);
             if (sharedState && sharedState.seats) {
@@ -152,7 +152,7 @@ function initDatabase() {
 function setupSeatsListener() {
     if (!database) return;
     
-    database.ref("study_cafe_system/seats").on("value", snapshot => {
+    database.ref("red_room_system/seats").on("value", snapshot => {
         if (snapshot.exists()) {
             allSeats = snapshot.val();
             onStudentRoomOrTypeChange();
@@ -733,7 +733,7 @@ function submitStudentForm(event) {
         if (seatId && seatId !== "non-reserved" && database) {
             const seatIdx = allSeats.findIndex(s => s.id === seatId);
             if (seatIdx !== -1) {
-                database.ref(`study_cafe_system/seats/${seatIdx}`).once("value")
+                database.ref(`red_room_system/seats/${seatIdx}`).once("value")
                     .then(snapshot => {
                         const val = snapshot.val();
                         if (val && val.status === "occupied") {
@@ -760,7 +760,7 @@ function submitStudentForm(event) {
         submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying Demo Pass...';
         
         if (database) {
-            database.ref("study_cafe_system/registered_phones").child(cleanPhone).once("value")
+            database.ref("red_room_system/registered_phones").child(cleanPhone).once("value")
                 .then(snapshot => {
                     if (snapshot.exists()) {
                         alert("यह मोबाइल नंबर पहले से ही लाइब्रेरी में रजिस्टर्ड है। फ्री डेमो केवल नए छात्रों के लिए है।\n\n(This mobile number is already registered. Free demos are only available for new students.)");
@@ -777,7 +777,7 @@ function submitStudentForm(event) {
             // Local fallback check
             let isRegistered = false;
             try {
-                const localState = JSON.parse(localStorage.getItem("study_cafe_state") || "{}");
+                const localState = JSON.parse(localStorage.getItem("red_room_state") || "{}");
                 if (localState.registered_phones && localState.registered_phones[cleanPhone]) {
                     isRegistered = true;
                 }

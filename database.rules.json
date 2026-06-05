@@ -2,7 +2,7 @@
   "rules": {
     ".read": false,
     ".write": false,
-    "study_cafe_system": {
+    "red_room_system": {
       "settings": {
         // Anyone can view the library name, address, and phone for landing pages
         ".read": true,

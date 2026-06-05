@@ -317,7 +317,7 @@ function saveStateToLocalStorage() {
                 return rest;
             })
         };
-        localStorage.setItem("study_cafe_state", JSON.stringify(storageState));
+        localStorage.setItem("red_room_state", JSON.stringify(storageState));
         if (broadcastChannel) {
             broadcastChannel.postMessage({
                 type: "SEATS_UPDATED",
@@ -365,7 +365,7 @@ function initApp() {
     // Load local storage fallback or mock data
     let localData = null;
     try {
-        localData = localStorage.getItem("study_cafe_state");
+        localData = localStorage.getItem("red_room_state");
     } catch(e){}
     
     if (localData) {
@@ -439,12 +439,12 @@ function initApp() {
                     
                     // Detach listeners to prevent permission errors
                     if (database) {
-                        database.ref("study_cafe_system").off();
+                        database.ref("red_room_system").off();
                         database.ref("pending_bookings").off();
                     }
                     
                     // Clear sensitive data cache to prevent local leaks
-                    localStorage.removeItem("study_cafe_state");
+                    localStorage.removeItem("red_room_state");
                     localStorage.removeItem("offline_pending_bookings");
                     state = {
                         members: [],
@@ -465,7 +465,7 @@ function initApp() {
 
     // Set up Broadcast Channel for local cross-tab sync
     if (window.BroadcastChannel) {
-        broadcastChannel = new BroadcastChannel('study_cafe_db');
+        broadcastChannel = new BroadcastChannel('red_room_db');
         broadcastChannel.onmessage = (event) => {
             if (event.data && event.data.type === "NEW_BOOKING_REQUEST") {
                 handleIncomingBooking(event.data.data);
@@ -597,7 +597,7 @@ function enableOfflineMode() {
 function setupFirebaseListeners() {
     if (!database) return;
     
-    const dbRef = database.ref("study_cafe_system");
+    const dbRef = database.ref("red_room_system");
     
     // Initialize database node if empty, or perform seat migration
     dbRef.once("value", snapshot => {
@@ -894,8 +894,8 @@ function syncLocalToDatabase() {
     }
     
     // Write individual nodes separately to avoid wiping out complaints/feedback nodes
-    database.ref("study_cafe_system/settings").set(state.settings);
-    database.ref("study_cafe_system/seats").set(state.seats);
+    database.ref("red_room_system/settings").set(state.settings);
+    database.ref("red_room_system/seats").set(state.seats);
     
     // Write members as a key-value object to match single member patch/delete operations
     const membersObj = {};
@@ -904,8 +904,8 @@ function syncLocalToDatabase() {
             membersObj[m.id] = m;
         }
     });
-    database.ref("study_cafe_system/members").set(membersObj);
-    database.ref("study_cafe_system/registered_phones").set(regPhones);
+    database.ref("red_room_system/members").set(membersObj);
+    database.ref("red_room_system/registered_phones").set(regPhones);
 }
 
 // Lightweight data patching for Firebase to write only modified nodes
@@ -930,16 +930,16 @@ function patchFirebaseData(changedMemberId = null, changedSeatIds = []) {
     if (isOfflineMode || !database) return;
     
     // Write registered phones lookup
-    database.ref("study_cafe_system/registered_phones").set(regPhones);
+    database.ref("red_room_system/registered_phones").set(regPhones);
 
     // Patch member precisely
     if (changedMemberId) {
         const member = state.members.find(m => m.id === changedMemberId);
         if (member) {
-            database.ref(`study_cafe_system/members/${member.id}`).set(member);
+            database.ref(`red_room_system/members/${member.id}`).set(member);
         } else {
             // Deleted
-            database.ref(`study_cafe_system/members/${changedMemberId}`).remove();
+            database.ref(`red_room_system/members/${changedMemberId}`).remove();
         }
     }
 
@@ -948,7 +948,7 @@ function patchFirebaseData(changedMemberId = null, changedSeatIds = []) {
         changedSeatIds.forEach(seatId => {
             const idx = state.seats.findIndex(s => s.id === seatId);
             if (idx !== -1) {
-                database.ref(`study_cafe_system/seats/${idx}`).set(state.seats[idx]);
+                database.ref(`red_room_system/seats/${idx}`).set(state.seats[idx]);
             }
         });
     }
@@ -2384,7 +2384,7 @@ async function handleMemberFormSubmit(event) {
         const seatIdx = state.seats.findIndex(s => s.id === seatId);
         if (seatIdx !== -1) {
             try {
-                const snapshot = await database.ref(`study_cafe_system/seats/${seatIdx}`).once("value");
+                const snapshot = await database.ref(`red_room_system/seats/${seatIdx}`).once("value");
                 const val = snapshot.val();
                 if (val && val.status === "occupied" && val.assignedMemberId !== editId) {
                     showToast(`Failed to Save: Seat ${val.number} has just been occupied by another student! Please select a different seat.`, "error");
@@ -3228,7 +3228,7 @@ function approvePendingRequest(requestId) {
     if (req.seatId && req.seatId !== "non-reserved" && database && !isOfflineMode) {
         const seatIdx = state.seats.findIndex(s => s.id === req.seatId);
         if (seatIdx !== -1) {
-            database.ref(`study_cafe_system/seats/${seatIdx}`).once("value")
+            database.ref(`red_room_system/seats/${seatIdx}`).once("value")
                 .then(snapshot => {
                     const val = snapshot.val();
                     if (val && val.status === "occupied") {
@@ -4126,7 +4126,7 @@ function resetSystemData() {
     
     if (!isOfflineMode && database) {
         database.ref("pending_bookings").remove();
-        database.ref("study_cafe_system/complaints").remove();
+        database.ref("red_room_system/complaints").remove();
         syncLocalToDatabase();
     } else {
         saveStateToLocalStorage();
@@ -4207,7 +4207,7 @@ function startLiveClock() {
 
 // Listen to storage events for cross-tab updates (especially in Offline Mode)
 window.addEventListener("storage", (event) => {
-    if (event.key === "study_cafe_state" && event.newValue) {
+    if (event.key === "red_room_state" && event.newValue) {
         try {
             const newState = JSON.parse(event.newValue);
             if (newState) {
@@ -4392,7 +4392,7 @@ function handleForgotPassword(event) {
 function handleAdminLogout() {
     if (confirm("Are you sure you want to log out from the Red Room Control Center?")) {
         // Clear sensitive cache immediately before signing out
-        localStorage.removeItem("study_cafe_state");
+        localStorage.removeItem("red_room_state");
         localStorage.removeItem("offline_pending_bookings");
         sessionStorage.removeItem("admin_authenticated");
         state = {
@@ -4950,7 +4950,7 @@ function changeComplaintStatus(ticketId, newStatus) {
         renderComplaintsList();
         showToast(`Status updated to ${newStatus} offline!`, "success");
     } else {
-        database.ref("study_cafe_system/complaints").child(ticketId).update({ status: newStatus })
+        database.ref("red_room_system/complaints").child(ticketId).update({ status: newStatus })
             .then(() => {
                 showToast(`Ticket status updated to ${newStatus}!`, "success");
             })
@@ -4972,7 +4972,7 @@ function deleteComplaint(ticketId) {
         renderComplaintsList();
         showToast("Complaint ticket deleted offline!", "success");
     } else {
-        database.ref("study_cafe_system/complaints").child(ticketId).remove()
+        database.ref("red_room_system/complaints").child(ticketId).remove()
             .then(() => {
                 showToast("Complaint ticket deleted successfully!", "success");
             })
@@ -4997,7 +4997,7 @@ function saveComplaintNotes(ticketId) {
         saveStateToLocalStorage();
         showToast("Staff notes saved offline!", "success");
     } else {
-        database.ref("study_cafe_system/complaints").child(ticketId).update({ adminNotes: notes })
+        database.ref("red_room_system/complaints").child(ticketId).update({ adminNotes: notes })
             .then(() => {
                 showToast("Staff notes saved successfully!", "success");
             })

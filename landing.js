@@ -36,6 +36,39 @@ function escapeHTML(str) {
 }
 
 let database = null;
+
+// Redux Toolkit Slice for Landing Page State Management
+const landingSlice = RTK.createSlice({
+    name: "landing",
+    initialState: {
+        activeLandingRoom: 1,
+        allSeatsData: [],
+        seatsCount: {
+            total: 369,
+            occupied: 280,
+            vacant: 89
+        }
+    },
+    reducers: {
+        setActiveLandingRoom(state, action) {
+            state.activeLandingRoom = action.payload;
+        },
+        setAllSeatsData(state, action) {
+            state.allSeatsData = action.payload;
+        },
+        setSeatsCount(state, action) {
+            state.seatsCount = action.payload;
+        }
+    }
+});
+
+const { setActiveLandingRoom, setAllSeatsData, setSeatsCount } = landingSlice.actions;
+
+const store = RTK.configureStore({
+    reducer: landingSlice.reducer
+});
+
+// Legacy variables synced with Redux store to maintain compatibility with existing rendering functions
 let activeLandingRoom = 1;
 let allSeatsData = [];
 let seatsCount = {
@@ -43,6 +76,19 @@ let seatsCount = {
     occupied: 280,
     vacant: 89
 };
+
+// Reactively handle store changes: sync global variables and trigger UI updates
+store.subscribe(() => {
+    const storeState = store.getState();
+    activeLandingRoom = storeState.activeLandingRoom;
+    allSeatsData = storeState.allSeatsData;
+    seatsCount = storeState.seatsCount;
+
+    // Trigger UI rendering functions automatically
+    updateStatsUI(seatsCount.vacant, seatsCount.occupied);
+    renderHomeSeatingPlan(allSeatsData);
+    renderLandingRoomMap();
+});
 
 // Fetch Firebase Configuration
 function getFirebaseConfig() {
@@ -71,7 +117,7 @@ function loadCustomSettings() {
         const localData = localStorage.getItem("red_room_state");
         if (localData) {
             const state = JSON.parse(localData);
-            if (state.settings) {
+            if (state && state.settings) {
                 const libName = state.settings.libraryName || "Red Room";
                 const libPhone = state.settings.phone || "9876543210";
                 const libAddress = state.settings.address || "Maitri Nagar Road, near Risali Sector, Bhilai, Chhattisgarh - 490006";
@@ -297,7 +343,7 @@ function renderHomeSeatingPlan(seatsData) {
 
 // Room tab selection switcher for landing page map
 window.changeLandingMapRoom = function(roomNumber) {
-    activeLandingRoom = roomNumber;
+    store.dispatch(setActiveLandingRoom(roomNumber));
     
     // Toggle active classes on tab buttons
     for (let r = 1; r <= 4; r++) {
@@ -310,8 +356,6 @@ window.changeLandingMapRoom = function(roomNumber) {
             }
         }
     }
-    
-    renderLandingRoomMap();
 };
 
 // Render active room layout on landing page map
@@ -471,7 +515,6 @@ function initSeatsListener() {
                     let occupied = 0;
                     
                     const seatsArray = Array.isArray(seats) ? seats : Object.values(seats);
-                    allSeatsData = seatsArray;
                     
                     seatsArray.forEach(seat => {
                         if (seat) {
@@ -487,9 +530,8 @@ function initSeatsListener() {
                     if (vacant + occupied < 10) {
                         loadOfflineFallback();
                     } else {
-                        updateStatsUI(vacant, occupied);
-                        renderHomeSeatingPlan(seats);
-                        renderLandingRoomMap();
+                        store.dispatch(setSeatsCount({ total: vacant + occupied, occupied, vacant }));
+                        store.dispatch(setAllSeatsData(seatsArray));
                     }
                 } else {
                     loadOfflineFallback();
@@ -513,10 +555,10 @@ function loadOfflineFallback() {
         const localData = localStorage.getItem("red_room_state");
         if (localData) {
             const state = JSON.parse(localData);
-            if (state.seats && state.seats.length > 0) {
+            if (state && state.seats && state.seats.length > 0) {
                 let vacant = 0;
                 let occupied = 0;
-                allSeatsData = state.seats;
+                
                 state.seats.forEach(seat => {
                     if (seat) {
                         if (seat.status === "vacant") {
@@ -526,19 +568,19 @@ function loadOfflineFallback() {
                         }
                     }
                 });
-                updateStatsUI(vacant, occupied);
-                renderHomeSeatingPlan(state.seats);
-                renderLandingRoomMap();
+                
+                store.dispatch(setSeatsCount({ total: vacant + occupied, occupied, vacant }));
+                store.dispatch(setAllSeatsData(state.seats));
                 return;
             }
         }
     } catch(e){}
     
     // Default static fallback if completely offline
-    updateStatsUI(120, 280);
+    store.dispatch(setSeatsCount({ total: 400, occupied: 280, vacant: 120 }));
     
     // Generate realistic mock seats for offline rendering
-    allSeatsData = [];
+    const mockSeats = [];
     let seatIndex = 1;
     const mockStatuses = [
         "vacant", "vacant", "occupied", "vacant", "occupied", "occupied", "vacant", "vacant", "occupied", "vacant", 
@@ -553,7 +595,7 @@ function loadOfflineFallback() {
     ];
     // Generate Room 1 fallback
     for (let i = 1; i <= 69; i++) {
-        allSeatsData.push({
+        mockSeats.push({
             id: `seat_${seatIndex++}`,
             number: i,
             room: 1,
@@ -564,7 +606,7 @@ function loadOfflineFallback() {
     // Generate Room 2, 3, 4 fallback (100 seats each) with random status
     for (let r = 2; r <= 4; r++) {
         for (let i = 1; i <= 100; i++) {
-            allSeatsData.push({
+            mockSeats.push({
                 id: `seat_${seatIndex++}`,
                 number: i,
                 room: r,
@@ -574,8 +616,7 @@ function loadOfflineFallback() {
         }
     }
     
-    renderHomeSeatingPlan(allSeatsData);
-    renderLandingRoomMap();
+    store.dispatch(setAllSeatsData(mockSeats));
 }
 
 // Pricing Toggle System

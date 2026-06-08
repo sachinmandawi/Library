@@ -36,17 +36,67 @@ function escapeHTML(str) {
         .replace(/\//g, "&#x2F;");
 }
 
+// Redux Toolkit Slice for Student Registration State Management
+const registerSlice = RTK.createSlice({
+    name: "register",
+    initialState: {
+        allSeats: [],
+        isDemo: false,
+        selectedSeatId: null,
+        compressedPhotoBase64: null
+    },
+    reducers: {
+        setAllSeats(state, action) {
+            state.allSeats = action.payload;
+        },
+        setIsDemo(state, action) {
+            state.isDemo = action.payload;
+        },
+        setSelectedSeatId(state, action) {
+            state.selectedSeatId = action.payload;
+        },
+        setCompressedPhotoBase64(state, action) {
+            state.compressedPhotoBase64 = action.payload;
+        }
+    }
+});
+
+const { setAllSeats, setIsDemo, setSelectedSeatId, setCompressedPhotoBase64 } = registerSlice.actions;
+
+const store = RTK.configureStore({
+    reducer: registerSlice.reducer
+});
+
+// Legacy variables synced with store for backward compatibility
 let database = null;
 let isDemo = false;
 let broadcastChannel = null;
-let allSeats = []; // Realtime synced seats from Firebase
-let compressedPhotoBase64 = null; // Store compressed student photo in memory
+let allSeats = [];
+let compressedPhotoBase64 = null;
+let selectedSeatId = null; // Declare selectedSeatId here globally to avoid duplicate declarations
+
+// Subscribe to store changes to keep global variables and visual layout synced reactively
+store.subscribe(() => {
+    const storeState = store.getState();
+    const seatsChanged = allSeats !== storeState.allSeats;
+    const demoChanged = isDemo !== storeState.isDemo;
+    const seatIdChanged = selectedSeatId !== storeState.selectedSeatId;
+    
+    allSeats = storeState.allSeats;
+    isDemo = storeState.isDemo;
+    selectedSeatId = storeState.selectedSeatId;
+    compressedPhotoBase64 = storeState.compressedPhotoBase64;
+    
+    if (seatsChanged || demoChanged || seatIdChanged) {
+        onStudentRoomOrTypeChange();
+    }
+});
 
 // Load initial seat state from shared localStorage if available
 try {
     const sharedState = JSON.parse(localStorage.getItem("red_room_state"));
     if (sharedState && sharedState.seats && sharedState.seats.length > 0) {
-        allSeats = sharedState.seats;
+        store.dispatch(setAllSeats(sharedState.seats));
     }
 } catch(e){}
 
@@ -55,8 +105,7 @@ if (window.BroadcastChannel) {
     broadcastChannel = new BroadcastChannel('red_room_db');
     broadcastChannel.onmessage = (event) => {
         if (event.data && event.data.type === "SEATS_UPDATED") {
-            allSeats = event.data.seats;
-            onStudentRoomOrTypeChange();
+            store.dispatch(setAllSeats(event.data.seats));
         }
     };
 }
@@ -67,8 +116,7 @@ window.addEventListener("storage", (event) => {
         try {
             const sharedState = JSON.parse(event.newValue);
             if (sharedState && sharedState.seats) {
-                allSeats = sharedState.seats;
-                onStudentRoomOrTypeChange();
+                store.dispatch(setAllSeats(sharedState.seats));
             }
         } catch(e){}
     }
@@ -154,16 +202,13 @@ function setupSeatsListener() {
     
     database.ref("red_room_system/seats").on("value", snapshot => {
         if (snapshot.exists()) {
-            allSeats = snapshot.val();
-            onStudentRoomOrTypeChange();
+            store.dispatch(setAllSeats(snapshot.val()));
         }
     }, err => {
         console.warn("Realtime seat listener permission blocked. Using offline fallback.", err);
         onStudentRoomOrTypeChange();
     });
 }
-
-let selectedSeatId = null;
 
 // Handle Room, Seating type, and plan duration changes
 function onStudentRoomOrTypeChange() {
@@ -463,16 +508,18 @@ function renderStudentSeatGrid(seatsData, selectedRoom, seatType) {
 }
 
 function selectStudentSeat(seatId, seatNumber) {
-    selectedSeatId = seatId;
+    store.dispatch(setSelectedSeatId(seatId));
     
     // Sync to hidden select input
     const seatSelect = document.getElementById("s-seat-id");
-    seatSelect.innerHTML = "";
-    const opt = document.createElement("option");
-    opt.value = seatId;
-    opt.textContent = `Seat ${seatNumber}`;
-    opt.selected = true;
-    seatSelect.appendChild(opt);
+    if (seatSelect) {
+        seatSelect.innerHTML = "";
+        const opt = document.createElement("option");
+        opt.value = seatId;
+        opt.textContent = `Seat ${seatNumber}`;
+        opt.selected = true;
+        seatSelect.appendChild(opt);
+    }
     
     // Update badge text
     const badge = document.getElementById("student-selected-seat-badge");
@@ -487,11 +534,14 @@ function selectStudentSeat(seatId, seatNumber) {
 // Reset form view back to inputs
 function resetFormView() {
     document.getElementById("student-booking-form").reset();
-    compressedPhotoBase64 = null;
+    store.dispatch(setCompressedPhotoBase64(null));
+    store.dispatch(setSelectedSeatId(null));
     document.getElementById("s-photo-placeholder").style.display = "block";
     const previewImg = document.getElementById("s-photo-preview");
-    previewImg.src = "";
-    previewImg.style.display = "none";
+    if (previewImg) {
+        previewImg.src = "";
+        previewImg.style.display = "none";
+    }
     
     const dateInput = document.getElementById("s-start-date");
     if (dateInput) {
@@ -548,7 +598,7 @@ function submitStudentForm(event) {
     const durationMonths = isDemo ? parseInt(document.getElementById("s-demo-duration").value) : parseInt(document.getElementById("s-duration").value);
     const seatId = document.getElementById("s-seat-id").value;
     
-    // Strict client-side validations
+    // Strict client-side validations with auto-cleanup for spaces/dashes/prefixes
     const cleanPhone = phone.replace(/\D/g, "").slice(-10);
     if (cleanPhone.length !== 10) {
         alert("Please enter a valid 10-digit Mobile Number.");
@@ -562,19 +612,23 @@ function submitStudentForm(event) {
         alert("Please enter a valid email address.");
         return;
     }
-    if (!/^[0-9]{12}$/.test(govId)) {
+    const cleanGovId = govId.replace(/[\s-]/g, "");
+    if (!/^[0-9]{12}$/.test(cleanGovId)) {
         alert("Please enter a valid 12-digit Aadhaar Number.");
         return;
     }
-    if (!/^[0-9]{10}$/.test(fatherPhone)) {
+    const cleanFatherPhone = fatherPhone.replace(/\D/g, "").slice(-10);
+    if (cleanFatherPhone.length !== 10) {
         alert("Please enter a valid 10-digit Mobile Number for Father.");
         return;
     }
-    if (!/^[0-9]{10}$/.test(motherPhone)) {
+    const cleanMotherPhone = motherPhone.replace(/\D/g, "").slice(-10);
+    if (cleanMotherPhone.length !== 10) {
         alert("Please enter a valid 10-digit Mobile Number for Mother.");
         return;
     }
-    if (!/^[0-9]{10}$/.test(emergencyPhone)) {
+    const cleanEmergencyPhone = emergencyPhone.replace(/\D/g, "").slice(-10);
+    if (cleanEmergencyPhone.length !== 10) {
         alert("Please enter a valid 10-digit Mobile Number for Emergency Contact.");
         return;
     }
@@ -629,16 +683,16 @@ function submitStudentForm(event) {
         dob: dob,
         gender: gender,
         email: email,
-        govId: encryptData(govId),
+        govId: encryptData(cleanGovId),
         
         fatherName: fatherName,
-        fatherPhone: fatherPhone,
+        fatherPhone: cleanFatherPhone,
         motherName: motherName,
-        motherPhone: motherPhone,
+        motherPhone: cleanMotherPhone,
         
         emergencyName: emergencyName,
         emergencyRelation: emergencyRelation,
-        emergencyPhone: emergencyPhone,
+        emergencyPhone: cleanEmergencyPhone,
         
         street: street,
         city: city,

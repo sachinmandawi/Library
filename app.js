@@ -184,7 +184,94 @@ function removeInstallmentFromForm(index) {
 }
 
 
-// App State
+// Redux Toolkit Slice for Admin Dashboard State Management
+const appSlice = RTK.createSlice({
+    name: 'app',
+    initialState: {
+        seats: [],
+        members: [],
+        pending: [],
+        complaints: [],
+        settings: {
+            libraryName: "Red Room",
+            address: "1st Floor, Fancy Gift House, Near Madhurisha Hotel, Maitri Nagar, Risali, Bhilai - 490006",
+            phone: "9876543210"
+        },
+        registered_phones: {},
+        currentTab: 'dashboard',
+        isOfflineMode: false,
+        modalPhotoBase64: null,
+        adminModalIsDemo: false,
+        adminModalDemoDuration: 5,
+        currentModalInstallments: [],
+        currentReceiptMemberId: null
+    },
+    reducers: {
+        setSeats(state, action) {
+            state.seats = action.payload;
+        },
+        setMembers(state, action) {
+            state.members = action.payload;
+        },
+        setPending(state, action) {
+            state.pending = action.payload;
+        },
+        setComplaints(state, action) {
+            state.complaints = action.payload;
+        },
+        setSettings(state, action) {
+            state.settings = action.payload;
+        },
+        setRegisteredPhones(state, action) {
+            state.registered_phones = action.payload;
+        },
+        setCurrentTab(state, action) {
+            state.currentTab = action.payload;
+        },
+        setIsOfflineMode(state, action) {
+            state.isOfflineMode = action.payload;
+        },
+        setModalPhotoBase64(state, action) {
+            state.modalPhotoBase64 = action.payload;
+        },
+        setAdminModalIsDemo(state, action) {
+            state.adminModalIsDemo = action.payload;
+        },
+        setAdminModalDemoDuration(state, action) {
+            state.adminModalDemoDuration = action.payload;
+        },
+        setCurrentModalInstallments(state, action) {
+            state.currentModalInstallments = action.payload;
+        },
+        setCurrentReceiptMemberId(state, action) {
+            state.currentReceiptMemberId = action.payload;
+        }
+    }
+});
+
+const {
+    setSeats,
+    setMembers,
+    setPending,
+    setComplaints,
+    setSettings,
+    setRegisteredPhones,
+    setCurrentTab,
+    setIsOfflineMode,
+    setModalPhotoBase64,
+    setAdminModalIsDemo,
+    setAdminModalDemoDuration,
+    setCurrentModalInstallments,
+    setCurrentReceiptMemberId
+} = appSlice.actions;
+
+const store = RTK.configureStore({
+    reducer: {
+        app: appSlice.reducer
+    }
+});
+
+// Legacy state variables synced with store for backwards compatibility
 let state = {
     seats: [],
     members: [],
@@ -194,19 +281,93 @@ let state = {
         libraryName: "Red Room",
         address: "1st Floor, Fancy Gift House, Near Madhurisha Hotel, Maitri Nagar, Risali, Bhilai - 490006",
         phone: "9876543210"
-    }
+    },
+    registered_phones: {}
 };
 
 let database = null;
 let currentTab = "dashboard";
 let isOfflineMode = false;
 let broadcastChannel = null;
-let currentReceiptMemberId = null; // Store active receipt student ID
-let recentlyApprovedOrRejected = new Set(); // Track approved/rejected requests to prevent listener re-adds
-let modalPhotoBase64 = null; // Store compressed profile picture in memory for new/edited members
+let currentReceiptMemberId = null;
+let recentlyApprovedOrRejected = new Set();
+let modalPhotoBase64 = null;
 let adminModalIsDemo = false;
 let adminModalDemoDuration = 5;
 let currentModalInstallments = [];
+
+store.subscribe(() => {
+    const storeState = store.getState().app;
+    
+    // Detect what state slices have mutated
+    const seatsChanged = state.seats !== storeState.seats;
+    const membersChanged = state.members !== storeState.members;
+    const pendingChanged = state.pending !== storeState.pending;
+    const complaintsChanged = state.complaints !== storeState.complaints;
+    const settingsChanged = state.settings !== storeState.settings;
+    const registeredPhonesChanged = state.registered_phones !== storeState.registered_phones;
+    
+    // Sync store state to legacy variables
+    state.seats = storeState.seats;
+    state.members = storeState.members;
+    state.pending = storeState.pending;
+    state.complaints = storeState.complaints;
+    state.settings = storeState.settings;
+    state.registered_phones = storeState.registered_phones;
+    
+    currentTab = storeState.currentTab;
+    isOfflineMode = storeState.isOfflineMode;
+    modalPhotoBase64 = storeState.modalPhotoBase64;
+    adminModalIsDemo = storeState.adminModalIsDemo;
+    adminModalDemoDuration = storeState.adminModalDemoDuration;
+    currentModalInstallments = storeState.currentModalInstallments;
+    currentReceiptMemberId = storeState.currentReceiptMemberId;
+    
+    // Save to localStorage if state mutated
+    if (seatsChanged || membersChanged || pendingChanged || complaintsChanged || settingsChanged || registeredPhonesChanged) {
+        saveStateToLocalStorage();
+    }
+    
+    // Reactive DOM rendering calls
+    if (seatsChanged) {
+        renderSeatGrid();
+        updateDashboardKPIs();
+    }
+    
+    if (membersChanged) {
+        renderMemberTable();
+        updateDashboardKPIs();
+        renderDashboardAlerts();
+        renderBirthdayAlerts();
+        updateFeesBadge();
+        if (currentTab === "fees") {
+            renderFeesTab();
+        }
+    }
+    
+    if (pendingChanged) {
+        updatePendingBadge();
+        renderPendingRequests();
+    }
+    
+    if (complaintsChanged) {
+        updateComplaintsBadge();
+        if (currentTab === "complaints") {
+            renderComplaintsList();
+        }
+    }
+    
+    if (settingsChanged) {
+        const qrLibTitle = document.getElementById("qr-lib-title");
+        if (qrLibTitle) qrLibTitle.textContent = state.settings.libraryName;
+        const setLibNameInput = document.getElementById("set-lib-name");
+        if (setLibNameInput) setLibNameInput.value = state.settings.libraryName;
+        const setLibPhoneInput = document.getElementById("set-lib-phone");
+        if (setLibPhoneInput) setLibPhoneInput.value = state.settings.phone || "9876543210";
+        const setLibAddrInput = document.getElementById("set-lib-addr");
+        if (setLibAddrInput) setLibAddrInput.value = state.settings.address;
+    }
+});
 
 // Initialize Web Audio notification sound
 function playNotificationSound() {
@@ -297,9 +458,9 @@ function generateDefaultSeats() {
 
 // Add Mock Members for demonstration if empty
 function loadMockData() {
-    state.seats = generateDefaultSeats();
-    state.members = [];
-    state.pending = [];
+    store.dispatch(setSeats(generateDefaultSeats()));
+    store.dispatch(setMembers([]));
+    store.dispatch(setPending([]));
 }
 
 // Save all state into Local Storage
@@ -370,20 +531,42 @@ function initApp() {
     
     if (localData) {
         try {
-            state = JSON.parse(localData);
-            // Reset to empty state if it's old mock data containing Rahul Sahu m_1
-            if (state.members && state.members.some(m => m.id === "m_1" || m.name === "Rahul Sahu")) {
+            const parsedState = JSON.parse(localData);
+            if (parsedState) {
+                // Reset to empty state if it's old mock data containing Rahul Sahu m_1
+                if (parsedState.members && parsedState.members.some(m => m.id === "m_1" || m.name === "Rahul Sahu")) {
+                    loadMockData();
+                    saveStateToLocalStorage();
+                } else if (!parsedState.seats || parsedState.seats.length !== 369) {
+                    const defaultSeats = generateDefaultSeats();
+                    if (parsedState.members) {
+                        parsedState.members.forEach(member => {
+                            const seat = defaultSeats.find(s => s.id === member.seatId);
+                            if (seat) {
+                                seat.status = "occupied";
+                                seat.assignedMemberId = member.id;
+                            }
+                        });
+                    }
+                    store.dispatch(setSeats(defaultSeats));
+                    store.dispatch(setMembers(parsedState.members || []));
+                    store.dispatch(setPending(parsedState.pending || []));
+                    store.dispatch(setComplaints(parsedState.complaints || []));
+                    if (parsedState.settings) {
+                        store.dispatch(setSettings(parsedState.settings));
+                    }
+                } else {
+                    store.dispatch(setSeats(parsedState.seats || []));
+                    store.dispatch(setMembers(parsedState.members || []));
+                    store.dispatch(setPending(parsedState.pending || []));
+                    store.dispatch(setComplaints(parsedState.complaints || []));
+                    if (parsedState.settings) {
+                        store.dispatch(setSettings(parsedState.settings));
+                    }
+                }
+            } else {
                 loadMockData();
                 saveStateToLocalStorage();
-            } else if (!state.seats || state.seats.length !== 369) {
-                state.seats = generateDefaultSeats();
-                state.members.forEach(member => {
-                    const seat = state.seats.find(s => s.id === member.seatId);
-                    if (seat) {
-                        seat.status = "occupied";
-                        seat.assignedMemberId = member.id;
-                    }
-                });
             }
         } catch(e) {
             loadMockData();
@@ -693,24 +876,17 @@ function setupFirebaseListeners() {
                     dbRef.child("seats").set(seatsVal);
                 }
             }
-            state.seats = seatsVal;
-            saveStateToLocalStorage();
-            renderSeatGrid();
-            updateDashboardKPIs();
+            store.dispatch(setSeats(seatsVal));
         }
     });
 
     // Listen to Member list
     dbRef.child("members").on("value", snapshot => {
-        if (snapshot.exists()) {
-            state.members = Object.values(snapshot.val());
-        } else {
-            state.members = [];
-        }
+        const membersVal = snapshot.exists() ? Object.values(snapshot.val()) : [];
         
         // Auto-update registered_phones in Firebase from Admin dashboard
         const regPhones = {};
-        state.members.forEach(m => {
+        membersVal.forEach(m => {
             if (m.phone) {
                 const cleanPhone = m.phone.replace(/\D/g, "");
                 const phone10 = cleanPhone.slice(-10);
@@ -722,22 +898,15 @@ function setupFirebaseListeners() {
             }
         });
         dbRef.child("registered_phones").set(regPhones);
-        state.registered_phones = regPhones;
-
-        saveStateToLocalStorage();
-        renderMemberTable();
-        updateDashboardKPIs();
-        renderDashboardAlerts();
-        renderBirthdayAlerts();
-        updateFeesBadge();
-        if (currentTab === "fees") {
-            renderFeesTab();
-        }
+        
+        store.dispatch(setRegisteredPhones(regPhones));
+        store.dispatch(setMembers(membersVal));
     });
 
     // Listen to Pending requests
     database.ref("pending_bookings").on("value", snapshot => {
         const oldPendingCount = state.pending.length;
+        let filtered = [];
         if (snapshot.exists()) {
             const rawBookings = Object.entries(snapshot.val()).map(([key, val]) => ({...val, id: key}));
             
@@ -757,7 +926,7 @@ function setupFirebaseListeners() {
                 }
             });
 
-            state.pending = rawBookings
+            filtered = rawBookings
                 .filter(p => !recentlyApprovedOrRejected.has(p.id))
                 .filter(p => {
                     const cleanPPhone = (p.phone || "").toString().replace(/[^0-9]/g, "");
@@ -769,49 +938,33 @@ function setupFirebaseListeners() {
                     });
                     return !isAlreadyRegistered;
                 });
-        } else {
-            state.pending = [];
         }
         
-        if (state.pending.length > oldPendingCount) {
+        store.dispatch(setPending(filtered));
+        if (filtered.length > oldPendingCount) {
             showToast("New Student Registration request received via QR!", "success");
         }
-        
-        saveStateToLocalStorage();
-        updatePendingBadge();
-        renderPendingRequests();
     });
     
     // Listen to Settings
     dbRef.child("settings").on("value", snapshot => {
         if (snapshot.exists()) {
-            state.settings = snapshot.val();
-            const qrLibTitle = document.getElementById("qr-lib-title");
-            if (qrLibTitle) qrLibTitle.textContent = state.settings.libraryName;
-            document.getElementById("set-lib-name").value = state.settings.libraryName;
-            document.getElementById("set-lib-addr").value = state.settings.address;
-            saveStateToLocalStorage();
+            store.dispatch(setSettings(snapshot.val()));
         }
     });
     
     // Listen to Complaints
     dbRef.child("complaints").on("value", snapshot => {
         const oldPendingComplaintsCount = (state.complaints || []).filter(c => c && c.status === "pending").length;
+        let complaintsVal = [];
         if (snapshot.exists()) {
-            state.complaints = Object.entries(snapshot.val()).map(([key, val]) => ({...val, id: key}));
-        } else {
-            state.complaints = [];
+            complaintsVal = Object.entries(snapshot.val()).map(([key, val]) => ({...val, id: key}));
         }
         
-        const newPendingComplaintsCount = state.complaints.filter(c => c && c.status === "pending").length;
+        store.dispatch(setComplaints(complaintsVal));
+        const newPendingComplaintsCount = complaintsVal.filter(c => c && c.status === "pending").length;
         if (newPendingComplaintsCount > oldPendingComplaintsCount) {
             showToast("New Student complaint ticket received!", "info");
-        }
-        
-        saveStateToLocalStorage();
-        updateComplaintsBadge();
-        if (currentTab === "complaints") {
-            renderComplaintsList();
         }
     });
     
@@ -926,8 +1079,7 @@ function patchFirebaseData(changedMemberId = null, changedSeatIds = []) {
         }
     });
 
-    state.registered_phones = regPhones;
-    saveStateToLocalStorage();
+    store.dispatch(setRegisteredPhones(regPhones));
 
     if (isOfflineMode || !database) return;
     
@@ -991,15 +1143,11 @@ function handleIncomingBooking(booking) {
         if (isAlreadyRegistered) return;
     }
 
-    state.pending.push(booking);
+    store.dispatch(setPending([...store.getState().app.pending, booking]));
     showToast(`New Registration Alert: ${booking.name}`, "success");
     
     if (!isOfflineMode && database) {
         database.ref("pending_bookings").push(booking);
-    } else {
-        saveStateToLocalStorage();
-        updatePendingBadge();
-        renderPendingRequests();
     }
 }
 
@@ -1764,9 +1912,9 @@ function renderPendingRequests() {
         return;
     }
     
-    state.pending.sort((a, b) => b.timestamp - a.timestamp);
+    const sortedPending = [...state.pending].sort((a, b) => b.timestamp - a.timestamp);
     
-    state.pending.forEach(req => {
+    sortedPending.forEach(req => {
         const tr = document.createElement("tr");
         const dateSubmitted = new Date(req.timestamp).toLocaleTimeString('en-IN', {hour: '2-digit', minute:'2-digit'});
         let seatDetailsHTML = "";
@@ -2232,18 +2380,33 @@ async function handleMemberFormSubmit(event) {
     
     const editId = document.getElementById("edit-member-id").value;
     const name = document.getElementById("m-name").value.trim();
-    const phone = document.getElementById("m-phone").value.trim();
+    
+    // Gracious cleanup for student phone: strip spaces/dashes and extract last 10 digits
+    const rawPhone = document.getElementById("m-phone").value.trim();
+    const cleanPhoneVal = rawPhone.replace(/[\s-]/g, "");
+    const phone = cleanPhoneVal.length >= 10 ? cleanPhoneVal.slice(-10) : cleanPhoneVal;
+    
     const gender = document.getElementById("m-gender").value;
     const email = document.getElementById("m-email").value.trim();
     const fatherName = document.getElementById("m-father-name").value.trim();
-    const fatherPhone = document.getElementById("m-father-phone").value.trim();
+    
+    // Gracious cleanup for Father's phone
+    const rawFatherPhone = document.getElementById("m-father-phone").value.trim();
+    const cleanFatherPhone = rawFatherPhone.replace(/[\s-]/g, "");
+    const fatherPhone = cleanFatherPhone.length >= 10 ? cleanFatherPhone.slice(-10) : cleanFatherPhone;
+    
     const motherName = document.getElementById("m-mother-name").value.trim();
-    const motherPhone = document.getElementById("m-mother-phone").value.trim();
+    
+    // Gracious cleanup for Mother's phone
+    const rawMotherPhone = document.getElementById("m-mother-phone").value.trim();
+    const cleanMotherPhone = rawMotherPhone.replace(/[\s-]/g, "");
+    const motherPhone = cleanMotherPhone.length >= 10 ? cleanMotherPhone.slice(-10) : cleanMotherPhone;
     
     const street = document.getElementById("m-street").value.trim();
     const city = document.getElementById("m-city").value.trim();
     const stateVal = document.getElementById("m-state").value.trim();
-    const zip = document.getElementById("m-zip").value.trim();
+    const rawZip = document.getElementById("m-zip").value.trim();
+    const zip = rawZip.replace(/[\s-]/g, "");
     
     const sameAddressCheck = document.getElementById("m-same-address");
     if (sameAddressCheck && sameAddressCheck.checked) {
@@ -2256,18 +2419,28 @@ async function handleMemberFormSubmit(event) {
     const permanentStreet = document.getElementById("m-permanent-street").value.trim();
     const permanentCity = document.getElementById("m-permanent-city").value.trim();
     const permanentState = document.getElementById("m-permanent-state").value.trim();
-    const permanentZip = document.getElementById("m-permanent-zip").value.trim();
+    const rawPermanentZip = document.getElementById("m-permanent-zip").value.trim();
+    const permanentZip = rawPermanentZip.replace(/[\s-]/g, "");
     
     const emergencyName = document.getElementById("m-emergency-name").value.trim();
     const emergencyRelation = document.getElementById("m-emergency-relation").value;
-    const emergencyPhone = document.getElementById("m-emergency-phone").value.trim();
+    
+    // Gracious cleanup for Emergency phone
+    const rawEmergencyPhone = document.getElementById("m-emergency-phone").value.trim();
+    const cleanEmergencyPhone = rawEmergencyPhone.replace(/[\s-]/g, "");
+    const emergencyPhone = cleanEmergencyPhone.length >= 10 ? cleanEmergencyPhone.slice(-10) : cleanEmergencyPhone;
+    
     const targetExam = document.getElementById("m-target-exam").value;
     const dob = document.getElementById("m-dob").value;
     
     const seatId = document.getElementById("m-seat-id").value;
     const seatType = document.getElementById("m-seat-type").value;
     const planId = document.getElementById("m-plan").value;
-    const govId = document.getElementById("m-gov-id").value.trim();
+    
+    // Gracious cleanup for Aadhaar number
+    const rawGovId = document.getElementById("m-gov-id").value.trim();
+    const govId = rawGovId.replace(/[\s-]/g, "");
+    
     const startDate = document.getElementById("m-start-date").value;
     const expiryDate = document.getElementById("m-expiry-date").value;
     const feeAmount = parseInt(document.getElementById("m-fee-amount").value) || 0;
@@ -2276,7 +2449,7 @@ async function handleMemberFormSubmit(event) {
     const paymentStatus = document.getElementById("m-payment").value;
     const paymentMethod = document.getElementById("m-payment-method").value;
     
-    // Strict client-side validations
+    // Strict client-side validations (running on cleaned data)
     if (!name) {
         showToast("Please enter student Name.", "error");
         return;
@@ -2371,11 +2544,17 @@ async function handleMemberFormSubmit(event) {
         duration = plan ? plan.duration : 1;
     }
     
+    // Fetch latest states from Redux store and clone them
+    const currentSeats = store.getState().app.seats;
+    const currentMembers = store.getState().app.members;
+    let seatsCopy = JSON.parse(JSON.stringify(currentSeats));
+    let membersCopy = JSON.parse(JSON.stringify(currentMembers));
+    
     let originalMember = null;
     let originalSeatId = null;
 
     if (editId) {
-        originalMember = state.members.find(m => m.id === editId);
+        originalMember = membersCopy.find(m => m.id === editId);
         if (originalMember) {
             originalSeatId = originalMember.seatId;
         }
@@ -2383,7 +2562,7 @@ async function handleMemberFormSubmit(event) {
     
     // Concurrency Check: Check if seat is occupied by another student on Firebase
     if (seatId && seatId !== "non-reserved" && seatId !== originalSeatId && database && !isOfflineMode) {
-        const seatIdx = state.seats.findIndex(s => s.id === seatId);
+        const seatIdx = seatsCopy.findIndex(s => s.id === seatId);
         if (seatIdx !== -1) {
             try {
                 const snapshot = await database.ref(`red_room_system/seats/${seatIdx}`).once("value");
@@ -2568,7 +2747,7 @@ async function handleMemberFormSubmit(event) {
     
     // Clear old seat status if editing
     if (editId && originalMember && originalSeatId && originalSeatId !== "non-reserved") {
-        const oldSeat = state.seats.find(s => s.id === originalSeatId);
+        const oldSeat = seatsCopy.find(s => s.id === originalSeatId);
         if (oldSeat) {
             oldSeat.status = "vacant";
             oldSeat.assignedMemberId = null;
@@ -2578,7 +2757,7 @@ async function handleMemberFormSubmit(event) {
     // Update New Seat status
     let newSeat = null;
     if (seatId && seatId !== "non-reserved") {
-        newSeat = state.seats.find(s => s.id === seatId);
+        newSeat = seatsCopy.find(s => s.id === seatId);
         if (newSeat) {
             newSeat.status = "occupied";
             newSeat.type = seatType;
@@ -2588,10 +2767,10 @@ async function handleMemberFormSubmit(event) {
     
     // Update state members array
     if (editId) {
-        const idx = state.members.findIndex(m => m.id === editId);
-        if (idx !== -1) state.members[idx] = memberObj;
+        const idx = membersCopy.findIndex(m => m.id === editId);
+        if (idx !== -1) membersCopy[idx] = memberObj;
     } else {
-        state.members.push(memberObj);
+        membersCopy.push(memberObj);
     }
     
     // Auto-remove any pending requests with the same phone number (no matter how added)
@@ -2605,6 +2784,10 @@ async function handleMemberFormSubmit(event) {
             removePendingRequest(matchingPending.id);
         }
     }
+    
+    // Dispatch to Redux store
+    store.dispatch(setSeats(seatsCopy));
+    store.dispatch(setMembers(membersCopy));
     
     // Precise database patch instead of syncLocalToDatabase()
     const affectedSeatIds = [];
@@ -2633,8 +2816,12 @@ async function handleMemberFormSubmit(event) {
 
 // Toggle payment statuses
 function togglePaymentStatus(memberId) {
-    const member = state.members.find(m => m.id === memberId);
-    if (!member) return;
+    const currentMembers = store.getState().app.members;
+    const idx = currentMembers.findIndex(m => m.id === memberId);
+    if (idx === -1) return;
+    
+    const membersCopy = JSON.parse(JSON.stringify(currentMembers));
+    const member = membersCopy[idx];
     
     member.paymentStatus = member.paymentStatus === "Paid" ? "Pending" : "Paid";
     
@@ -2658,6 +2845,7 @@ function togglePaymentStatus(memberId) {
         }
     }
     
+    store.dispatch(setMembers(membersCopy));
     patchFirebaseData(memberId);
     showToast(`Payment marked as ${member.paymentStatus} for ${member.name}`, "info");
     refreshUI();
@@ -2980,8 +3168,12 @@ function sendFeeReminder(memberId) {
 
 // Quick Mark as Paid action
 function markFeeAsPaidQuick(memberId) {
-    const member = state.members.find(m => m.id === memberId);
-    if (!member) return;
+    const currentMembers = store.getState().app.members;
+    const idx = currentMembers.findIndex(m => m.id === memberId);
+    if (idx === -1) return;
+    
+    const membersCopy = JSON.parse(JSON.stringify(currentMembers));
+    const member = membersCopy[idx];
     
     const fee = parseInt(member.feeAmount) || 0;
     const { paid: paidSoFar, pending: currentDues } = getMemberPaymentDetails(member);
@@ -3066,6 +3258,7 @@ function markFeeAsPaidQuick(memberId) {
     }
     member.invoices = invoices;
     
+    store.dispatch(setMembers(membersCopy));
     patchFirebaseData(member.id);
     showToast(`Collected ₹${collectAmount} via ${cleanMethod} for ${member.name}! Status: ${member.paymentStatus}`, "success");
     refreshUI();
@@ -3080,13 +3273,17 @@ function deleteMember(memberId) {
     if (!member) return;
     
     if (confirm(`Are you sure you want to cancel subscription and remove ${member.name}?`)) {
-        const seat = state.seats.find(s => s.id === member.seatId);
+        const updatedSeats = JSON.parse(JSON.stringify(state.seats));
+        const updatedMembers = state.members.filter(m => m.id !== memberId);
+        
+        const seat = updatedSeats.find(s => s.id === member.seatId);
         if (seat) {
             seat.status = "vacant";
             seat.assignedMemberId = null;
         }
         
-        state.members = state.members.filter(m => m.id !== memberId);
+        store.dispatch(setSeats(updatedSeats));
+        store.dispatch(setMembers(updatedMembers));
         patchFirebaseData(memberId, seat ? [seat.id] : []);
         showToast("Student membership removed.", "error");
         refreshUI();
@@ -3461,12 +3658,14 @@ function releaseSeatFromModal(memberId) {
 }
 
 function forceResetSeat(seatId) {
-    const seat = state.seats.find(s => s.id === seatId);
+    const updatedSeats = JSON.parse(JSON.stringify(state.seats));
+    const seat = updatedSeats.find(s => s.id === seatId);
     if (!seat) return;
     
     seat.status = "vacant";
     seat.assignedMemberId = null;
     
+    store.dispatch(setSeats(updatedSeats));
     patchFirebaseData(null, [seat.id]);
     closeModal("modal-seat-actions");
     showToast(`Seat ${seat.number} force vacated.`, "info");
@@ -3474,7 +3673,10 @@ function forceResetSeat(seatId) {
 }
 
 function toggleSeatMaintenance() {
-    const seat = state.seats.find(s => s.id === selectedSeatIdForActions);
+    const updatedSeats = JSON.parse(JSON.stringify(state.seats));
+    let updatedMembers = JSON.parse(JSON.stringify(state.members));
+    
+    const seat = updatedSeats.find(s => s.id === selectedSeatIdForActions);
     if (!seat) return;
     
     const isCurrentlyBlocked = seat.status === "maintenance";
@@ -3490,7 +3692,7 @@ function toggleSeatMaintenance() {
             if (!confirm(`Warning: Seat ${seat.number} has active student booking. Blocking it will vacate occupant. Proceed?`)) {
                 return;
             }
-            state.members = state.members.filter(m => m.id !== activeOccupantId);
+            updatedMembers = updatedMembers.filter(m => m.id !== activeOccupantId);
         }
         
         seat.status = "maintenance";
@@ -3498,6 +3700,8 @@ function toggleSeatMaintenance() {
         showToast(`Seat ${seat.number} marked under Maintenance.`, "error");
     }
     
+    store.dispatch(setSeats(updatedSeats));
+    store.dispatch(setMembers(updatedMembers));
     patchFirebaseData(activeOccupantId, [seat.id]);
     closeModal("modal-seat-actions");
     refreshUI();
@@ -3980,13 +4184,21 @@ function printQRCode(type) {
         color = "#3b82f6";
     }
     
-    const canvas = document.querySelector(selector);
-    if (!canvas) {
-        showToast("QR Code not generated yet. Please wait.", "error");
-        return;
+    let canvas = document.querySelector(selector);
+    let qrDataUrl = "";
+    if (canvas) {
+        qrDataUrl = canvas.toDataURL("image/png");
+    } else {
+        // Fallback to img tag if canvas is not present
+        const imgSelector = selector.replace("canvas", "img");
+        const img = document.querySelector(imgSelector);
+        if (img && img.src) {
+            qrDataUrl = img.src;
+        } else {
+            showToast("QR Code not generated yet. Please wait.", "error");
+            return;
+        }
     }
-    
-    const qrDataUrl = canvas.toDataURL("image/png");
     
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
@@ -4121,10 +4333,10 @@ function resetSystemData() {
         return;
     }
     
-    state.members = [];
-    state.pending = [];
-    state.complaints = [];
-    state.seats = generateDefaultSeats();
+    store.dispatch(setMembers([]));
+    store.dispatch(setPending([]));
+    store.dispatch(setComplaints([]));
+    store.dispatch(setSeats(generateDefaultSeats()));
     
     if (!isOfflineMode && database) {
         database.ref("pending_bookings").remove();
@@ -4138,7 +4350,6 @@ function resetSystemData() {
     refreshUI();
 }
 
-// Settings inputs save
 function saveSettings() {
     const newName = document.getElementById("set-lib-name").value.trim();
     const newPhone = document.getElementById("set-lib-phone").value.trim();
@@ -4149,13 +4360,14 @@ function saveSettings() {
         return;
     }
     
-    state.settings.libraryName = newName;
-    state.settings.phone = newPhone || "9876543210";
-    state.settings.address = newAddr;
+    const updatedSettings = {
+        libraryName: newName,
+        phone: newPhone || "9876543210",
+        address: newAddr
+    };
     
+    store.dispatch(setSettings(updatedSettings));
     syncLocalToDatabase();
-    const qrLibTitle = document.getElementById("qr-lib-title");
-    if (qrLibTitle) qrLibTitle.textContent = newName;
     showToast("Library settings saved.", "success");
     updateRegistrationQR();
 }
@@ -5027,13 +5239,14 @@ function getComplaintWhatsAppMessage(c) {
 function changeComplaintStatus(ticketId, newStatus) {
     if (isOfflineMode || !database) {
         // Offline update
-        state.complaints = state.complaints.map(c => {
-            if (c.id === ticketId) c.status = newStatus;
+        const currentComplaints = store.getState().app.complaints;
+        const updatedComplaints = currentComplaints.map(c => {
+            if (c.id === ticketId) {
+                return { ...c, status: newStatus };
+            }
             return c;
         });
-        saveStateToLocalStorage();
-        updateComplaintsBadge();
-        renderComplaintsList();
+        store.dispatch(setComplaints(updatedComplaints));
         showToast(`Status updated to ${newStatus} offline!`, "success");
     } else {
         database.ref("red_room_system/complaints").child(ticketId).update({ status: newStatus })
@@ -5052,10 +5265,9 @@ function deleteComplaint(ticketId) {
     if (!confirm("Are you sure you want to delete this complaint ticket permanently?")) return;
     
     if (isOfflineMode || !database) {
-        state.complaints = state.complaints.filter(c => c.id !== ticketId);
-        saveStateToLocalStorage();
-        updateComplaintsBadge();
-        renderComplaintsList();
+        const currentComplaints = store.getState().app.complaints;
+        const updatedComplaints = currentComplaints.filter(c => c.id !== ticketId);
+        store.dispatch(setComplaints(updatedComplaints));
         showToast("Complaint ticket deleted offline!", "success");
     } else {
         database.ref("red_room_system/complaints").child(ticketId).remove()
@@ -5076,11 +5288,14 @@ function saveComplaintNotes(ticketId) {
     const notes = input.value.trim();
     
     if (isOfflineMode || !database) {
-        state.complaints = state.complaints.map(c => {
-            if (c.id === ticketId) c.adminNotes = notes;
+        const currentComplaints = store.getState().app.complaints;
+        const updatedComplaints = currentComplaints.map(c => {
+            if (c.id === ticketId) {
+                return { ...c, adminNotes: notes };
+            }
             return c;
         });
-        saveStateToLocalStorage();
+        store.dispatch(setComplaints(updatedComplaints));
         showToast("Staff notes saved offline!", "success");
     } else {
         database.ref("red_room_system/complaints").child(ticketId).update({ adminNotes: notes })
@@ -5105,7 +5320,13 @@ function checkDemoExpirations() {
         const affectedMemberIds = [];
         const affectedSeatIds = [];
         
-        (state.members || []).forEach(member => {
+        // Fetch latest states from Redux store and clone them
+        const currentSeats = store.getState().app.seats;
+        const currentMembers = store.getState().app.members;
+        const seatsCopy = JSON.parse(JSON.stringify(currentSeats));
+        const membersCopy = JSON.parse(JSON.stringify(currentMembers));
+        
+        membersCopy.forEach(member => {
             if (member.status === "demo") {
                 const expiry = new Date(member.expiryDate);
                 if (expiry.getTime() < todayZero) {
@@ -5114,7 +5335,7 @@ function checkDemoExpirations() {
                     
                     // Vacate seat
                     if (member.seatId && member.seatId !== "non-reserved") {
-                        const seat = state.seats.find(s => s.id === member.seatId);
+                        const seat = seatsCopy.find(s => s.id === member.seatId);
                         if (seat) {
                             seat.status = "vacant";
                             seat.assignedMemberId = null;
@@ -5130,6 +5351,10 @@ function checkDemoExpirations() {
         });
         
         if (changed) {
+            // Dispatch updates to Redux store
+            store.dispatch(setSeats(seatsCopy));
+            store.dispatch(setMembers(membersCopy));
+            
             if (!isOfflineMode && database) {
                 // Precise patches
                 affectedMemberIds.forEach(mId => {
@@ -5140,7 +5365,6 @@ function checkDemoExpirations() {
                 }
                 refreshUI();
             } else {
-                saveStateToLocalStorage();
                 refreshUI();
             }
         }
@@ -5220,8 +5444,15 @@ function submitConvertDemoForm(event) {
         return;
     }
     
-    const member = state.members.find(m => m.id === memberId);
-    if (!member) return;
+    // Fetch latest states from Redux store and clone them
+    const currentSeats = store.getState().app.seats;
+    const currentMembers = store.getState().app.members;
+    const seatsCopy = JSON.parse(JSON.stringify(currentSeats));
+    const membersCopy = JSON.parse(JSON.stringify(currentMembers));
+    
+    const memberIdx = membersCopy.findIndex(m => m.id === memberId);
+    if (memberIdx === -1) return;
+    const member = membersCopy[memberIdx];
     
     const plan = CONVERT_PLANS[planId];
     if (!plan) return;
@@ -5229,7 +5460,7 @@ function submitConvertDemoForm(event) {
     const affectedSeatIds = [];
     // If transitioning from reserved to non-reserved plan, vacate their seat
     if (plan.type === "non-reserved" && member.seatId && member.seatId !== "non-reserved") {
-        const oldSeat = state.seats.find(s => s.id === member.seatId);
+        const oldSeat = seatsCopy.find(s => s.id === member.seatId);
         if (oldSeat) {
             oldSeat.status = "vacant";
             oldSeat.assignedMemberId = null;
@@ -5319,6 +5550,10 @@ function submitConvertDemoForm(event) {
     invoices.push(newInvoice);
     member.invoices = invoices;
     member.payments = [...initPayments];
+    
+    // Dispatch to Redux store
+    store.dispatch(setSeats(seatsCopy));
+    store.dispatch(setMembers(membersCopy));
     
     patchFirebaseData(memberId, affectedSeatIds);
     closeModal("modal-convert-demo");

@@ -259,35 +259,39 @@
 
         /* LIVE AVAILABILITY COUNTERS */
         .live-counter-card {
-            background: linear-gradient(135deg, rgba(13, 22, 39, 0.65) 0%, rgba(7, 11, 19, 0.85) 100%);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 24px;
+            background: rgba(13, 22, 39, 0.4);
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            backdrop-filter: blur(16px);
+            border-radius: 20px;
             padding: 2.2rem;
-            max-width: 850px;
+            max-width: 800px;
             margin: 0 auto;
             display: grid;
-            grid-template-columns: 1.4fr 1fr 1fr;
-            gap: 1.8rem;
+            grid-template-columns: 1.5fr 1fr 1fr;
+            gap: 2rem;
             align-items: center;
             text-align: left;
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
             position: relative;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .live-counter-card:hover {
-            transform: translateY(-4px);
-            border-color: rgba(59, 130, 246, 0.2);
-            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 
-                        0 0 40px rgba(59, 130, 246, 0.05);
+        .live-counter-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(59, 130, 246, 0.05));
+            pointer-events: none;
+            z-index: -1;
         }
 
         .progress-circle-wrapper {
             display: flex;
             align-items: center;
-            gap: 1.5rem;
+            gap: 1.2rem;
         }
 
         .progress-svg-container {
@@ -295,7 +299,6 @@
             height: 100px;
             position: relative;
             transform: rotate(-90deg);
-            flex-shrink: 0;
         }
 
         .progress-svg-container svg {
@@ -306,7 +309,7 @@
 
         .progress-bg-track {
             fill: none;
-            stroke: rgba(255, 255, 255, 0.03);
+            stroke: rgba(255, 255, 255, 0.05);
             stroke-width: 8;
         }
 
@@ -316,7 +319,7 @@
             stroke-width: 8;
             stroke-linecap: round;
             transition: stroke-dashoffset 1s ease-in-out;
-            filter: drop-shadow(0 0 6px var(--accent-emerald));
+            filter: drop-shadow(0 0 4px var(--accent-emerald));
         }
 
         .percentage-label {
@@ -325,137 +328,36 @@
             left: 50%;
             transform: translate(-50%, -50%) rotate(90deg);
             font-family: var(--font-display);
-            font-weight: 800;
-            font-size: 1.15rem;
+            font-weight: 700;
+            font-size: 1.1rem;
             color: #fff;
         }
 
-        .progress-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .live-badge {
-            align-self: flex-start;
-            background: rgba(16, 185, 129, 0.08);
-            border: 1px solid rgba(16, 185, 129, 0.2);
-            color: var(--accent-emerald);
-            font-size: 0.7rem;
-            font-weight: 700;
-            letter-spacing: 0.1em;
-            padding: 0.2rem 0.6rem;
-            border-radius: 50px;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .live-badge-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--accent-emerald);
-            display: inline-block;
-            animation: pulse-dot 1.5s infinite;
-        }
-
-        @keyframes pulse-dot {
-            0% {
-                transform: scale(0.9);
-                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-            }
-            70% {
-                transform: scale(1.1);
-                box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
-            }
-            100% {
-                transform: scale(0.9);
-                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-            }
-        }
-
-        /* Stat Mini Cards inside live counter card */
-        .stat-mini-card {
-            background: rgba(255, 255, 255, 0.015);
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            border-radius: 18px;
-            padding: 1.2rem 1.4rem;
-            display: flex;
-            align-items: center;
-            gap: 1.2rem;
-            transition: all 0.3s ease;
-        }
-
-        .stat-mini-card:hover {
-            transform: translateY(-2px);
-            background: rgba(255, 255, 255, 0.03);
-            border-color: rgba(255, 255, 255, 0.08);
-        }
-
-        .stat-icon-wrapper {
-            width: 46px;
-            height: 46px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.25rem;
-            flex-shrink: 0;
-            transition: transform 0.3s ease;
-        }
-
-        .stat-mini-card:hover .stat-icon-wrapper {
-            transform: scale(1.1);
-        }
-
-        .stat-mini-card.vacant .stat-icon-wrapper {
-            background: rgba(16, 185, 129, 0.08);
-            border: 1px solid rgba(16, 185, 129, 0.2);
-            color: var(--accent-emerald);
-        }
-
-        .stat-mini-card.occupied .stat-icon-wrapper {
-            background: rgba(59, 130, 246, 0.08);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            color: var(--accent-blue);
-        }
-
-        .stat-content {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .stat-mini-card h4 {
+        .counter-stat-box h4 {
             font-family: var(--font-display);
             font-size: 2.2rem;
             font-weight: 800;
+            color: #fff;
             line-height: 1.1;
-            margin: 0;
         }
 
-        .stat-mini-card.vacant h4 {
-            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 2px 8px rgba(16, 185, 129, 0.25));
-        }
-
-        .stat-mini-card.occupied h4 {
-            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 2px 8px rgba(59, 130, 246, 0.25));
-        }
-
-        .stat-content p {
+        .counter-stat-box p {
             color: var(--text-muted);
-            font-size: 0.8rem;
-            font-weight: 600;
-            margin-top: 0.1rem;
+            font-size: 0.85rem;
+            margin-top: 0.2rem;
             margin-bottom: 0;
             text-transform: uppercase;
-            letter-spacing: 0.06em;
+            letter-spacing: 0.05em;
+        }
+
+        .glow-text-emerald {
+            color: var(--accent-emerald) !important;
+            text-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+        }
+
+        .glow-text-blue {
+            color: var(--accent-blue) !important;
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
         }
 
         /* SECTION TITLE COMMON */
@@ -2019,31 +1921,20 @@
                         </svg>
                         <div id="live-percent" class="percentage-label">0%</div>
                     </div>
-                    <div class="progress-info">
-                        <span class="live-badge"><span class="live-badge-dot"></span> LIVE STATUS</span>
-                        <h3 style="color: #fff; font-size: 1.25rem; font-weight: 800; font-family: var(--font-display); margin: 0; line-height: 1.25;">Real-Time Booking</h3>
-                        <p style="color: var(--text-muted); font-size: 0.8rem; margin: 0.2rem 0 0 0;">Space occupancy rate</p>
+                    <div>
+                        <strong style="color: #fff; font-size: 1.1rem; display: block; font-family: var(--font-display);">Real-Time Booking Status</strong>
+                        <span style="color: var(--text-muted); font-size: 0.85rem;">Live space availability index</span>
                     </div>
                 </div>
                 
-                <div class="stat-mini-card vacant">
-                    <div class="stat-icon-wrapper">
-                        <i class="fa-solid fa-chair"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h4 id="live-vacant">...</h4>
-                        <p>Vacant Seats</p>
-                    </div>
+                <div class="counter-stat-box" style="border-left: 1px solid rgba(255,255,255,0.06); padding-left: 1.5rem;">
+                    <h4 id="live-vacant" class="glow-text-emerald">...</h4>
+                    <p>Vacant Seats</p>
                 </div>
                 
-                <div class="stat-mini-card occupied">
-                    <div class="stat-icon-wrapper">
-                        <i class="fa-solid fa-user-check"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h4 id="live-occupied">...</h4>
-                        <p>Occupied Seats</p>
-                    </div>
+                <div class="counter-stat-box" style="border-left: 1px solid rgba(255,255,255,0.06); padding-left: 1.5rem;">
+                    <h4 id="live-occupied" class="glow-text-blue">...</h4>
+                    <p>Occupied Seats</p>
                 </div>
             </div>
         </div>

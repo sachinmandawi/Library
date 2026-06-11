@@ -3,6 +3,8 @@
     ".read": false,
     ".write": false,
     "red_room_system": {
+      ".read": "auth != null",
+      ".write": "auth != null",
       "settings": {
         // Anyone can view the library name, address, and phone for landing pages
         ".read": true,

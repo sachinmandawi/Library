@@ -1720,7 +1720,7 @@ function renderMemberTable() {
     const paymentMethodFilter = document.getElementById("filter-payment-method").value;
     const durationFilter = document.getElementById("filter-duration").value;
     
-    let filteredMembers = state.members;
+    let filteredMembers = [...state.members];
     
     if (searchVal) {
         filteredMembers = filteredMembers.filter(m => 

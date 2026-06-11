@@ -929,6 +929,7 @@ function setupFirebaseListeners() {
                 }
             }
             store.dispatch(setSeats(seatsVal));
+            setTimeout(reconcileSeatsAndMembers, 100);
         }
     });
 
@@ -953,6 +954,7 @@ function setupFirebaseListeners() {
         
         store.dispatch(setRegisteredPhones(regPhones));
         store.dispatch(setMembers(membersVal));
+        setTimeout(reconcileSeatsAndMembers, 100);
     });
 
     // Listen to Pending requests
@@ -1022,6 +1024,61 @@ function setupFirebaseListeners() {
     
     // Listeners for partial payments inside the admin student modal
     initModalPaymentListeners();
+}
+
+function reconcileSeatsAndMembers() {
+    if (isOfflineMode || !database) return;
+    
+    const currentSeats = store.getState().app.seats;
+    const currentMembers = store.getState().app.members;
+    
+    if (!currentSeats || currentSeats.length === 0 || !currentMembers || currentMembers.length === 0) return;
+    
+    const todayZero = new Date().setHours(0,0,0,0);
+    
+    // Find active members who are assigned to a reserved seat
+    const activeMembers = currentMembers.filter(m => {
+        const expiry = new Date(m.expiryDate);
+        return expiry >= todayZero && m.seatId && m.seatId !== "non-reserved";
+    });
+    
+    let changed = false;
+    const seatsCopy = JSON.parse(JSON.stringify(currentSeats));
+    
+    seatsCopy.forEach((seat) => {
+        if (!seat) return;
+        
+        const assignedMember = activeMembers.find(m => m.seatId === seat.id);
+        
+        if (assignedMember) {
+            // Seat should be occupied by this member
+            if (seat.status !== "occupied" || seat.assignedMemberId !== assignedMember.id) {
+                seat.status = "occupied";
+                seat.assignedMemberId = assignedMember.id;
+                changed = true;
+                console.log(`Reconciled seat ${seat.id} (${seat.number}): marked occupied for member ${assignedMember.name}`);
+            }
+        } else {
+            // Seat should be vacant
+            if (seat.status !== "vacant" || seat.assignedMemberId !== null) {
+                seat.status = "vacant";
+                seat.assignedMemberId = null;
+                changed = true;
+                console.log(`Reconciled seat ${seat.id} (${seat.number}): marked vacant`);
+            }
+        }
+    });
+    
+    if (changed) {
+        console.log("Pushing reconciled seats to Firebase...");
+        database.ref("red_room_system/seats").set(seatsCopy)
+            .then(() => {
+                store.dispatch(setSeats(seatsCopy));
+            })
+            .catch(err => {
+                console.warn("Failed to save reconciled seats to Firebase:", err);
+            });
+    }
 }
 
 function initModalPaymentListeners() {

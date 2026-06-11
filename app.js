@@ -505,6 +505,23 @@ function getFirebaseConfig() {
     return DEFAULT_FIREBASE_CONFIG;
 }
 
+// Ensure Firebase is initialized lazily if it was not done at page load
+function ensureFirebaseInitialized() {
+    if (window.firebase && window.firebase.initializeApp && (!firebase.apps || firebase.apps.length === 0)) {
+        try {
+            const config = getFirebaseConfig();
+            const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(config);
+            database = app.database();
+            console.log("Firebase initialized lazily on-demand.");
+            return true;
+        } catch (err) {
+            console.error("Delayed Firebase initialization failed:", err);
+            return false;
+        }
+    }
+    return window.firebase && firebase.apps && firebase.apps.length > 0;
+}
+
 // Initialize application and database connections
 // Initialize application and database connections
 function initApp() {
@@ -4530,6 +4547,7 @@ function handleAdminLogin(event) {
     }
     
     try {
+        ensureFirebaseInitialized();
         firebase.auth().signInWithEmailAndPassword(email, password)
             .then(() => {
                 if (submitBtn) {
@@ -4596,6 +4614,7 @@ function handleForgotPassword(event) {
     }
     
     if (confirm(`Send password reset email to ${email}?`)) {
+        ensureFirebaseInitialized();
         if (window.firebase && window.firebase.auth) {
             firebase.auth().sendPasswordResetEmail(email)
                 .then(() => {
@@ -4660,6 +4679,7 @@ function logoutDueToInactivity() {
         settings: {}
     };
     
+    ensureFirebaseInitialized();
     if (window.firebase && firebase.auth) {
         firebase.auth().signOut()
             .then(() => {
@@ -4717,7 +4737,7 @@ function handleAdminLogout() {
             complaints: [],
             settings: {}
         };
-        
+        ensureFirebaseInitialized();
         firebase.auth().signOut()
             .then(() => {
                 showToast("Logged out successfully.", "info");

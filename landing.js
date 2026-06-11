@@ -80,6 +80,36 @@ function getFirebaseConfig() {
     return defaultFirebaseConfig;
 }
 
+// Apply custom settings (Library Name, Phone, Address) to DOM
+function applyCustomSettings(settings) {
+    if (!settings) return;
+    const libName = settings.libraryName || "Red Room";
+    const libPhone = settings.phone || "9876543210";
+    const libAddress = settings.address || "Maitri Nagar Road, near Risali Sector, Bhilai, Chhattisgarh - 490006";
+    
+    // Update Logo
+    document.querySelectorAll(".logo-text span").forEach(el => {
+        el.textContent = libName;
+    });
+    document.querySelectorAll("footer strong").forEach(el => {
+        el.textContent = libName;
+    });
+    
+    // Update Contact details
+    const addrEl = document.getElementById("live-lib-address");
+    const phoneEl = document.getElementById("live-lib-phone");
+    if (addrEl) addrEl.textContent = libAddress;
+    if (phoneEl) phoneEl.textContent = "+91 " + libPhone.replace(/(\d{5})(\d{5})/, "$1 $2");
+    
+    // Update CTAs hrefs
+    const callBtn = document.getElementById("action-call");
+    const whatsappBtn = document.getElementById("action-whatsapp");
+    if (callBtn) callBtn.href = `tel:+91${libPhone}`;
+    if (whatsappBtn) {
+        whatsappBtn.href = `https://wa.me/91${libPhone}?text=Hi,%20I%20am%20interested%20in%20joining%20${encodeURIComponent(libName)}.%20Please%20share%20seat%20availability.`;
+    }
+}
+
 // Load custom settings (Library Name, Phone, Address) from localStorage
 function loadCustomSettings() {
     try {
@@ -87,31 +117,7 @@ function loadCustomSettings() {
         if (localData) {
             const state = JSON.parse(localData);
             if (state && state.settings) {
-                const libName = state.settings.libraryName || "Red Room";
-                const libPhone = state.settings.phone || "9876543210";
-                const libAddress = state.settings.address || "Maitri Nagar Road, near Risali Sector, Bhilai, Chhattisgarh - 490006";
-                
-                // Update Logo
-                document.querySelectorAll(".logo-text span").forEach(el => {
-                    el.textContent = libName;
-                });
-                document.querySelectorAll("footer strong").forEach(el => {
-                    el.textContent = libName;
-                });
-                
-                // Update Contact details
-                const addrEl = document.getElementById("live-lib-address");
-                const phoneEl = document.getElementById("live-lib-phone");
-                if (addrEl) addrEl.textContent = libAddress;
-                if (phoneEl) phoneEl.textContent = "+91 " + libPhone.replace(/(\d{5})(\d{5})/, "$1 $2");
-                
-                // Update CTAs hrefs
-                const callBtn = document.getElementById("action-call");
-                const whatsappBtn = document.getElementById("action-whatsapp");
-                if (callBtn) callBtn.href = `tel:+91${libPhone}`;
-                if (whatsappBtn) {
-                    whatsappBtn.href = `https://wa.me/91${libPhone}?text=Hi,%20I%20am%20interested%20in%20joining%20${encodeURIComponent(libName)}.%20Please%20share%20seat%20availability.`;
-                }
+                applyCustomSettings(state.settings);
             }
         }
     } catch(e) {
@@ -509,6 +515,24 @@ function initSeatsListener() {
             }, (error) => {
                 console.warn("Firebase value listen failed:", error);
                 loadOfflineFallback();
+            });
+
+            // Listen to dynamic library settings (Library Name, Phone, Address)
+            database.ref("red_room_system/settings").on("value", (snapshot) => {
+                const settings = snapshot.val();
+                if (settings) {
+                    applyCustomSettings(settings);
+                    
+                    // Cache in local storage for offline support
+                    try {
+                        let localData = localStorage.getItem("red_room_state") || "{}";
+                        let state = JSON.parse(localData);
+                        state.settings = settings;
+                        localStorage.setItem("red_room_state", JSON.stringify(state));
+                    } catch(e) {}
+                }
+            }, (error) => {
+                console.warn("Firebase settings listen failed:", error);
             });
         } catch (error) {
             console.error("Firebase init failed in landing page:", error);

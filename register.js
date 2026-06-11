@@ -208,6 +208,22 @@ function setupSeatsListener() {
         console.warn("Realtime seat listener permission blocked. Using offline fallback.", err);
         onStudentRoomOrTypeChange();
     });
+
+    // Listen to Settings changes to sync Library Name dynamically
+    database.ref("red_room_system/settings").on("value", snapshot => {
+        if (snapshot.exists()) {
+            const settings = snapshot.val();
+            if (settings && settings.libraryName) {
+                const titleText = document.getElementById("form-title-text");
+                if (titleText) {
+                    titleText.textContent = isDemo ? `${settings.libraryName} - Demo Pass` : settings.libraryName;
+                }
+                document.title = `${settings.libraryName} - Seat Registration`;
+            }
+        }
+    }, err => {
+        console.warn("Failed to listen to settings:", err);
+    });
 }
 
 // Handle Room, Seating type, and plan duration changes

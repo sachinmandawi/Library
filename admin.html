@@ -1317,13 +1317,8 @@
     <!-- CryptoJS for Client-side encryption of Aadhaar details -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     
-    <!-- Redux Toolkit CDN (Primary: JSDelivr, Fallback: Unpkg) -->
-    <script src="https://cdn.jsdelivr.net/npm/@reduxjs/toolkit@2.2.5/dist/redux-toolkit.umd.js"></script>
-    <script>
-        if (typeof RTK === 'undefined') {
-            document.write('<script src="https://unpkg.com/@reduxjs/toolkit@2.2.5/dist/redux-toolkit.umd.js"><\/script>');
-        }
-    </script>
+    <!-- Redux Toolkit Local Library (v1.9.7 UMD) -->
+    <script src="redux-toolkit.umd.js"></script>
     
     <!-- Admin logic -->
     <script src="app.js?v=40"></script>

@@ -624,6 +624,17 @@
                                     </button>
                                 </div>
 
+                                <!-- Action: Purge Pending Requests Only -->
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <div>
+                                        <h4 style="color: #fff; font-size: 0.88rem; font-weight: 600; margin-bottom: 0.25rem;">Purge Pending Requests Only</h4>
+                                        <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; margin: 0;">Deletes all pending registration requests without affecting active members.</p>
+                                    </div>
+                                    <button class="btn btn-danger" onclick="triggerDangerZoneAction('pending')" style="background: rgba(244, 63, 94, 0.12); border: 1px solid var(--accent-rose); color: var(--accent-rose); font-size: 0.72rem; padding: 0.4rem 0.75rem; white-space: nowrap; flex-shrink: 0; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; margin: 0;">
+                                        <i class="fa-solid fa-user-clock"></i> Purge Pending
+                                    </button>
+                                </div>
+
                                 <!-- Action 2: Vacate Seats Only -->
                                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
                                     <div>
@@ -632,6 +643,26 @@
                                     </div>
                                     <button class="btn" onclick="triggerDangerZoneAction('vacate')" style="background: rgba(245, 158, 11, 0.12); border: 1px solid var(--accent-amber); color: var(--accent-amber); font-size: 0.72rem; padding: 0.4rem 0.75rem; white-space: nowrap; flex-shrink: 0; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; margin: 0;">
                                         <i class="fa-solid fa-chair"></i> Vacate Seats
+                                    </button>
+                                </div>
+
+                                <!-- Action: Room-Specific Seat Reset -->
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <div>
+                                        <h4 style="color: #fff; font-size: 0.88rem; font-weight: 600; margin-bottom: 0.25rem;">Room-Specific Seat Reset</h4>
+                                        <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; margin: 0; margin-bottom: 0.5rem;">Releases all seats to vacant for a specific room only. Active member records in that room are preserved but changed to non-reserved status.</p>
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 500;">Select Room:</label>
+                                            <select id="danger-room-select" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 4px; outline: none; cursor: pointer;">
+                                                <option value="1">Room 1 (69 seats)</option>
+                                                <option value="2">Room 2 (100 seats)</option>
+                                                <option value="3">Room 3 (100 seats)</option>
+                                                <option value="4">Room 4 (100 seats)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button class="btn" onclick="triggerDangerZoneAction('room_reset')" style="background: rgba(245, 158, 11, 0.12); border: 1px solid var(--accent-amber); color: var(--accent-amber); font-size: 0.72rem; padding: 0.4rem 0.75rem; white-space: nowrap; flex-shrink: 0; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; margin: 0; align-self: flex-start;">
+                                        <i class="fa-solid fa-door-open"></i> Reset Room
                                     </button>
                                 </div>
 
@@ -1405,7 +1436,7 @@
     <script src="redux-toolkit.umd.js"></script>
     
     <!-- Admin logic -->
-    <script src="app.js?v=44"></script>
+    <script src="app.js?v=45"></script>
 
 </body>
 </html>

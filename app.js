@@ -4463,9 +4463,21 @@ function triggerDangerZoneAction(action) {
             descEl.innerHTML = "This will delete <strong>all registered students</strong>, <strong>pending registration requests</strong>, <strong>support logs/complaints</strong>, and mark all 369 seats as <strong>vacant</strong>. This is the most destructive action.";
             labelEl.innerHTML = `Type <strong>${expectedConfirmText}</strong> to confirm:`;
             break;
+        case "pending":
+            expectedConfirmText = "PENDING";
+            descEl.innerHTML = "This will delete <strong>all pending registration requests</strong> from the database. Registered active members will not be affected.";
+            labelEl.innerHTML = `Type <strong>${expectedConfirmText}</strong> to confirm:`;
+            break;
         case "vacate":
             expectedConfirmText = "VACATE";
             descEl.innerHTML = "This will release <strong>all 369 seats to vacant</strong>. Student membership records are kept in the database, but they will be changed to a <strong>non-reserved status</strong> and lose their specific seat/cabin assignments.";
+            labelEl.innerHTML = `Type <strong>${expectedConfirmText}</strong> to confirm:`;
+            break;
+        case "room_reset":
+            const roomSelect = document.getElementById("danger-room-select");
+            const roomNum = roomSelect ? roomSelect.value : "1";
+            expectedConfirmText = "ROOM" + roomNum;
+            descEl.innerHTML = `This will release <strong>all seats in Room ${roomNum} to vacant</strong>. Active student memberships in Room ${roomNum} will be preserved, but they will be changed to a <strong>non-reserved status</strong> and lose their seat assignments.`;
             labelEl.innerHTML = `Type <strong>${expectedConfirmText}</strong> to confirm:`;
             break;
         case "expired":
@@ -4521,8 +4533,14 @@ function executeDangerZoneAction() {
         case "reset":
             executeFullSystemReset();
             break;
+        case "pending":
+            executePurgePendingRequests();
+            break;
         case "vacate":
             executeVacateAllSeats();
+            break;
+        case "room_reset":
+            executeRoomSeatReset();
             break;
         case "expired":
             executeCleanExpiredMemberships();
@@ -4534,6 +4552,57 @@ function executeDangerZoneAction() {
             executeClearSupportLogs();
             break;
     }
+}
+
+function executePurgePendingRequests() {
+    store.dispatch(setPending([]));
+    
+    if (!isOfflineMode && database) {
+        database.ref("pending_bookings").remove();
+    } else {
+        saveStateToLocalStorage();
+    }
+    
+    showToast("All pending registration requests have been cleared.", "success");
+    refreshUI();
+}
+
+function executeRoomSeatReset() {
+    const roomSelect = document.getElementById("danger-room-select");
+    if (!roomSelect) return;
+    const selectedRoom = parseInt(roomSelect.value);
+    
+    const updatedSeats = JSON.parse(JSON.stringify(state.seats || []));
+    const memberIdsToVacate = [];
+    
+    updatedSeats.forEach(s => {
+        if (s && s.room === selectedRoom) {
+            if (s.assignedMemberId) {
+                memberIdsToVacate.push(s.assignedMemberId);
+            }
+            s.status = "vacant";
+            s.assignedMemberId = null;
+        }
+    });
+    
+    const updatedMembers = JSON.parse(JSON.stringify(state.members || [])).map(m => {
+        if (m && memberIdsToVacate.includes(m.id)) {
+            m.seatId = "non-reserved";
+        }
+        return m;
+    });
+    
+    store.dispatch(setSeats(updatedSeats));
+    store.dispatch(setMembers(updatedMembers));
+    
+    if (!isOfflineMode && database) {
+        syncLocalToDatabase();
+    } else {
+        saveStateToLocalStorage();
+    }
+    
+    showToast(`All seats in Room ${selectedRoom} have been vacated!`, "success");
+    refreshUI();
 }
 
 function executeFullSystemReset() {

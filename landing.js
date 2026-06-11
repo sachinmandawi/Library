@@ -37,38 +37,7 @@ function escapeHTML(str) {
 
 let database = null;
 
-// Redux Toolkit Slice for Landing Page State Management
-const landingSlice = RTK.createSlice({
-    name: "landing",
-    initialState: {
-        activeLandingRoom: 1,
-        allSeatsData: [],
-        seatsCount: {
-            total: 369,
-            occupied: 280,
-            vacant: 89
-        }
-    },
-    reducers: {
-        setActiveLandingRoom(state, action) {
-            state.activeLandingRoom = action.payload;
-        },
-        setAllSeatsData(state, action) {
-            state.allSeatsData = action.payload;
-        },
-        setSeatsCount(state, action) {
-            state.seatsCount = action.payload;
-        }
-    }
-});
-
-const { setActiveLandingRoom, setAllSeatsData, setSeatsCount } = landingSlice.actions;
-
-const store = RTK.configureStore({
-    reducer: landingSlice.reducer
-});
-
-// Legacy variables synced with Redux store to maintain compatibility with existing rendering functions
+// State variables
 let activeLandingRoom = 1;
 let allSeatsData = [];
 let seatsCount = {
@@ -77,18 +46,18 @@ let seatsCount = {
     vacant: 89
 };
 
-// Reactively handle store changes: sync global variables and trigger UI updates
-store.subscribe(() => {
-    const storeState = store.getState();
-    activeLandingRoom = storeState.activeLandingRoom;
-    allSeatsData = storeState.allSeatsData;
-    seatsCount = storeState.seatsCount;
-
-    // Trigger UI rendering functions automatically
-    updateStatsUI(seatsCount.vacant, seatsCount.occupied);
-    renderHomeSeatingPlan(allSeatsData);
-    renderLandingRoomMap();
-});
+// Helper function to update state and trigger UI updates
+function updateSeatsState(newSeatsCount, newSeatsData) {
+    if (newSeatsCount) {
+        seatsCount = newSeatsCount;
+        updateStatsUI(seatsCount.vacant, seatsCount.occupied);
+    }
+    if (newSeatsData) {
+        allSeatsData = newSeatsData;
+        renderHomeSeatingPlan(allSeatsData);
+        renderLandingRoomMap();
+    }
+}
 
 // Fetch Firebase Configuration
 function getFirebaseConfig() {
@@ -343,7 +312,7 @@ function renderHomeSeatingPlan(seatsData) {
 
 // Room tab selection switcher for landing page map
 window.changeLandingMapRoom = function(roomNumber) {
-    store.dispatch(setActiveLandingRoom(roomNumber));
+    activeLandingRoom = roomNumber;
     
     // Toggle active classes on tab buttons
     for (let r = 1; r <= 4; r++) {
@@ -356,6 +325,8 @@ window.changeLandingMapRoom = function(roomNumber) {
             }
         }
     }
+    
+    renderLandingRoomMap();
 };
 
 // Render active room layout on landing page map
@@ -530,8 +501,7 @@ function initSeatsListener() {
                     if (vacant + occupied < 10) {
                         loadOfflineFallback();
                     } else {
-                        store.dispatch(setSeatsCount({ total: vacant + occupied, occupied, vacant }));
-                        store.dispatch(setAllSeatsData(seatsArray));
+                        updateSeatsState({ total: vacant + occupied, occupied, vacant }, seatsArray);
                     }
                 } else {
                     loadOfflineFallback();
@@ -569,15 +539,14 @@ function loadOfflineFallback() {
                     }
                 });
                 
-                store.dispatch(setSeatsCount({ total: vacant + occupied, occupied, vacant }));
-                store.dispatch(setAllSeatsData(state.seats));
+                updateSeatsState({ total: vacant + occupied, occupied, vacant }, state.seats);
                 return;
             }
         }
     } catch(e){}
     
     // Default static fallback if completely offline
-    store.dispatch(setSeatsCount({ total: 400, occupied: 280, vacant: 120 }));
+    seatsCount = { total: 400, occupied: 280, vacant: 120 };
     
     // Generate realistic mock seats for offline rendering
     const mockSeats = [];
@@ -616,7 +585,7 @@ function loadOfflineFallback() {
         }
     }
     
-    store.dispatch(setAllSeatsData(mockSeats));
+    updateSeatsState(seatsCount, mockSeats);
 }
 
 // Pricing Toggle System

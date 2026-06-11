@@ -616,14 +616,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .seat-box.vacant {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: var(--text-muted);
+    background: rgba(16, 185, 129, 0.04);
+    border: 1.5px solid var(--seat-vacant);
+    color: #ffffff;
 }
 .seat-box.vacant:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+    background: rgba(16, 185, 129, 0.2);
+    border-color: var(--seat-vacant);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
 }
 
 .seat-box.occupied.general-seat {

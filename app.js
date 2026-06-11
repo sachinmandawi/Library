@@ -286,6 +286,7 @@ let state = {
 };
 
 let database = null;
+let isAuthObserverRegistered = false;
 let currentTab = "dashboard";
 let isOfflineMode = false;
 let broadcastChannel = null;
@@ -512,6 +513,7 @@ function ensureFirebaseInitialized() {
             const config = getFirebaseConfig();
             const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(config);
             database = app.database();
+            setupAuthObserver();
             console.log("Firebase initialized lazily on-demand.");
             return true;
         } catch (err) {
@@ -519,7 +521,63 @@ function ensureFirebaseInitialized() {
             return false;
         }
     }
-    return window.firebase && firebase.apps && firebase.apps.length > 0;
+    if (window.firebase && firebase.apps && firebase.apps.length > 0) {
+        setupAuthObserver();
+        return true;
+    }
+    return false;
+}
+
+// Set up Firebase Authentication state observer
+function setupAuthObserver() {
+    if (isAuthObserverRegistered) return;
+    if (window.firebase && window.firebase.auth) {
+        const config = getFirebaseConfig();
+        firebase.auth().onAuthStateChanged(user => {
+            const authOverlay = document.getElementById("auth-overlay");
+            const appContainer = document.getElementById("app-container");
+            
+            if (user) {
+                // Logged in
+                sessionStorage.setItem("admin_authenticated", "true");
+                startInactivityMonitoring();
+                if (authOverlay) authOverlay.style.display = "none";
+                if (appContainer) appContainer.style.display = "flex";
+                
+                const statusDot = document.getElementById("db-status-dot");
+                const statusText = document.getElementById("db-status-text");
+                if (statusDot) statusDot.className = "status-dot online";
+                if (statusText) statusText.textContent = config.apiKey === "AIzaSyA4c3BfU2FuZGJveEtleS1EZW1vMTIzNDU" ? "Demo Database" : "Private DB Connected";
+                
+                setupFirebaseListeners();
+                checkOfflinePendingBookings();
+            } else {
+                // Logged out
+                sessionStorage.removeItem("admin_authenticated");
+                stopInactivityMonitoring();
+                if (authOverlay) authOverlay.style.display = "flex";
+                if (appContainer) appContainer.style.display = "none";
+                
+                // Detach listeners to prevent permission errors
+                if (database) {
+                    database.ref("red_room_system").off();
+                    database.ref("pending_bookings").off();
+                }
+                
+                // Clear sensitive data cache to prevent local leaks
+                localStorage.removeItem("red_room_state");
+                localStorage.removeItem("offline_pending_bookings");
+                state = {
+                    members: [],
+                    seats: generateDefaultSeats(),
+                    pending: [],
+                    complaints: [],
+                    settings: {}
+                };
+            }
+        });
+        isAuthObserverRegistered = true;
+    }
 }
 
 // Initialize application and database connections
@@ -533,50 +591,7 @@ function initApp() {
             const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(config);
             database = app.database();
             
-            // Set up Firebase Authentication state observer
-            firebase.auth().onAuthStateChanged(user => {
-                const authOverlay = document.getElementById("auth-overlay");
-                const appContainer = document.getElementById("app-container");
-                
-                if (user) {
-                    // Logged in
-                    sessionStorage.setItem("admin_authenticated", "true");
-                    startInactivityMonitoring();
-                    if (authOverlay) authOverlay.style.display = "none";
-                    if (appContainer) appContainer.style.display = "flex";
-                    
-                    const statusDot = document.getElementById("db-status-dot");
-                    const statusText = document.getElementById("db-status-text");
-                    if (statusDot) statusDot.className = "status-dot online";
-                    if (statusText) statusText.textContent = config.apiKey === "AIzaSyA4c3BfU2FuZGJveEtleS1EZW1vMTIzNDU" ? "Demo Database" : "Private DB Connected";
-                    
-                    setupFirebaseListeners();
-                    checkOfflinePendingBookings();
-                } else {
-                    // Logged out
-                    sessionStorage.removeItem("admin_authenticated");
-                    stopInactivityMonitoring();
-                    if (authOverlay) authOverlay.style.display = "flex";
-                    if (appContainer) appContainer.style.display = "none";
-                    
-                    // Detach listeners to prevent permission errors
-                    if (database) {
-                        database.ref("red_room_system").off();
-                        database.ref("pending_bookings").off();
-                    }
-                    
-                    // Clear sensitive data cache to prevent local leaks
-                    localStorage.removeItem("red_room_state");
-                    localStorage.removeItem("offline_pending_bookings");
-                    state = {
-                        members: [],
-                        seats: generateDefaultSeats(),
-                        pending: [],
-                        complaints: [],
-                        settings: {}
-                    };
-                }
-            });
+            setupAuthObserver();
         } catch (err) {
             console.error("Firebase init failed, running in Offline Mode", err);
             enableOfflineMode();

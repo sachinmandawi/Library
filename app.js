@@ -4433,15 +4433,110 @@ function restoreData(event) {
     reader.readAsText(file);
 }
 
-// Full system reset to make all seats vacant and delete any existing data
+// Danger Zone Management Logic & Custom Modal Operations
+let currentDangerAction = "";
+let expectedConfirmText = "";
+
 function resetSystemData() {
-    if (!confirm("⚠️ Warning: Are you sure you want to delete all students, bookings, and pending requests? This cannot be undone!")) {
-        return;
-    }
-    if (!confirm("Confirm again: Do you really want to reset all 369 seats to vacant?")) {
-        return;
+    triggerDangerZoneAction("reset");
+}
+
+function triggerDangerZoneAction(action) {
+    currentDangerAction = action;
+    const descEl = document.getElementById("danger-confirm-desc");
+    const labelEl = document.getElementById("danger-confirm-label");
+    const inputEl = document.getElementById("danger-confirm-input");
+    const submitBtn = document.getElementById("btn-danger-confirm-submit");
+    
+    if (!descEl || !labelEl || !inputEl || !submitBtn) return;
+    
+    inputEl.value = "";
+    submitBtn.disabled = true;
+    submitBtn.style.background = "rgba(244, 63, 94, 0.1)";
+    submitBtn.style.borderColor = "rgba(244, 63, 94, 0.3)";
+    submitBtn.style.color = "rgba(244, 63, 94, 0.5)";
+    submitBtn.style.cursor = "not-allowed";
+    
+    switch (action) {
+        case "reset":
+            expectedConfirmText = "RESET";
+            descEl.innerHTML = "This will delete <strong>all registered students</strong>, <strong>pending registration requests</strong>, <strong>support logs/complaints</strong>, and mark all 369 seats as <strong>vacant</strong>. This is the most destructive action.";
+            labelEl.innerHTML = `Type <strong>${expectedConfirmText}</strong> to confirm:`;
+            break;
+        case "vacate":
+            expectedConfirmText = "VACATE";
+            descEl.innerHTML = "This will release <strong>all 369 seats to vacant</strong>. Student membership records are kept in the database, but they will be changed to a <strong>non-reserved status</strong> and lose their specific seat/cabin assignments.";
+            labelEl.innerHTML = `Type <strong>${expectedConfirmText}</strong> to confirm:`;
+            break;
+        case "expired":
+            expectedConfirmText = "EXPIRED";
+            descEl.innerHTML = "This will delete <strong>all student profiles whose membership duration has expired</strong>. Their occupied seats will also automatically be set to vacant.";
+            labelEl.innerHTML = `Type <strong>${expectedConfirmText}</strong> to confirm:`;
+            break;
+        case "demo":
+            expectedConfirmText = "DEMO";
+            descEl.innerHTML = "This will delete <strong>all free demo passes and guest accounts</strong> from the database. Their occupied seats will also be vacated.";
+            labelEl.innerHTML = `Type <strong>${expectedConfirmText}</strong> to confirm:`;
+            break;
+        case "complaints":
+            expectedConfirmText = "COMPLAINTS";
+            descEl.innerHTML = "This will permanently delete <strong>all complaints, feedback tickets, and support log history</strong> from the database.";
+            labelEl.innerHTML = `Type <strong>${expectedConfirmText}</strong> to confirm:`;
+            break;
+        default:
+            return;
     }
     
+    openModal("modal-danger-confirm");
+    setTimeout(() => inputEl.focus(), 150);
+}
+
+function validateDangerConfirmInput() {
+    const inputVal = document.getElementById("danger-confirm-input").value.trim().toUpperCase();
+    const submitBtn = document.getElementById("btn-danger-confirm-submit");
+    if (!submitBtn) return;
+    
+    if (inputVal === expectedConfirmText) {
+        submitBtn.disabled = false;
+        submitBtn.style.background = "var(--accent-rose)";
+        submitBtn.style.borderColor = "var(--accent-rose)";
+        submitBtn.style.color = "#fff";
+        submitBtn.style.cursor = "pointer";
+    } else {
+        submitBtn.disabled = true;
+        submitBtn.style.background = "rgba(244, 63, 94, 0.1)";
+        submitBtn.style.borderColor = "rgba(244, 63, 94, 0.3)";
+        submitBtn.style.color = "rgba(244, 63, 94, 0.5)";
+        submitBtn.style.cursor = "not-allowed";
+    }
+}
+
+function executeDangerZoneAction() {
+    const inputVal = document.getElementById("danger-confirm-input").value.trim().toUpperCase();
+    if (inputVal !== expectedConfirmText) return;
+    
+    closeModal("modal-danger-confirm");
+    
+    switch (currentDangerAction) {
+        case "reset":
+            executeFullSystemReset();
+            break;
+        case "vacate":
+            executeVacateAllSeats();
+            break;
+        case "expired":
+            executeCleanExpiredMemberships();
+            break;
+        case "demo":
+            executePurgeDemoPasses();
+            break;
+        case "complaints":
+            executeClearSupportLogs();
+            break;
+    }
+}
+
+function executeFullSystemReset() {
     store.dispatch(setMembers([]));
     store.dispatch(setPending([]));
     store.dispatch(setComplaints([]));
@@ -4456,6 +4551,108 @@ function resetSystemData() {
     }
     
     showToast("System has been fully reset! All seats are now vacant.", "success");
+    refreshUI();
+}
+
+function executeVacateAllSeats() {
+    const updatedSeats = generateDefaultSeats();
+    const updatedMembers = JSON.parse(JSON.stringify(state.members || [])).map(m => {
+        m.seatId = "non-reserved";
+        return m;
+    });
+    
+    store.dispatch(setSeats(updatedSeats));
+    store.dispatch(setMembers(updatedMembers));
+    
+    if (!isOfflineMode && database) {
+        syncLocalToDatabase();
+    } else {
+        saveStateToLocalStorage();
+    }
+    
+    showToast("All seats have been vacated! Student records preserved.", "success");
+    refreshUI();
+}
+
+function executeCleanExpiredMemberships() {
+    const todayZero = new Date();
+    todayZero.setHours(0,0,0,0);
+    
+    const expiredMembers = (state.members || []).filter(m => new Date(m.expiryDate) < todayZero);
+    const activeMembers = (state.members || []).filter(m => new Date(m.expiryDate) >= todayZero);
+    
+    if (expiredMembers.length === 0) {
+        showToast("No expired memberships found to clean.", "info");
+        return;
+    }
+    
+    // Vacate seats occupied by these expired members
+    const updatedSeats = JSON.parse(JSON.stringify(state.seats));
+    updatedSeats.forEach(s => {
+        if (s.assignedMemberId && expiredMembers.some(m => m.id === s.assignedMemberId)) {
+            s.status = "vacant";
+            s.assignedMemberId = null;
+        }
+    });
+    
+    store.dispatch(setMembers(activeMembers));
+    store.dispatch(setSeats(updatedSeats));
+    
+    if (!isOfflineMode && database) {
+        syncLocalToDatabase();
+    } else {
+        saveStateToLocalStorage();
+    }
+    
+    showToast(`Cleaned ${expiredMembers.length} expired memberships.`, "success");
+    refreshUI();
+}
+
+function executePurgeDemoPasses() {
+    const demoMembers = (state.members || []).filter(m => 
+        (m.planId && m.planId.startsWith("demo")) || m.status === "demo" || m.status === "demo-expired"
+    );
+    const nonDemoMembers = (state.members || []).filter(m => 
+        !((m.planId && m.planId.startsWith("demo")) || m.status === "demo" || m.status === "demo-expired")
+    );
+    
+    if (demoMembers.length === 0) {
+        showToast("No demo memberships found to purge.", "info");
+        return;
+    }
+    
+    // Vacate seats occupied by these demo members
+    const updatedSeats = JSON.parse(JSON.stringify(state.seats));
+    updatedSeats.forEach(s => {
+        if (s.assignedMemberId && demoMembers.some(m => m.id === s.assignedMemberId)) {
+            s.status = "vacant";
+            s.assignedMemberId = null;
+        }
+    });
+    
+    store.dispatch(setMembers(nonDemoMembers));
+    store.dispatch(setSeats(updatedSeats));
+    
+    if (!isOfflineMode && database) {
+        syncLocalToDatabase();
+    } else {
+        saveStateToLocalStorage();
+    }
+    
+    showToast(`Purged ${demoMembers.length} demo passes and guest accounts.`, "success");
+    refreshUI();
+}
+
+function executeClearSupportLogs() {
+    store.dispatch(setComplaints([]));
+    
+    if (!isOfflineMode && database) {
+        database.ref("red_room_system/complaints").remove();
+    } else {
+        saveStateToLocalStorage();
+    }
+    
+    showToast("All complaints and support logs have been cleared.", "success");
     refreshUI();
 }
 

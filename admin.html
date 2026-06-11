@@ -605,18 +605,68 @@
                             </div>
                         </div>
 
-                        <!-- Reset System -->
+                        <!-- Danger Zone -->
                         <div class="glass-panel settings-card" style="border: 1px solid rgba(239, 68, 68, 0.2);">
-                            <div class="panel-header">
-                                <h3 class="panel-title" style="color: var(--accent-rose);">Danger Zone</h3>
+                            <div class="panel-header" style="border-bottom: 1px solid rgba(239, 68, 68, 0.15); padding-bottom: 0.75rem;">
+                                <h3 class="panel-title" style="color: var(--accent-rose); display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> Danger Zone
+                                </h3>
                             </div>
-                            <div class="panel-body">
-                                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-                                    This will delete all registered students, pending registration requests, and mark all 369 seats as vacant.
-                                </p>
-                                <button class="btn btn-danger" onclick="resetSystemData()" style="background: rgba(239, 68, 68, 0.15); border: 1px solid var(--accent-rose); color: var(--accent-rose); width: fit-content;">
-                                    <i class="fa-solid fa-trash-can"></i> Clear All Data & Reset Seats
-                                </button>
+                            <div class="panel-body" style="padding-top: 1rem; display: flex; flex-direction: column; gap: 1.25rem;">
+                                <!-- Action 1: Clear All Data & Reset Seats -->
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <div>
+                                        <h4 style="color: #fff; font-size: 0.88rem; font-weight: 600; margin-bottom: 0.25rem;">Full System Reset</h4>
+                                        <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; margin: 0;">Deletes all registered students, pending registration requests, complaints history, and marks all 369 seats as vacant.</p>
+                                    </div>
+                                    <button class="btn btn-danger" onclick="triggerDangerZoneAction('reset')" style="background: rgba(244, 63, 94, 0.12); border: 1px solid var(--accent-rose); color: var(--accent-rose); font-size: 0.72rem; padding: 0.4rem 0.75rem; white-space: nowrap; flex-shrink: 0; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; margin: 0;">
+                                        <i class="fa-solid fa-trash-can"></i> Reset System
+                                    </button>
+                                </div>
+
+                                <!-- Action 2: Vacate Seats Only -->
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <div>
+                                        <h4 style="color: #fff; font-size: 0.88rem; font-weight: 600; margin-bottom: 0.25rem;">Vacate All Seats Only</h4>
+                                        <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; margin: 0;">Releases all 369 seats to vacant. Active membership records are preserved, but changed to non-reserved status.</p>
+                                    </div>
+                                    <button class="btn" onclick="triggerDangerZoneAction('vacate')" style="background: rgba(245, 158, 11, 0.12); border: 1px solid var(--accent-amber); color: var(--accent-amber); font-size: 0.72rem; padding: 0.4rem 0.75rem; white-space: nowrap; flex-shrink: 0; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; margin: 0;">
+                                        <i class="fa-solid fa-chair"></i> Vacate Seats
+                                    </button>
+                                </div>
+
+                                <!-- Action 3: Clean Expired Memberships Only -->
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <div>
+                                        <h4 style="color: #fff; font-size: 0.88rem; font-weight: 600; margin-bottom: 0.25rem;">Clean Expired Memberships</h4>
+                                        <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; margin: 0;">Deletes all student profiles whose membership duration has expired. Their occupied seats will also be vacated.</p>
+                                    </div>
+                                    <button class="btn" onclick="triggerDangerZoneAction('expired')" style="background: rgba(139, 92, 246, 0.12); border: 1px solid var(--accent-purple); color: var(--accent-purple); font-size: 0.72rem; padding: 0.4rem 0.75rem; white-space: nowrap; flex-shrink: 0; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; margin: 0;">
+                                        <i class="fa-solid fa-user-minus"></i> Purge Expired
+                                    </button>
+                                </div>
+
+                                <!-- Action 4: Purge Demo Passes -->
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <div>
+                                        <h4 style="color: #fff; font-size: 0.88rem; font-weight: 600; margin-bottom: 0.25rem;">Purge Demo Passes</h4>
+                                        <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; margin: 0;">Deletes all free demo passes and guest accounts from the database and vacates their seats.</p>
+                                    </div>
+                                    <button class="btn" onclick="triggerDangerZoneAction('demo')" style="background: rgba(59, 130, 246, 0.12); border: 1px solid var(--accent-blue); color: var(--accent-blue); font-size: 0.72rem; padding: 0.4rem 0.75rem; white-space: nowrap; flex-shrink: 0; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; margin: 0;">
+                                        <i class="fa-solid fa-user-shield"></i> Purge Demos
+                                    </button>
+                                </div>
+
+                                <!-- Action 5: Clear Support Logs / Complaints -->
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 0;">
+                                    <div>
+                                        <h4 style="color: #fff; font-size: 0.88rem; font-weight: 600; margin-bottom: 0.25rem;">Clear Support Logs</h4>
+                                        <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; margin: 0;">Permanently deletes all complaints, feedback tickets, and support logs from the database.</p>
+                                    </div>
+                                    <button class="btn" onclick="triggerDangerZoneAction('complaints')" style="background: rgba(16, 185, 129, 0.12); border: 1px solid var(--accent-emerald); color: var(--accent-emerald); font-size: 0.72rem; padding: 0.4rem 0.75rem; white-space: nowrap; flex-shrink: 0; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; margin: 0;">
+                                        <i class="fa-solid fa-comment-slash"></i> Clear Logs
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1222,6 +1272,39 @@
         </div>
     </div>
 
+    <!-- MODAL: DANGER ZONE CONFIRMATION MODAL -->
+    <div class="modal-overlay" id="modal-danger-confirm">
+        <div class="glass-panel modal-container" style="max-width: 440px; border: 1px solid rgba(244, 63, 94, 0.3);">
+            <div class="modal-header" style="border-bottom: 1px solid rgba(244, 63, 94, 0.15); padding-bottom: 0.75rem;">
+                <h3 style="color: var(--accent-rose); display: flex; align-items: center; gap: 0.5rem; font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; margin: 0;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Destructive Action
+                </h3>
+                <span class="modal-close" onclick="closeModal('modal-danger-confirm')">&times;</span>
+            </div>
+            <div class="modal-body" style="padding: 1.25rem 0; color: var(--text-muted);">
+                <p id="danger-confirm-desc" style="font-size: 0.85rem; line-height: 1.4; margin-bottom: 1.25rem; color: var(--text-muted);">
+                    Warning context goes here.
+                </p>
+                <div style="background: rgba(244, 63, 94, 0.05); border: 1px solid rgba(244, 63, 94, 0.15); border-radius: 6px; padding: 0.75rem; margin-bottom: 1.25rem; font-size: 0.8rem; color: var(--accent-rose); display: flex; align-items: flex-start; gap: 0.5rem;">
+                    <i class="fa-solid fa-circle-exclamation" style="margin-top: 2px;"></i>
+                    <span>This action is highly destructive and cannot be undone. Please proceed with caution.</span>
+                </div>
+                <div style="margin-bottom: 0;">
+                    <label id="danger-confirm-label" style="display: block; font-size: 0.78rem; font-weight: 600; color: #fff; margin-bottom: 0.5rem;">
+                        Type <strong>RESET</strong> to confirm:
+                    </label>
+                    <input type="text" id="danger-confirm-input" class="form-control" autocomplete="off" placeholder="Confirmation text..." style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); color: #fff; width: 100%; border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.9rem;" oninput="validateDangerConfirmInput()">
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.75rem; margin-top: 0.5rem;">
+                <button class="btn btn-secondary" onclick="closeModal('modal-danger-confirm')" style="margin: 0; padding: 0.45rem 1rem; font-size: 0.8rem;">Cancel</button>
+                <button class="btn btn-danger" id="btn-danger-confirm-submit" onclick="executeDangerZoneAction()" disabled style="background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.3); color: rgba(244, 63, 94, 0.5); padding: 0.45rem 1rem; font-size: 0.8rem; cursor: not-allowed; transition: all 0.2s; font-weight: 600; margin: 0; display: inline-flex; align-items: center; gap: 0.35rem;">
+                    <i class="fa-solid fa-circle-check"></i> Confirm Execution
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL 2: SEAT DETAIL / ACTION MODAL -->
     <div class="modal-overlay" id="modal-seat-actions">
         <div class="glass-panel modal-container" style="max-width: 420px;">
@@ -1322,7 +1405,7 @@
     <script src="redux-toolkit.umd.js"></script>
     
     <!-- Admin logic -->
-    <script src="app.js?v=43"></script>
+    <script src="app.js?v=44"></script>
 
 </body>
 </html>

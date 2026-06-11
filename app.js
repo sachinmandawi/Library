@@ -829,29 +829,34 @@ function setupFirebaseListeners() {
     
     const dbRef = database.ref("red_room_system");
     
-    // Initialize database node if empty, or perform seat migration
-    dbRef.once("value", snapshot => {
-        if (!snapshot.exists()) {
+    // Initialize database node if empty, or perform seat migration by checking child nodes
+    Promise.all([
+        database.ref("red_room_system/settings").once("value"),
+        database.ref("red_room_system/seats").once("value"),
+        database.ref("red_room_system/members").once("value")
+    ]).then(([settingsSnap, seatsSnap, membersSnap]) => {
+        const settingsExist = settingsSnap.exists();
+        const seatsExist = seatsSnap.exists();
+        const membersExist = membersSnap.exists();
+        
+        if (!settingsExist && !seatsExist && !membersExist) {
             const membersObj = {};
             (state.members || []).forEach(m => {
                 if (m && m.id) {
                     membersObj[m.id] = m;
                 }
             });
-            dbRef.set({
-                settings: state.settings,
-                seats: state.seats,
-                members: membersObj
-            });
+            database.ref("red_room_system/settings").set(state.settings);
+            database.ref("red_room_system/seats").set(state.seats);
+            database.ref("red_room_system/members").set(membersObj);
         } else {
-            const val = snapshot.val();
-            const seatsVal = val.seats;
+            const seatsVal = seatsSnap.val();
             
             // Migrate members database structure from array/duplicate format to clean object format
-            let finalMembers = val.members;
-            if (val.members) {
-                let needsMigration = Array.isArray(val.members);
-                const rawMembers = Object.entries(val.members);
+            let finalMembers = membersSnap.val();
+            if (finalMembers) {
+                let needsMigration = Array.isArray(finalMembers);
+                const rawMembers = Object.entries(finalMembers);
                 
                 const seenIds = new Set();
                 const uniqueMembers = {};
@@ -875,7 +880,7 @@ function setupFirebaseListeners() {
                 
                 if (needsMigration || hasDuplicates) {
                     console.log("Migrating and deduplicating members to dictionary format in Firebase...");
-                    dbRef.child("members").set(uniqueMembers);
+                    database.ref("red_room_system/members").set(uniqueMembers);
                     finalMembers = uniqueMembers;
                 }
             }
@@ -897,9 +902,11 @@ function setupFirebaseListeners() {
                     }
                 });
                 
-                dbRef.child("seats").set(defaultSeats);
+                database.ref("red_room_system/seats").set(defaultSeats);
             }
         }
+    }).catch(err => {
+        console.error("Firebase initialization checks failed:", err);
     });
     
     // Listen to Seat mutations

@@ -4252,8 +4252,8 @@ function generateSettingsQRCodes() {
     try {
         new QRCode(qrPermHolder, {
             text: permUrl,
-            width: 144,
-            height: 144,
+            width: 220,
+            height: 220,
             colorDark : "#0a0e17",
             colorLight : "#ffffff",
             correctLevel : QRCode.CorrectLevel.M
@@ -4261,8 +4261,8 @@ function generateSettingsQRCodes() {
         
         new QRCode(qrDemoHolder, {
             text: demoUrl,
-            width: 144,
-            height: 144,
+            width: 220,
+            height: 220,
             colorDark : "#0a0e17",
             colorLight : "#ffffff",
             correctLevel : QRCode.CorrectLevel.M

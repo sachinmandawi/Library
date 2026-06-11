@@ -87,6 +87,9 @@ function applyCustomSettings(settings) {
     const libPhone = settings.phone || "9876543210";
     const libAddress = settings.address || "Maitri Nagar Road, near Risali Sector, Bhilai, Chhattisgarh - 490006";
     
+    // Update document title
+    document.title = `${libName} - Premium Self-Study Library`;
+    
     // Update Logo
     document.querySelectorAll(".logo-text span").forEach(el => {
         el.textContent = libName;
@@ -101,6 +104,13 @@ function applyCustomSettings(settings) {
     if (addrEl) addrEl.textContent = libAddress;
     if (phoneEl) phoneEl.textContent = "+91 " + libPhone.replace(/(\d{5})(\d{5})/, "$1 $2");
     
+    // Update Section Headings and Copyright
+    const visitTitle = document.getElementById("live-visit-title");
+    if (visitTitle) visitTitle.textContent = `Visit ${libName}`;
+    
+    const copyrightEl = document.getElementById("footer-copyright");
+    if (copyrightEl) copyrightEl.textContent = `© 2026 ${libName}. All rights reserved. Crack your dreams in silence.`;
+    
     // Update CTAs hrefs
     const callBtn = document.getElementById("action-call");
     const whatsappBtn = document.getElementById("action-whatsapp");
@@ -108,6 +118,9 @@ function applyCustomSettings(settings) {
     if (whatsappBtn) {
         whatsappBtn.href = `https://wa.me/91${libPhone}?text=Hi,%20I%20am%20interested%20in%20joining%20${encodeURIComponent(libName)}.%20Please%20share%20seat%20availability.`;
     }
+    
+    const mobileCallBtn = document.getElementById("mobile-cta-call-btn");
+    if (mobileCallBtn) mobileCallBtn.href = `tel:+91${libPhone}`;
 }
 
 // Load custom settings (Library Name, Phone, Address) from localStorage

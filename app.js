@@ -506,91 +506,11 @@ function getFirebaseConfig() {
 }
 
 // Initialize application and database connections
+// Initialize application and database connections
 function initApp() {
+    // 1. Fetch Firebase config and initialize Firebase immediately to guarantee it's done first
     const config = getFirebaseConfig();
     
-    // Toggle login card reset link container if custom config is stored
-    const customConfigStored = localStorage.getItem("custom_firebase_config") !== null;
-    const authResetEl = document.getElementById("auth-reset-container");
-    if (authResetEl) {
-        authResetEl.style.display = customConfigStored ? "block" : "none";
-    }
-    
-    // Set UI displays for inputs
-    document.getElementById("fb-api-key").value = config.apiKey || "";
-    document.getElementById("fb-auth-domain").value = config.authDomain || "";
-    document.getElementById("fb-db-url").value = config.databaseURL || "";
-    document.getElementById("fb-project-id").value = config.projectId || "";
-    document.getElementById("fb-storage-bucket").value = config.storageBucket || "";
-    
-    // Load local storage fallback or mock data
-    let localData = null;
-    try {
-        localData = localStorage.getItem("red_room_state");
-    } catch(e){}
-    
-    if (localData) {
-        try {
-            const parsedState = JSON.parse(localData);
-            if (parsedState) {
-                // Reset to empty state if it's old mock data containing Rahul Sahu m_1
-                if (parsedState.members && parsedState.members.some(m => m.id === "m_1" || m.name === "Rahul Sahu")) {
-                    loadMockData();
-                    saveStateToLocalStorage();
-                } else if (!parsedState.seats || parsedState.seats.length !== 369) {
-                    const defaultSeats = generateDefaultSeats();
-                    if (parsedState.members) {
-                        parsedState.members.forEach(member => {
-                            const seat = defaultSeats.find(s => s.id === member.seatId);
-                            if (seat) {
-                                seat.status = "occupied";
-                                seat.assignedMemberId = member.id;
-                            }
-                        });
-                    }
-                    store.dispatch(setSeats(defaultSeats));
-                    store.dispatch(setMembers(parsedState.members || []));
-                    store.dispatch(setPending(parsedState.pending || []));
-                    store.dispatch(setComplaints(parsedState.complaints || []));
-                    if (parsedState.settings) {
-                        store.dispatch(setSettings(parsedState.settings));
-                    }
-                } else {
-                    store.dispatch(setSeats(parsedState.seats || []));
-                    store.dispatch(setMembers(parsedState.members || []));
-                    store.dispatch(setPending(parsedState.pending || []));
-                    store.dispatch(setComplaints(parsedState.complaints || []));
-                    if (parsedState.settings) {
-                        store.dispatch(setSettings(parsedState.settings));
-                    }
-                }
-            } else {
-                loadMockData();
-                saveStateToLocalStorage();
-            }
-        } catch(e) {
-            loadMockData();
-            saveStateToLocalStorage();
-        }
-    } else {
-        loadMockData();
-        saveStateToLocalStorage();
-    }
-    
-    // Initialize details
-    document.getElementById("set-lib-name").value = state.settings.libraryName;
-    document.getElementById("set-lib-phone").value = state.settings.phone || "9876543210";
-    document.getElementById("set-lib-addr").value = state.settings.address;
-    const qrLibTitle = document.getElementById("qr-lib-title");
-    if (qrLibTitle) qrLibTitle.textContent = state.settings.libraryName;
-    
-    // Set max date limit on Member DOB input in the modal to prevent future birth dates
-    const dobInput = document.getElementById("m-dob");
-    if (dobInput) {
-        dobInput.max = new Date().toISOString().split('T')[0];
-    }
-    
-    // Try to load Firebase
     if (window.firebase && window.firebase.initializeApp && window.firebase.auth) {
         try {
             const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(config);
@@ -648,105 +568,198 @@ function initApp() {
         enableOfflineMode();
     }
 
-    // Set up Broadcast Channel for local cross-tab sync
-    if (window.BroadcastChannel) {
-        broadcastChannel = new BroadcastChannel('red_room_db');
-        broadcastChannel.onmessage = (event) => {
-            if (event.data && event.data.type === "NEW_BOOKING_REQUEST") {
-                handleIncomingBooking(event.data.data);
-            }
-        };
-    }
-    
-    checkOfflinePendingBookings();
-
-    // Add image input change listener for compression
-    const photoInput = document.getElementById("m-photo");
-    if (photoInput) {
-        photoInput.addEventListener("change", (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement("canvas");
-                    const ctx = canvas.getContext("2d");
-                    canvas.width = 600;
-                    canvas.height = 600;
-                    
-                    // Center crop and draw to 600x600 canvas
-                    const minDim = Math.min(img.width, img.height);
-                    const sx = (img.width - minDim) / 2;
-                    const sy = (img.height - minDim) / 2;
-                    ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 600, 600);
-                    
-                    modalPhotoBase64 = canvas.toDataURL("image/jpeg", 0.7);
-                    
-                    // Update visual UI preview
-                    const placeholder = document.getElementById("m-photo-placeholder");
-                    if (placeholder) placeholder.style.display = "none";
-                    
-                    const previewImg = document.getElementById("m-photo-preview");
-                    if (previewImg) {
-                        previewImg.src = modalPhotoBase64;
-                        previewImg.style.display = "block";
-                    }
-                };
-                img.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
-        });
-    }
-
-    // Set Default Tab
-    switchTab("dashboard");
-    
-
-    
-    refreshUI();
-    updateRegistrationQR();
-    // Setup Admin Modal Same as Recent Address checkbox logic
-    const adminSameAddressCheck = document.getElementById("m-same-address");
-    if (adminSameAddressCheck) {
-        adminSameAddressCheck.addEventListener("change", function() {
-            const permSection = document.getElementById("m-permanent-address-section");
-            const permInputs = permSection.querySelectorAll("input");
-            if (this.checked) {
-                document.getElementById("m-permanent-street").value = document.getElementById("m-street").value;
-                document.getElementById("m-permanent-city").value = document.getElementById("m-city").value;
-                document.getElementById("m-permanent-state").value = document.getElementById("m-state").value;
-                document.getElementById("m-permanent-zip").value = document.getElementById("m-zip").value;
-                
-                permInputs.forEach(input => {
-                    input.required = false;
-                    input.disabled = true;
-                });
-                permSection.style.opacity = "0.5";
-            } else {
-                permInputs.forEach(input => {
-                    input.required = true;
-                    input.disabled = false;
-                });
-                permSection.style.opacity = "1";
-            }
-        });
+    // 2. Perform the rest of initialization (DOM, settings, etc.) wrapped in a try/catch to protect it
+    try {
+        // Toggle login card reset link container if custom config is stored
+        const customConfigStored = localStorage.getItem("custom_firebase_config") !== null;
+        const authResetEl = document.getElementById("auth-reset-container");
+        if (authResetEl) {
+            authResetEl.style.display = customConfigStored ? "block" : "none";
+        }
         
-        const currentInputs = ["m-street", "m-city", "m-state", "m-zip"];
-        currentInputs.forEach(id => {
-            document.getElementById(id).addEventListener("input", function() {
-                if (adminSameAddressCheck.checked) {
-                    const permId = id === "m-street" ? "m-permanent-street" :
-                                   id === "m-city" ? "m-permanent-city" :
-                                   id === "m-state" ? "m-permanent-state" : "m-permanent-zip";
-                    document.getElementById(permId).value = this.value;
+        // Set UI displays for inputs
+        const fbApiKeyEl = document.getElementById("fb-api-key");
+        if (fbApiKeyEl) fbApiKeyEl.value = config.apiKey || "";
+        const fbAuthDomainEl = document.getElementById("fb-auth-domain");
+        if (fbAuthDomainEl) fbAuthDomainEl.value = config.authDomain || "";
+        const fbDbUrlEl = document.getElementById("fb-db-url");
+        if (fbDbUrlEl) fbDbUrlEl.value = config.databaseURL || "";
+        const fbProjectIdEl = document.getElementById("fb-project-id");
+        if (fbProjectIdEl) fbProjectIdEl.value = config.projectId || "";
+        const fbStorageBucketEl = document.getElementById("fb-storage-bucket");
+        if (fbStorageBucketEl) fbStorageBucketEl.value = config.storageBucket || "";
+        
+        // Load local storage fallback or mock data
+        let localData = null;
+        try {
+            localData = localStorage.getItem("red_room_state");
+        } catch(e){}
+        
+        if (localData) {
+            try {
+                const parsedState = JSON.parse(localData);
+                if (parsedState) {
+                    // Reset to empty state if it's old mock data containing Rahul Sahu m_1
+                    if (parsedState.members && parsedState.members.some(m => m.id === "m_1" || m.name === "Rahul Sahu")) {
+                        loadMockData();
+                        saveStateToLocalStorage();
+                    } else if (!parsedState.seats || parsedState.seats.length !== 369) {
+                        const defaultSeats = generateDefaultSeats();
+                        if (parsedState.members) {
+                            parsedState.members.forEach(member => {
+                                const seat = defaultSeats.find(s => s.id === member.seatId);
+                                if (seat) {
+                                    seat.status = "occupied";
+                                    seat.assignedMemberId = member.id;
+                                }
+                            });
+                        }
+                        store.dispatch(setSeats(defaultSeats));
+                        store.dispatch(setMembers(parsedState.members || []));
+                        store.dispatch(setPending(parsedState.pending || []));
+                        store.dispatch(setComplaints(parsedState.complaints || []));
+                        if (parsedState.settings) {
+                            store.dispatch(setSettings(parsedState.settings));
+                        }
+                    } else {
+                        store.dispatch(setSeats(parsedState.seats || []));
+                        store.dispatch(setMembers(parsedState.members || []));
+                        store.dispatch(setPending(parsedState.pending || []));
+                        store.dispatch(setComplaints(parsedState.complaints || []));
+                        if (parsedState.settings) {
+                            store.dispatch(setSettings(parsedState.settings));
+                        }
+                    }
+                } else {
+                    loadMockData();
+                    saveStateToLocalStorage();
+                }
+            } catch(e) {
+                loadMockData();
+                saveStateToLocalStorage();
+            }
+        } else {
+            loadMockData();
+            saveStateToLocalStorage();
+        }
+        
+        // Initialize details
+        const setLibNameEl = document.getElementById("set-lib-name");
+        if (setLibNameEl && state.settings) setLibNameEl.value = state.settings.libraryName || "";
+        const setLibPhoneEl = document.getElementById("set-lib-phone");
+        if (setLibPhoneEl && state.settings) setLibPhoneEl.value = state.settings.phone || "9876543210";
+        const setLibAddrEl = document.getElementById("set-lib-addr");
+        if (setLibAddrEl && state.settings) setLibAddrEl.value = state.settings.address || "";
+        const qrLibTitle = document.getElementById("qr-lib-title");
+        if (qrLibTitle && state.settings) qrLibTitle.textContent = state.settings.libraryName || "";
+        
+        // Set max date limit on Member DOB input in the modal to prevent future birth dates
+        const dobInput = document.getElementById("m-dob");
+        if (dobInput) {
+            dobInput.max = new Date().toISOString().split('T')[0];
+        }
+
+        // Set up Broadcast Channel for local cross-tab sync
+        if (window.BroadcastChannel) {
+            broadcastChannel = new BroadcastChannel('red_room_db');
+            broadcastChannel.onmessage = (event) => {
+                if (event.data && event.data.type === "NEW_BOOKING_REQUEST") {
+                    handleIncomingBooking(event.data.data);
+                }
+            };
+        }
+        
+        checkOfflinePendingBookings();
+
+        // Add image input change listener for compression
+        const photoInput = document.getElementById("m-photo");
+        if (photoInput) {
+            photoInput.addEventListener("change", (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement("canvas");
+                        const ctx = canvas.getContext("2d");
+                        canvas.width = 600;
+                        canvas.height = 600;
+                        
+                        // Center crop and draw to 600x600 canvas
+                        const minDim = Math.min(img.width, img.height);
+                        const sx = (img.width - minDim) / 2;
+                        const sy = (img.height - minDim) / 2;
+                        ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 600, 600);
+                        
+                        modalPhotoBase64 = canvas.toDataURL("image/jpeg", 0.7);
+                        
+                        // Update visual UI preview
+                        const placeholder = document.getElementById("m-photo-placeholder");
+                        if (placeholder) placeholder.style.display = "none";
+                        
+                        const previewImg = document.getElementById("m-photo-preview");
+                        if (previewImg) {
+                            previewImg.src = modalPhotoBase64;
+                            previewImg.style.display = "block";
+                        }
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Set Default Tab
+        switchTab("dashboard");
+        
+        refreshUI();
+        updateRegistrationQR();
+        
+        // Setup Admin Modal Same as Recent Address checkbox logic
+        const adminSameAddressCheck = document.getElementById("m-same-address");
+        if (adminSameAddressCheck) {
+            adminSameAddressCheck.addEventListener("change", function() {
+                const permSection = document.getElementById("m-permanent-address-section");
+                const permInputs = permSection.querySelectorAll("input");
+                if (this.checked) {
+                    document.getElementById("m-permanent-street").value = document.getElementById("m-street").value;
+                    document.getElementById("m-permanent-city").value = document.getElementById("m-city").value;
+                    document.getElementById("m-permanent-state").value = document.getElementById("m-state").value;
+                    document.getElementById("m-permanent-zip").value = document.getElementById("m-zip").value;
+                    
+                    permInputs.forEach(input => {
+                        input.required = false;
+                        input.disabled = true;
+                    });
+                    permSection.style.opacity = "0.5";
+                } else {
+                    permInputs.forEach(input => {
+                        input.required = true;
+                        input.disabled = false;
+                    });
+                    permSection.style.opacity = "1";
                 }
             });
-        });
+            
+            const currentInputs = ["m-street", "m-city", "m-state", "m-zip"];
+            currentInputs.forEach(id => {
+                document.getElementById(id).addEventListener("input", function() {
+                    if (adminSameAddressCheck.checked) {
+                        const permId = id === "m-street" ? "m-permanent-street" :
+                                       id === "m-city" ? "m-permanent-city" :
+                                       id === "m-state" ? "m-permanent-state" : "m-permanent-zip";
+                        document.getElementById(permId).value = this.value;
+                    }
+                });
+            });
+        }
+        
+        startLiveClock();
+    } catch (domErr) {
+        console.error("DOM or State initialization error inside initApp:", domErr);
     }
-    
-    startLiveClock();
 }
 
 function enableOfflineMode() {
@@ -4433,9 +4446,13 @@ window.addEventListener("storage", (event) => {
 });
 
 // Initialize on page load
-window.addEventListener("DOMContentLoaded", () => {
+if (document.readyState === "loading") {
+    window.addEventListener("DOMContentLoaded", () => {
+        initApp();
+    });
+} else {
     initApp();
-});
+}
 
 // ==========================================
 // INTERACTIVE IMAGE LIGHTBOX CONTROLLER
@@ -4731,7 +4748,7 @@ function togglePasswordVisibility(inputId, iconId) {
 }
 
 // Bind Panning and Wheel zooming mouse event listeners
-window.addEventListener("DOMContentLoaded", () => {
+function setupLightboxListeners() {
     const img = document.getElementById("lightbox-img");
     if (!img) return;
     
@@ -4768,7 +4785,13 @@ window.addEventListener("DOMContentLoaded", () => {
         isPanning = false;
         if (img) img.style.transition = "transform 0.15s cubic-bezier(0.16, 1, 0.3, 1)";
     });
-});
+}
+
+if (document.readyState === "loading") {
+    window.addEventListener("DOMContentLoaded", setupLightboxListeners);
+} else {
+    setupLightboxListeners();
+}
 
 // Render dynamic fees charts using Chart.js
 function renderFeesCharts() {

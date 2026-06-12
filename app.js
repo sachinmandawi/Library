@@ -164,7 +164,8 @@ function addInstallmentFromForm() {
         note: noteInput.value.trim()
     };
 
-    currentModalInstallments.push(newInst);
+    const updatedInstallments = [...currentModalInstallments, newInst];
+    store.dispatch(setCurrentModalInstallments(updatedInstallments));
     
     // Clear inputs
     amountInput.value = "";
@@ -177,7 +178,8 @@ function addInstallmentFromForm() {
 // Remove installment from modal form
 function removeInstallmentFromForm(index) {
     if (confirm("Are you sure you want to delete this installment?")) {
-        currentModalInstallments.splice(index, 1);
+        const updatedInstallments = currentModalInstallments.filter((_, idx) => idx !== index);
+        store.dispatch(setCurrentModalInstallments(updatedInstallments));
         renderModalInstallments();
         recalculateModalInstallmentTotals();
     }
@@ -726,7 +728,7 @@ function initApp() {
                         const sy = (img.height - minDim) / 2;
                         ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 600, 600);
                         
-                        modalPhotoBase64 = canvas.toDataURL("image/jpeg", 0.7);
+                        store.dispatch(setModalPhotoBase64(canvas.toDataURL("image/jpeg", 0.7)));
                         
                         // Update visual UI preview
                         const placeholder = document.getElementById("m-photo-placeholder");
@@ -796,7 +798,7 @@ function initApp() {
 }
 
 function enableOfflineMode() {
-    isOfflineMode = true;
+    store.dispatch(setIsOfflineMode(true));
     
     const authOverlay = document.getElementById("auth-overlay");
     const appContainer = document.getElementById("app-container");
@@ -1153,7 +1155,7 @@ function syncLocalToDatabase() {
     });
 
     if (isOfflineMode || !database) {
-        state.registered_phones = regPhones;
+        store.dispatch(setRegisteredPhones(regPhones));
         saveStateToLocalStorage();
         return;
     }
@@ -1263,7 +1265,7 @@ function handleIncomingBooking(booking) {
 
 // View Switches
 function switchTab(tabId) {
-    currentTab = tabId;
+    store.dispatch(setCurrentTab(tabId));
     
     document.querySelectorAll(".nav-item").forEach(item => {
         item.classList.remove("active");
@@ -2140,8 +2142,8 @@ function closeModal(modalId) {
 
 // Member Registration Modal logic
 function openAddMemberModal() {
-    adminModalIsDemo = false;
-    adminModalDemoDuration = 5;
+    store.dispatch(setAdminModalIsDemo(false));
+    store.dispatch(setAdminModalDemoDuration(5));
     
     // Reset readonly/disabled fee fields
     document.getElementById("m-fee-amount").readOnly = false;
@@ -2172,7 +2174,7 @@ function openAddMemberModal() {
     document.getElementById("m-start-date").value = new Date().toISOString().split('T')[0];
     
     // Clear photo preview
-    modalPhotoBase64 = null;
+    store.dispatch(setModalPhotoBase64(null));
     document.getElementById("m-photo-placeholder").style.display = "block";
     const previewImg = document.getElementById("m-photo-preview");
     if (previewImg) {
@@ -2183,7 +2185,7 @@ function openAddMemberModal() {
     onModalSeatTypeChange();
     
     // Clear installments and hide section for new members
-    currentModalInstallments = [];
+    store.dispatch(setCurrentModalInstallments([]));
     const instSection = document.getElementById("m-installments-section");
     if (instSection) {
         instSection.style.display = "none";
@@ -2196,8 +2198,8 @@ function openEditMemberModal(memberId) {
     const member = state.members.find(m => m.id === memberId);
     if (!member) return;
     
-    adminModalIsDemo = (member.planId && member.planId.startsWith("demo")) || member.status === "demo" || member.status === "demo-expired";
-    adminModalDemoDuration = member.demoDuration || (member.planId && member.planId.startsWith("demo-") ? parseInt(member.planId.replace("demo-", "")) : 5) || 5;
+    store.dispatch(setAdminModalIsDemo((member.planId && member.planId.startsWith("demo")) || member.status === "demo" || member.status === "demo-expired"));
+    store.dispatch(setAdminModalDemoDuration(member.demoDuration || (member.planId && member.planId.startsWith("demo-") ? parseInt(member.planId.replace("demo-", "")) : 5) || 5));
     
     // Toggle readonly/disabled states for fee & payment fields depending on demo status
     if (adminModalIsDemo) {
@@ -2221,7 +2223,7 @@ function openEditMemberModal(memberId) {
     document.getElementById("form-member").onsubmit = handleMemberFormSubmit;
     
     // Set photo preview from member photo
-    modalPhotoBase64 = member.photo || null;
+    store.dispatch(setModalPhotoBase64(member.photo || null));
     const previewImg = document.getElementById("m-photo-preview");
     const placeholder = document.getElementById("m-photo-placeholder");
     if (modalPhotoBase64) {
@@ -2325,11 +2327,11 @@ function openEditMemberModal(memberId) {
                 note: "Initial Payment"
             });
         }
-        currentModalInstallments = [...fallbackPayments];
+        store.dispatch(setCurrentModalInstallments([...fallbackPayments]));
     } else {
         // Load payments from active invoice
         const activeInvoice = invoices.find(inv => inv.timestamp === member.timestamp) || invoices[invoices.length - 1];
-        currentModalInstallments = activeInvoice && activeInvoice.payments ? [...activeInvoice.payments] : [];
+        store.dispatch(setCurrentModalInstallments(activeInvoice && activeInvoice.payments ? [...activeInvoice.payments] : []));
     }
     
     const instSection = document.getElementById("m-installments-section");
@@ -3409,15 +3411,15 @@ function approvePendingRequest(requestId) {
         openAddMemberModal();
         
         // Set demo flags after openAddMemberModal resets them
-        adminModalIsDemo = (req.bookingType === "demo");
-        adminModalDemoDuration = req.demoDuration || 5;
+        store.dispatch(setAdminModalIsDemo(req.bookingType === "demo"));
+        store.dispatch(setAdminModalDemoDuration(req.demoDuration || 5));
         
         // Set title accordingly
         document.getElementById("modal-member-title").textContent = adminModalIsDemo ? "Approve Free Demo Pass" : "Add New Member";
         
         // Pre-fill photo from request
         if (req.photo) {
-            modalPhotoBase64 = req.photo;
+            store.dispatch(setModalPhotoBase64(req.photo));
             const previewImg = document.getElementById("m-photo-preview");
             const placeholder = document.getElementById("m-photo-placeholder");
             if (placeholder) placeholder.style.display = "none";
@@ -3569,7 +3571,7 @@ function rejectPendingRequest(requestId) {
 
 function removePendingRequest(requestId) {
     recentlyApprovedOrRejected.add(requestId);
-    state.pending = state.pending.filter(p => p.id !== requestId);
+    store.dispatch(setPending(state.pending.filter(p => p.id !== requestId)));
     saveStateToLocalStorage();
     updatePendingBadge();
     renderPendingRequests();
@@ -3961,7 +3963,7 @@ function loadSelectedInvoiceReceipt(invoiceId) {
 }
 
 function openReceiptModal(memberId) {
-    currentReceiptMemberId = memberId;
+    store.dispatch(setCurrentReceiptMemberId(memberId));
     const member = state.members.find(m => m.id === memberId);
     if (!member) return;
     
@@ -4088,7 +4090,7 @@ function printReceipt() {
 
 // Quick direct WhatsApp share helper from seat actions modal
 function shareReceiptDirectlyFromModal(memberId) {
-    currentReceiptMemberId = memberId;
+    store.dispatch(setCurrentReceiptMemberId(memberId));
     shareReceiptWhatsApp();
 }
 

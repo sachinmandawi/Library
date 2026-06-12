@@ -209,16 +209,28 @@ function setupSeatsListener() {
         onStudentRoomOrTypeChange();
     });
 
-    // Listen to Settings changes to sync Library Name dynamically
+    // Listen to Settings changes to sync Library Name and registration status dynamically
     database.ref("red_room_system/settings").on("value", snapshot => {
         if (snapshot.exists()) {
             const settings = snapshot.val();
-            if (settings && settings.libraryName) {
-                const titleText = document.getElementById("form-title-text");
-                if (titleText) {
-                    titleText.textContent = isDemo ? `${settings.libraryName} - Demo Pass` : settings.libraryName;
+            if (settings) {
+                if (settings.libraryName) {
+                    const titleText = document.getElementById("form-title-text");
+                    if (titleText) {
+                        titleText.textContent = isDemo ? `${settings.libraryName} - Demo Pass` : settings.libraryName;
+                    }
+                    document.title = `${settings.libraryName} - Seat Registration`;
                 }
-                document.title = `${settings.libraryName} - Seat Registration`;
+                
+                // Show/hide maintenance overlay based on registration status
+                const maintenanceOverlay = document.getElementById("maintenance-overlay");
+                if (maintenanceOverlay) {
+                    if (settings.registrationEnabled === false) {
+                        maintenanceOverlay.style.display = "flex";
+                    } else {
+                        maintenanceOverlay.style.display = "none";
+                    }
+                }
             }
         }
     }, err => {

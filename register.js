@@ -92,11 +92,38 @@ store.subscribe(() => {
     }
 });
 
-// Load initial seat state from shared localStorage if available
+// Helper to apply registration settings (library name, portal access control)
+function applyRegistrationSettings(settings) {
+    if (!settings) return;
+    
+    if (settings.libraryName) {
+        const titleText = document.getElementById("form-title-text");
+        if (titleText) {
+            titleText.textContent = isDemo ? `${settings.libraryName} - Demo Pass` : settings.libraryName;
+        }
+        document.title = `${settings.libraryName} - Seat Registration`;
+    }
+    
+    const maintenanceOverlay = document.getElementById("maintenance-overlay");
+    if (maintenanceOverlay) {
+        if (settings.registrationEnabled === false) {
+            maintenanceOverlay.style.display = "flex";
+        } else {
+            maintenanceOverlay.style.display = "none";
+        }
+    }
+}
+
+// Load initial seat and settings state from shared localStorage if available
 try {
     const sharedState = JSON.parse(localStorage.getItem("red_room_state"));
-    if (sharedState && sharedState.seats && sharedState.seats.length > 0) {
-        store.dispatch(setAllSeats(sharedState.seats));
+    if (sharedState) {
+        if (sharedState.seats && sharedState.seats.length > 0) {
+            store.dispatch(setAllSeats(sharedState.seats));
+        }
+        if (sharedState.settings) {
+            applyRegistrationSettings(sharedState.settings);
+        }
     }
 } catch(e){}
 
@@ -115,8 +142,13 @@ window.addEventListener("storage", (event) => {
     if (event.key === "red_room_state") {
         try {
             const sharedState = JSON.parse(event.newValue);
-            if (sharedState && sharedState.seats) {
-                store.dispatch(setAllSeats(sharedState.seats));
+            if (sharedState) {
+                if (sharedState.seats) {
+                    store.dispatch(setAllSeats(sharedState.seats));
+                }
+                if (sharedState.settings) {
+                    applyRegistrationSettings(sharedState.settings);
+                }
             }
         } catch(e){}
     }
@@ -212,26 +244,7 @@ function setupSeatsListener() {
     // Listen to Settings changes to sync Library Name and registration status dynamically
     database.ref("red_room_system/settings").on("value", snapshot => {
         if (snapshot.exists()) {
-            const settings = snapshot.val();
-            if (settings) {
-                if (settings.libraryName) {
-                    const titleText = document.getElementById("form-title-text");
-                    if (titleText) {
-                        titleText.textContent = isDemo ? `${settings.libraryName} - Demo Pass` : settings.libraryName;
-                    }
-                    document.title = `${settings.libraryName} - Seat Registration`;
-                }
-                
-                // Show/hide maintenance overlay based on registration status
-                const maintenanceOverlay = document.getElementById("maintenance-overlay");
-                if (maintenanceOverlay) {
-                    if (settings.registrationEnabled === false) {
-                        maintenanceOverlay.style.display = "flex";
-                    } else {
-                        maintenanceOverlay.style.display = "none";
-                    }
-                }
-            }
+            applyRegistrationSettings(snapshot.val());
         }
     }, err => {
         console.warn("Failed to listen to settings:", err);

@@ -701,7 +701,7 @@
 
 
                                 <!-- Action 7: Bulk Membership Pause/Extend (Holiday Mode) -->
-                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 0;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
                                     <div>
                                         <h4 style="color: #fff; font-size: 0.88rem; font-weight: 600; margin-bottom: 0.25rem;">Bulk Adjust Membership Expiry</h4>
                                         <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; margin: 0; margin-bottom: 0.5rem;">Extends or shortens all active student memberships by a specified number of days in bulk.</p>
@@ -712,6 +712,68 @@
                                     </div>
                                     <button class="btn" onclick="triggerDangerZoneAction('bulk_adjust')" style="background: rgba(139, 92, 246, 0.12); border: 1px solid var(--accent-purple); color: var(--accent-purple); font-size: 0.72rem; padding: 0.4rem 0.75rem; white-space: nowrap; flex-shrink: 0; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; margin: 0; align-self: flex-start;">
                                         <i class="fa-solid fa-calendar-plus"></i> Adjust Expiry
+                                    </button>
+                                </div>
+
+                                <!-- Action 8: Release Unpaid/Partial Memberships -->
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <div>
+                                        <h4 style="color: #fff; font-size: 0.88rem; font-weight: 600; margin-bottom: 0.25rem;">Release Unpaid/Partial Seats</h4>
+                                        <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; margin: 0;">Releases seats booked by members with Unpaid or Partial payment status, converting them to non-reserved.</p>
+                                    </div>
+                                    <button class="btn" onclick="triggerDangerZoneAction('release_unpaid')" style="background: rgba(245, 158, 11, 0.12); border: 1px solid var(--accent-amber); color: var(--accent-amber); font-size: 0.72rem; padding: 0.4rem 0.75rem; white-space: nowrap; flex-shrink: 0; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; margin: 0;">
+                                        <i class="fa-solid fa-user-slash"></i> Release Unpaid
+                                    </button>
+                                </div>
+
+                                <!-- Action 9: Deep Purge Inactive Members -->
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <div>
+                                        <h4 style="color: #fff; font-size: 0.88rem; font-weight: 600; margin-bottom: 0.25rem;">Deep Purge Inactive Members</h4>
+                                        <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; margin: 0; margin-bottom: 0.5rem;">Permanently deletes student profiles expired for more than the specified threshold of days.</p>
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 500;">Threshold (Days):</label>
+                                            <input type="number" id="purge-inactive-days" value="90" min="30" max="365" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 4px; outline: none; width: 60px; text-align: center;">
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-danger" onclick="triggerDangerZoneAction('purge_inactive')" style="background: rgba(244, 63, 94, 0.12); border: 1px solid var(--accent-rose); color: var(--accent-rose); font-size: 0.72rem; padding: 0.4rem 0.75rem; white-space: nowrap; flex-shrink: 0; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; margin: 0; align-self: flex-start;">
+                                        <i class="fa-solid fa-user-xmark"></i> Purge Inactive
+                                    </button>
+                                </div>
+
+                                <!-- Action 10: Bulk Seat Type Converter -->
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <div>
+                                        <h4 style="color: #fff; font-size: 0.88rem; font-weight: 600; margin-bottom: 0.25rem;">Bulk Seat Type Converter</h4>
+                                        <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; margin: 0; margin-bottom: 0.5rem;">Converts all vacant seats of a specific category in a room to another category.</p>
+                                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                            <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 500;">Room:</label>
+                                            <select id="convert-seat-room" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 4px; outline: none; cursor: pointer; margin-right: 0.5rem;">
+                                                <option value="1">Room 1</option>
+                                                <option value="2">Room 2</option>
+                                                <option value="3">Room 3</option>
+                                                <option value="4">Room 4</option>
+                                            </select>
+                                            <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 500;">Convert:</label>
+                                            <select id="convert-seat-direction" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 4px; outline: none; cursor: pointer;">
+                                                <option value="gen_to_res">General ➔ Reserved</option>
+                                                <option value="res_to_gen">Reserved ➔ General</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button class="btn" onclick="triggerDangerZoneAction('convert_seats')" style="background: rgba(59, 130, 246, 0.12); border: 1px solid var(--accent-blue); color: var(--accent-blue); font-size: 0.72rem; padding: 0.4rem 0.75rem; white-space: nowrap; flex-shrink: 0; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; margin: 0; align-self: flex-start;">
+                                        <i class="fa-solid fa-arrows-rotate"></i> Convert Seats
+                                    </button>
+                                </div>
+
+                                <!-- Action 11: Anonymize System Data -->
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 0;">
+                                    <div>
+                                        <h4 style="color: #fff; font-size: 0.88rem; font-weight: 600; margin-bottom: 0.25rem;">Anonymize System Data</h4>
+                                        <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; margin: 0;">Replaces actual student names with initials, masks mobile numbers, and wipes Aadhaar data for privacy/demo purposes.</p>
+                                    </div>
+                                    <button class="btn" onclick="triggerDangerZoneAction('anonymize_data')" style="background: rgba(139, 92, 246, 0.12); border: 1px solid var(--accent-purple); color: var(--accent-purple); font-size: 0.72rem; padding: 0.4rem 0.75rem; white-space: nowrap; flex-shrink: 0; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; margin: 0;">
+                                        <i class="fa-solid fa-user-secret"></i> Anonymize Data
                                     </button>
                                 </div>
                             </div>
@@ -1452,7 +1514,7 @@
     <script src="redux-toolkit.umd.js"></script>
     
     <!-- Admin logic -->
-    <script src="app.js?v=49"></script>
+    <script src="app.js?v=50"></script>
 
 </body>
 </html>

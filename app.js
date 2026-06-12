@@ -4929,11 +4929,6 @@ function executeAnonymizeData() {
     refreshUI();
 }
 
-    const direction = adjustDays > 0 ? "extended" : "shortened";
-    showToast(`All active memberships have been ${direction} by ${Math.abs(adjustDays)} days!`, "success");
-    refreshUI();
-}
-
 function executePurgePendingRequests() {
     store.dispatch(setPending([]));
     

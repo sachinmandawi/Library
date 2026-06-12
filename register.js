@@ -92,7 +92,7 @@ store.subscribe(() => {
     }
 });
 
-// Helper to apply registration settings (library name, portal access control)
+// Helper to apply registration settings (library name)
 function applyRegistrationSettings(settings) {
     if (!settings) return;
     
@@ -102,15 +102,6 @@ function applyRegistrationSettings(settings) {
             titleText.textContent = isDemo ? `${settings.libraryName} - Demo Pass` : settings.libraryName;
         }
         document.title = `${settings.libraryName} - Seat Registration`;
-    }
-    
-    const maintenanceOverlay = document.getElementById("maintenance-overlay");
-    if (maintenanceOverlay) {
-        if (settings.registrationEnabled === false) {
-            maintenanceOverlay.style.display = "flex";
-        } else {
-            maintenanceOverlay.style.display = "none";
-        }
     }
 }
 

@@ -403,5 +403,18 @@
 
     <!-- Student Logic -->
     <script src="register.js?v=25"></script>
+
+    <!-- Maintenance Overlay -->
+    <div id="maintenance-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 14, 23, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 9999; align-items: center; justify-content: center; text-align: center; padding: 2rem; color: #fff;">
+        <div class="glass-panel" style="max-width: 480px; padding: 2.5rem; border: 1px solid rgba(239, 68, 68, 0.25); box-shadow: 0 0 40px rgba(239, 68, 68, 0.1); border-radius: 16px; background: rgba(19, 26, 38, 0.75);">
+            <div style="font-size: 3rem; color: var(--accent-rose); margin-bottom: 1.25rem;">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h2 style="font-family: 'Outfit'; font-size: 1.6rem; font-weight: 700; margin-bottom: 0.75rem; letter-spacing: -0.01em; color: #fff;">Registration Closed</h2>
+            <p id="maintenance-message" style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0;">
+                The registration portal is temporarily closed for seat allocation or system maintenance. Please check back later or contact the library administrator.
+            </p>
+        </div>
+    </div>
 </body>
 </html>

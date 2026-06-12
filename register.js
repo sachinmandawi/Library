@@ -273,7 +273,7 @@ function onStudentRoomOrTypeChange() {
         
         if (isDemo) {
             if (seatPicker) seatPicker.style.display = "block";
-            selectedSeatId = "non-reserved";
+            store.dispatch(setSelectedSeatId("non-reserved"));
             if (badge) {
                 badge.textContent = "Non-Reserved Seating (Viewing Only)";
                 badge.style.color = "var(--accent-emerald)";
@@ -287,7 +287,7 @@ function onStudentRoomOrTypeChange() {
             renderStudentSeatGrid(allSeats, selectedRoom, "reserved");
         } else {
             if (seatPicker) seatPicker.style.display = "none";
-            selectedSeatId = "non-reserved";
+            store.dispatch(setSelectedSeatId("non-reserved"));
             if (badge) {
                 badge.textContent = "Non-Reserved";
                 badge.style.color = "var(--accent-emerald)";
@@ -304,7 +304,7 @@ function onStudentRoomOrTypeChange() {
     }
 
     // Reset selection state when filters change
-    selectedSeatId = null;
+    store.dispatch(setSelectedSeatId(null));
     if (badge) {
         badge.textContent = "None selected";
         badge.style.color = "var(--text-muted)";
@@ -940,7 +940,7 @@ window.addEventListener("DOMContentLoaded", () => {
     
     // Parse URL parameters for demo mode
     const urlParams = new URLSearchParams(window.location.search);
-    isDemo = (urlParams.get('type') === 'demo');
+    store.dispatch(setIsDemo(urlParams.get('type') === 'demo'));
     
     if (isDemo) {
         const demoBadge = document.getElementById("demo-badge");
@@ -1024,7 +1024,7 @@ window.addEventListener("DOMContentLoaded", () => {
                     const sy = (img.height - minDim) / 2;
                     ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 600, 600);
                     
-                    compressedPhotoBase64 = canvas.toDataURL("image/jpeg", 0.7);
+                    store.dispatch(setCompressedPhotoBase64(canvas.toDataURL("image/jpeg", 0.7)));
                     
                     // Update visual UI preview
                     const placeholder = document.getElementById("s-photo-placeholder");

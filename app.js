@@ -4440,6 +4440,28 @@ function restoreData(event) {
 let currentDangerAction = "";
 let expectedConfirmText = "";
 
+function switchDangerTab(tabId) {
+    const contents = document.querySelectorAll(".danger-tab-content");
+    contents.forEach(el => {
+        el.classList.remove("active-content");
+    });
+    
+    const tabs = document.querySelectorAll(".danger-tab-btn");
+    tabs.forEach(el => {
+        el.classList.remove("active");
+    });
+    
+    const targetContent = document.getElementById("danger-tab-" + tabId);
+    if (targetContent) {
+        targetContent.classList.add("active-content");
+    }
+    
+    const targetTab = document.querySelector(`[onclick="switchDangerTab('${tabId}')"]`);
+    if (targetTab) {
+        targetTab.classList.add("active");
+    }
+}
+
 function resetSystemData() {
     triggerDangerZoneAction("reset");
 }

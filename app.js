@@ -367,6 +367,23 @@ store.subscribe(() => {
         if (setLibPhoneInput) setLibPhoneInput.value = state.settings.phone || "9876543210";
         const setLibAddrInput = document.getElementById("set-lib-addr");
         if (setLibAddrInput) setLibAddrInput.value = state.settings.address;
+        
+        // Update Registration Toggle Button styling dynamically
+        const toggleRegBtn = document.getElementById("btn-toggle-registration");
+        if (toggleRegBtn) {
+            const isCurrentlyEnabled = state.settings.registrationEnabled !== false;
+            if (isCurrentlyEnabled) {
+                toggleRegBtn.style.background = "rgba(244, 63, 94, 0.12)";
+                toggleRegBtn.style.borderColor = "var(--accent-rose)";
+                toggleRegBtn.style.color = "var(--accent-rose)";
+                toggleRegBtn.innerHTML = '<i class="fa-solid fa-ban"></i> Disable Portal';
+            } else {
+                toggleRegBtn.style.background = "rgba(16, 185, 129, 0.12)";
+                toggleRegBtn.style.borderColor = "var(--accent-emerald)";
+                toggleRegBtn.style.color = "var(--accent-emerald)";
+                toggleRegBtn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Enable Portal';
+            }
+        }
     }
 });
 
@@ -4495,6 +4512,19 @@ function triggerDangerZoneAction(action) {
             descEl.innerHTML = "This will permanently delete <strong>all complaints, feedback tickets, and support log history</strong> from the database.";
             labelEl.innerHTML = `Type <strong>${expectedConfirmText}</strong> to confirm:`;
             break;
+        case "toggle_registration":
+            const isCurrentlyEnabled = state.settings.registrationEnabled !== false;
+            expectedConfirmText = isCurrentlyEnabled ? "DISABLE" : "ENABLE";
+            descEl.innerHTML = `This will ${isCurrentlyEnabled ? "<strong>DISABLE</strong> student registration. Students will be blocked from reserving seats and will see a maintenance message." : "<strong>ENABLE</strong> student registration, allowing students to register and reserve seats normally."}`;
+            labelEl.innerHTML = `Type <strong>${expectedConfirmText}</strong> to confirm:`;
+            break;
+        case "bulk_adjust":
+            const adjustDaysInput = document.getElementById("bulk-adjust-days");
+            const adjustDays = adjustDaysInput ? parseInt(adjustDaysInput.value) : 5;
+            expectedConfirmText = "ADJUST" + (adjustDays >= 0 ? "PLUS" : "MINUS") + Math.abs(adjustDays);
+            descEl.innerHTML = `This will adjust <strong>all active student memberships</strong> by adding <strong>${adjustDays} days</strong> (use negative value to shorten). Expiry dates will be updated in Firebase accordingly.`;
+            labelEl.innerHTML = `Type <strong>${expectedConfirmText}</strong> to confirm:`;
+            break;
         default:
             return;
     }
@@ -4551,7 +4581,75 @@ function executeDangerZoneAction() {
         case "complaints":
             executeClearSupportLogs();
             break;
+        case "toggle_registration":
+            executeToggleRegistration();
+            break;
+        case "bulk_adjust":
+            executeBulkAdjustMemberships();
+            break;
     }
+}
+
+function executeToggleRegistration() {
+    const isCurrentlyEnabled = state.settings.registrationEnabled !== false;
+    const newStatus = !isCurrentlyEnabled;
+    
+    const updatedSettings = {
+        ...state.settings,
+        registrationEnabled: newStatus
+    };
+    
+    store.dispatch(setSettings(updatedSettings));
+    
+    if (!isOfflineMode && database) {
+        database.ref("red_room_system/settings").set(updatedSettings);
+    } else {
+        saveStateToLocalStorage();
+    }
+    
+    const statusStr = newStatus ? "ENABLED" : "DISABLED";
+    showToast(`Student registration has been ${statusStr}!`, "success");
+    refreshUI();
+}
+
+function executeBulkAdjustMemberships() {
+    const adjustDaysInput = document.getElementById("bulk-adjust-days");
+    if (!adjustDaysInput) return;
+    const adjustDays = parseInt(adjustDaysInput.value);
+    if (isNaN(adjustDays) || adjustDays === 0) {
+        showToast("Please enter a valid non-zero number of days.", "error");
+        return;
+    }
+    
+    const updatedMembers = JSON.parse(JSON.stringify(state.members || [])).map(m => {
+        if (m && m.expiryDate) {
+            const currentExpiry = new Date(m.expiryDate);
+            currentExpiry.setDate(currentExpiry.getDate() + adjustDays);
+            const year = currentExpiry.getFullYear();
+            const month = String(currentExpiry.getMonth() + 1).padStart(2, '0');
+            const day = String(currentExpiry.getDate()).padStart(2, '0');
+            m.expiryDate = `${year}-${month}-${day}`;
+        }
+        return m;
+    });
+    
+    store.dispatch(setMembers(updatedMembers));
+    
+    if (!isOfflineMode && database) {
+        const membersObj = {};
+        updatedMembers.forEach(m => {
+            if (m && m.id) {
+                membersObj[m.id] = m;
+            }
+        });
+        database.ref("red_room_system/members").set(membersObj);
+    } else {
+        saveStateToLocalStorage();
+    }
+    
+    const direction = adjustDays > 0 ? "extended" : "shortened";
+    showToast(`All active memberships have been ${direction} by ${Math.abs(adjustDays)} days!`, "success");
+    refreshUI();
 }
 
 function executePurgePendingRequests() {

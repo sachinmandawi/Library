@@ -2218,4 +2218,90 @@ h1, h2, h3, h4, h5, h6 {
     }
 }
 
+/* Danger Zone Tabs Styling */
+.danger-tabs-container {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 0.75rem;
+    margin-bottom: 1.25rem;
+    overflow-x: auto;
+}
+
+.danger-tab-btn {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.danger-tab-btn:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.danger-tab-btn.active {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: var(--accent-rose);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.08);
+}
+
+.danger-tab-content {
+    display: none;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.danger-tab-content.active-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Severity Risk Level Badges */
+.severity-badge {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+    margin-left: 0.5rem;
+}
+
+.severity-badge.critical {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--accent-rose);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.severity-badge.warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--accent-amber);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.severity-badge.moderate {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--accent-blue);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+
 

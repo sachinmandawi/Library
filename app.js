@@ -368,22 +368,6 @@ store.subscribe(() => {
         const setLibAddrInput = document.getElementById("set-lib-addr");
         if (setLibAddrInput) setLibAddrInput.value = state.settings.address;
         
-        // Update Registration Toggle Button styling dynamically
-        const toggleRegBtn = document.getElementById("btn-toggle-registration");
-        if (toggleRegBtn) {
-            const isCurrentlyEnabled = state.settings.registrationEnabled !== false;
-            if (isCurrentlyEnabled) {
-                toggleRegBtn.style.background = "rgba(244, 63, 94, 0.12)";
-                toggleRegBtn.style.borderColor = "var(--accent-rose)";
-                toggleRegBtn.style.color = "var(--accent-rose)";
-                toggleRegBtn.innerHTML = '<i class="fa-solid fa-ban"></i> Disable Portal';
-            } else {
-                toggleRegBtn.style.background = "rgba(16, 185, 129, 0.12)";
-                toggleRegBtn.style.borderColor = "var(--accent-emerald)";
-                toggleRegBtn.style.color = "var(--accent-emerald)";
-                toggleRegBtn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Enable Portal';
-            }
-        }
     }
 });
 
@@ -4512,12 +4496,6 @@ function triggerDangerZoneAction(action) {
             descEl.innerHTML = "This will permanently delete <strong>all complaints, feedback tickets, and support log history</strong> from the database.";
             labelEl.innerHTML = `Type <strong>${expectedConfirmText}</strong> to confirm:`;
             break;
-        case "toggle_registration":
-            const isCurrentlyEnabled = state.settings.registrationEnabled !== false;
-            expectedConfirmText = isCurrentlyEnabled ? "DISABLE" : "ENABLE";
-            descEl.innerHTML = `This will ${isCurrentlyEnabled ? "<strong>DISABLE</strong> student registration. Students will be blocked from reserving seats and will see a maintenance message." : "<strong>ENABLE</strong> student registration, allowing students to register and reserve seats normally."}`;
-            labelEl.innerHTML = `Type <strong>${expectedConfirmText}</strong> to confirm:`;
-            break;
         case "bulk_adjust":
             const adjustDaysInput = document.getElementById("bulk-adjust-days");
             const adjustDays = adjustDaysInput ? parseInt(adjustDaysInput.value) : 5;
@@ -4581,35 +4559,10 @@ function executeDangerZoneAction() {
         case "complaints":
             executeClearSupportLogs();
             break;
-        case "toggle_registration":
-            executeToggleRegistration();
-            break;
         case "bulk_adjust":
             executeBulkAdjustMemberships();
             break;
     }
-}
-
-function executeToggleRegistration() {
-    const isCurrentlyEnabled = state.settings.registrationEnabled !== false;
-    const newStatus = !isCurrentlyEnabled;
-    
-    const updatedSettings = {
-        ...state.settings,
-        registrationEnabled: newStatus
-    };
-    
-    store.dispatch(setSettings(updatedSettings));
-    
-    if (!isOfflineMode && database) {
-        database.ref("red_room_system/settings").set(updatedSettings);
-    } else {
-        saveStateToLocalStorage();
-    }
-    
-    const statusStr = newStatus ? "ENABLED" : "DISABLED";
-    showToast(`Student registration has been ${statusStr}!`, "success");
-    refreshUI();
 }
 
 function executeBulkAdjustMemberships() {

@@ -4505,6 +4505,33 @@ function triggerDangerZoneAction(action) {
             descEl.innerHTML = `This will adjust <strong>all active student memberships</strong> by adding <strong>${adjustDays} days</strong> (use negative value to shorten). Expiry dates will be updated in Firebase accordingly.`;
             labelEl.innerHTML = `Type <strong>${expectedConfirmText}</strong> to confirm:`;
             break;
+        case "release_unpaid":
+            expectedConfirmText = "RELEASEUNPAID";
+            descEl.innerHTML = "This will vacate seats for <strong>all members with Unpaid or Partial payment status</strong>, converting their seat bookings to non-reserved.";
+            labelEl.innerHTML = `Type <strong>${expectedConfirmText}</strong> to confirm:`;
+            break;
+        case "purge_inactive":
+            const purgeDaysInput = document.getElementById("purge-inactive-days");
+            const purgeDays = purgeDaysInput ? parseInt(purgeDaysInput.value) : 90;
+            expectedConfirmText = "PURGEINACTIVE" + purgeDays;
+            descEl.innerHTML = `This will permanently delete <strong>all student profiles expired for more than ${purgeDays} days</strong>. Their occupied seats will also be vacated.`;
+            labelEl.innerHTML = `Type <strong>${expectedConfirmText}</strong> to confirm:`;
+            break;
+        case "convert_seats":
+            const convertRoomSelect = document.getElementById("convert-seat-room");
+            const convertDirSelect = document.getElementById("convert-seat-direction");
+            const convertRoom = convertRoomSelect ? convertRoomSelect.value : "1";
+            const convertDir = convertDirSelect ? convertDirSelect.value : "gen_to_res";
+            const convertDirText = convertDir === "gen_to_res" ? "General to Reserved" : "Reserved to General";
+            expectedConfirmText = "CONVERTSEATSTYPE";
+            descEl.innerHTML = `This will convert <strong>all vacant seats in Room ${convertRoom}</strong> from <strong>${convertDirText}</strong> category in bulk.`;
+            labelEl.innerHTML = `Type <strong>${expectedConfirmText}</strong> to confirm:`;
+            break;
+        case "anonymize_data":
+            expectedConfirmText = "ANONYMIZEDATA";
+            descEl.innerHTML = "This will <strong>anonymize all student records</strong> (names, phones, emails, Aadhaar, emergency contacts) in the database for privacy or demo purposes, while maintaining seat layout configurations and billing statistics.";
+            labelEl.innerHTML = `Type <strong>${expectedConfirmText}</strong> to confirm:`;
+            break;
         default:
             return;
     }
@@ -4564,6 +4591,18 @@ function executeDangerZoneAction() {
         case "bulk_adjust":
             executeBulkAdjustMemberships();
             break;
+        case "release_unpaid":
+            executeReleaseUnpaidSeats();
+            break;
+        case "purge_inactive":
+            executePurgeInactiveMembers();
+            break;
+        case "convert_seats":
+            executeConvertSeats();
+            break;
+        case "anonymize_data":
+            executeAnonymizeData();
+            break;
     }
 }
 
@@ -4602,6 +4641,272 @@ function executeBulkAdjustMemberships() {
         saveStateToLocalStorage();
     }
     
+    const direction = adjustDays > 0 ? "extended" : "shortened";
+    showToast(`All active memberships have been ${direction} by ${Math.abs(adjustDays)} days!`, "success");
+    refreshUI();
+}
+
+function executeReleaseUnpaidSeats() {
+    let releasedCount = 0;
+    const updatedMembers = JSON.parse(JSON.stringify(state.members || [])).map(m => {
+        if (m && (m.paymentStatus === "Unpaid" || m.paymentStatus === "Partial")) {
+            if (m.seatId && m.seatId !== "non-reserved") {
+                m.seatId = "non-reserved";
+                releasedCount++;
+            }
+        }
+        return m;
+    });
+
+    if (releasedCount === 0) {
+        showToast("No active unpaid or partial reserved seats found to release.", "info");
+        return;
+    }
+
+    const updatedSeats = JSON.parse(JSON.stringify(state.seats || [])).map(s => {
+        if (s && s.assignedMemberId) {
+            const member = updatedMembers.find(m => m.id === s.assignedMemberId);
+            if (member && member.seatId === "non-reserved") {
+                s.status = "vacant";
+                s.assignedMemberId = null;
+                s.assignedMemberName = null;
+                s.expiryDate = null;
+            }
+        }
+        return s;
+    });
+
+    store.dispatch(setMembers(updatedMembers));
+    store.dispatch(setSeats(updatedSeats));
+
+    if (!isOfflineMode && database) {
+        database.ref("red_room_system/seats").set(updatedSeats);
+        const membersObj = {};
+        updatedMembers.forEach(m => {
+            if (m && m.id) membersObj[m.id] = m;
+        });
+        database.ref("red_room_system/members").set(membersObj);
+    } else {
+        saveStateToLocalStorage();
+    }
+
+    showToast(`Released ${releasedCount} unpaid/partial reserved seats to vacant.`, "success");
+    refreshUI();
+}
+
+function executePurgeInactiveMembers() {
+    const purgeDaysInput = document.getElementById("purge-inactive-days");
+    const purgeDays = purgeDaysInput ? parseInt(purgeDaysInput.value) : 90;
+    if (isNaN(purgeDays) || purgeDays < 30) {
+        showToast("Please enter a valid threshold (at least 30 days).", "error");
+        return;
+    }
+
+    const thresholdDate = new Date();
+    thresholdDate.setDate(thresholdDate.getDate() - purgeDays);
+
+    const membersToKeep = [];
+    const membersToPurge = [];
+
+    (state.members || []).forEach(m => {
+        if (m) {
+            const isExpired = m.status === "expired" || m.status === "demo-expired" || (m.expiryDate && new Date(m.expiryDate) < new Date());
+            const expiryTime = m.expiryDate ? new Date(m.expiryDate) : null;
+            
+            if (isExpired && expiryTime && expiryTime < thresholdDate) {
+                membersToPurge.push(m);
+            } else {
+                membersToKeep.push(m);
+            }
+        }
+    });
+
+    if (membersToPurge.length === 0) {
+        showToast(`No member profiles found expired for more than ${purgeDays} days.`, "info");
+        return;
+    }
+
+    // Vacate seats for purged members
+    const purgedIds = new Set(membersToPurge.map(m => m.id));
+    const updatedSeats = JSON.parse(JSON.stringify(state.seats || [])).map(s => {
+        if (s && s.assignedMemberId && purgedIds.has(s.assignedMemberId)) {
+            s.status = "vacant";
+            s.assignedMemberId = null;
+            s.assignedMemberName = null;
+            s.expiryDate = null;
+        }
+        return s;
+    });
+
+    // Remove purged phones from registered index
+    const updatedRegisteredPhones = { ...state.registered_phones };
+    membersToPurge.forEach(m => {
+        if (m.phone) {
+            const cleanPhone = m.phone.replace(/\D/g, "").slice(-10);
+            delete updatedRegisteredPhones[cleanPhone];
+        }
+    });
+
+    store.dispatch(setMembers(membersToKeep));
+    store.dispatch(setSeats(updatedSeats));
+    store.dispatch(setRegisteredPhones(updatedRegisteredPhones));
+
+    if (!isOfflineMode && database) {
+        database.ref("red_room_system/seats").set(updatedSeats);
+        database.ref("red_room_system/registered_phones").set(updatedRegisteredPhones);
+        
+        // Remove individually from Firebase
+        membersToPurge.forEach(m => {
+            database.ref("red_room_system/members").child(m.id).remove();
+        });
+    } else {
+        saveStateToLocalStorage();
+    }
+
+    showToast(`Permanently purged ${membersToPurge.length} inactive expired profiles.`, "success");
+    refreshUI();
+}
+
+function executeConvertSeats() {
+    const convertRoomSelect = document.getElementById("convert-seat-room");
+    const convertDirSelect = document.getElementById("convert-seat-direction");
+    const convertRoom = convertRoomSelect ? parseInt(convertRoomSelect.value) : 1;
+    const convertDir = convertDirSelect ? convertDirSelect.value : "gen_to_res";
+
+    const targetType = convertDir === "gen_to_res" ? "general" : "reserved";
+    const newType = convertDir === "gen_to_res" ? "reserved" : "general";
+
+    let convertedCount = 0;
+    const updatedSeats = JSON.parse(JSON.stringify(state.seats || [])).map(s => {
+        if (s && s.room === convertRoom && s.status === "vacant" && s.type === targetType) {
+            s.type = newType;
+            convertedCount++;
+        }
+        return s;
+    });
+
+    if (convertedCount === 0) {
+        showToast(`No vacant ${targetType} seats found in Room ${convertRoom} to convert.`, "info");
+        return;
+    }
+
+    store.dispatch(setSeats(updatedSeats));
+
+    if (!isOfflineMode && database) {
+        database.ref("red_room_system/seats").set(updatedSeats);
+    } else {
+        saveStateToLocalStorage();
+    }
+
+    const typeText = newType === "reserved" ? "Reserved" : "General";
+    showToast(`Successfully converted ${convertedCount} vacant seats to ${typeText} in Room ${convertRoom}.`, "success");
+    refreshUI();
+}
+
+function executeAnonymizeData() {
+    let anonymizedCount = 0;
+    const cleanRegisteredPhones = {};
+
+    // 1. Anonymize Members
+    const anonymizedMembers = JSON.parse(JSON.stringify(state.members || [])).map((m, index) => {
+        if (m) {
+            anonymizedCount++;
+            
+            // Mask Name (Keep initials)
+            const nameParts = m.name ? m.name.trim().split(/\s+/) : ["Student"];
+            const initialName = nameParts[0].charAt(0).toUpperCase() + "." + (nameParts.length > 1 ? " " + nameParts[nameParts.length - 1].charAt(0).toUpperCase() + "." : "");
+            m.name = `Member ${initialName}`;
+            
+            // Mask Phone numbers
+            const oldPhone = m.phone ? m.phone.replace(/\D/g, "").slice(-10) : "9876543210";
+            const newPhone = "98765" + oldPhone.slice(-5);
+            m.phone = newPhone;
+            
+            if (m.fatherPhone) m.fatherPhone = "98765" + m.fatherPhone.replace(/\D/g, "").slice(-5);
+            if (m.motherPhone) m.motherPhone = "98765" + m.motherPhone.replace(/\D/g, "").slice(-5);
+            if (m.emergencyPhone) m.emergencyPhone = "98765" + m.emergencyPhone.replace(/\D/g, "").slice(-5);
+            
+            m.fatherName = "Father";
+            m.motherName = "Mother";
+            m.emergencyName = "Emergency Contact";
+            
+            m.email = `member-${m.id}@example.com`;
+            m.govId = encryptData("123456789012"); // Masked Aadhaar
+            
+            m.street = "Masked Street Address";
+            m.city = "Bhilai";
+            m.state = "Chhattisgarh";
+            m.zip = "490006";
+            
+            m.permanentStreet = "Masked Street Address";
+            m.permanentCity = "Bhilai";
+            m.permanentState = "Chhattisgarh";
+            m.permanentZip = "490006";
+            
+            // Re-populate clean registered phone key
+            cleanRegisteredPhones[newPhone] = { status: m.status || "active" };
+        }
+        return m;
+    });
+
+    // 2. Anonymize Pending Bookings
+    const anonymizedPending = JSON.parse(JSON.stringify(state.pending || [])).map((p, index) => {
+        if (p) {
+            p.name = `Pending Guest ${index + 1}`;
+            p.phone = "98765" + (p.phone ? p.phone.replace(/\D/g, "").slice(-5) : "54321");
+            p.email = `guest-${p.id || index}@example.com`;
+            p.govId = encryptData("123456789012");
+            
+            if (p.fatherPhone) p.fatherPhone = "9876554321";
+            if (p.motherPhone) p.motherPhone = "9876554321";
+            p.fatherName = "Father";
+            p.motherName = "Mother";
+            p.street = "Masked Address";
+        }
+        return p;
+    });
+
+    // 3. Update Visual Seat Assignee Names
+    const updatedSeats = JSON.parse(JSON.stringify(state.seats || [])).map(s => {
+        if (s && s.assignedMemberId) {
+            const member = anonymizedMembers.find(m => m.id === s.assignedMemberId);
+            if (member) {
+                s.assignedMemberName = member.name;
+            }
+        }
+        return s;
+    });
+
+    store.dispatch(setMembers(anonymizedMembers));
+    store.dispatch(setPending(anonymizedPending));
+    store.dispatch(setSeats(updatedSeats));
+    store.dispatch(setRegisteredPhones(cleanRegisteredPhones));
+
+    if (!isOfflineMode && database) {
+        database.ref("red_room_system/seats").set(updatedSeats);
+        database.ref("red_room_system/registered_phones").set(cleanRegisteredPhones);
+        
+        // Write anonymized members
+        const membersObj = {};
+        anonymizedMembers.forEach(m => {
+            if (m && m.id) membersObj[m.id] = m;
+        });
+        database.ref("red_room_system/members").set(membersObj);
+        
+        // Write anonymized pending
+        const pendingObj = {};
+        anonymizedPending.forEach(p => {
+            if (p && p.id) pendingObj[p.id] = p;
+        });
+        database.ref("pending_bookings").set(pendingObj);
+    } else {
+        saveStateToLocalStorage();
+    }
+
+    showToast(`Successfully anonymized ${anonymizedCount} student records.`, "success");
+    refreshUI();
+}
+
     const direction = adjustDays > 0 ? "extended" : "shortened";
     showToast(`All active memberships have been ${direction} by ${Math.abs(adjustDays)} days!`, "success");
     refreshUI();
